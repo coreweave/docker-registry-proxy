@@ -97,6 +97,13 @@ ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
 # Should we allow actions different than pull, default to false.
 ENV ALLOW_PUSH="false"
 
+# Should we allow overridding with own authentication, default to false.
+ENV ALLOW_OWN_AUTH="false"
+
+# Should we allow push only with own authentication, default to false.
+ENV ALLOW_PUSH_WITH_OWN_AUTH="false"
+
+
 # Timeouts
 # ngx_http_core_module
 ENV SEND_TIMEOUT="60s"
