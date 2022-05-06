@@ -9,11 +9,6 @@ stages:
   - build
   - release
 
-variables:
-  DOCKER_DRIVER: overlay2
-  CONTAINER_TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-  TRIVY_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-
 build:
   stage: build
   variables:
@@ -32,6 +27,9 @@ build:
       --dockerfile $DOCKERFILE \
       --destination $REF_IMAGE \
       --destination $FIXED_IMAGE
+  rules:
+    - changes:
+        - *
 
 build:release:
   stage: build

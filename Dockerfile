@@ -102,6 +102,12 @@ ENV MANIFEST_CACHE_DEFAULT_TIME="1h"
 # Should we allow actions different than pull, default to false.
 ENV ALLOW_PUSH="false"
 
+# Should we allow overridding with own authentication, default to false.
+ENV ALLOW_OWN_AUTH="false"
+
+# Should we allow push only with own authentication, default to false.
+ENV ALLOW_PUSH_WITH_OWN_AUTH="false"
+
 # If push is allowed, buffering requests can cause issues on slow upstreams.
 # If you have trouble pushing, set this to false first, then fix remainig timouts.
 # Default is true to not change default behavior.
