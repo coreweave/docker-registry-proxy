@@ -27,9 +27,16 @@ build:
       --dockerfile $DOCKERFILE \
       --destination $REF_IMAGE \
       --destination $FIXED_IMAGE
-  rules:
-    - changes:
-        - *
+  only:
+    changes:
+      - Dockerfile
+      - entrypoint.sh
+      - LICENSE
+      - liveliness.sh
+      - nginx.conf
+      - nginx.manifest.common.conf
+      - nginx.manifest.stale.conf
+      - create_ca_cert.sh
 
 build:release:
   stage: build

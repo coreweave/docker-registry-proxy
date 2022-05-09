@@ -50,7 +50,7 @@ ADD entrypoint.sh /entrypoint.sh
 ADD create_ca_cert.sh /create_ca_cert.sh
 RUN chmod +x /create_ca_cert.sh /entrypoint.sh
 
-# Add Liveliness Probe script
+# Add Liveliness Probe script for CoreWeave
 RUN apk --no-cache add curl
 ADD liveliness.sh /liveliness.sh
 RUN chmod +x /liveliness.sh
