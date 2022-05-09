@@ -3,7 +3,7 @@ default:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [ "" ]
   tags:
-    - ord1-tenant
+    - ord1-tenant-acc
 
 stages:
   - build
