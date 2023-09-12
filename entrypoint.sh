@@ -291,6 +291,18 @@ cat /etc/nginx/nginx.timeouts.config.conf
 echo -e "---\n"
 
 # Request buffering
+echo "" > /etc/nginx/proxy.buffering.conf
+if [[ "a${PROXY_BUFFERING}" == "afalse" ]]; then
+  cat << EOD > /etc/nginx/proxy.buffering.conf
+  proxy_buffering off;
+EOD
+fi
+
+echo -e "\nBuffering: ---"
+cat /etc/nginx/proxy.buffering.conf
+echo -e "---\n"
+
+# Request buffering
 echo "" > /etc/nginx/proxy.request.buffering.conf
 if [[ "a${PROXY_REQUEST_BUFFERING}" == "afalse" ]]; then
   cat << EOD > /etc/nginx/proxy.request.buffering.conf

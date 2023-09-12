@@ -106,6 +106,11 @@ ENV ALLOW_PUSH="false"
 # Default is true to not change default behavior.
 ENV PROXY_REQUEST_BUFFERING="true"
 
+# Stream data; reduce TTFB
+# Effectively disables caching
+# Default is true to not change default behavior.
+ENV PROXY_BUFFERING="true"
+
 # Should we allow overridding with own authentication, default to false.
 ENV ALLOW_OWN_AUTH="false"
 
