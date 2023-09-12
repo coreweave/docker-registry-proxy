@@ -7,10 +7,14 @@ default:
 
 workflow:
   rules:
-    - if: $CI_SOURCE_BRANCH != "coreweave"
-      variables: &variables
+    - if: '$CI_COMMIT_BRANCH != "coreweave"'
+      variables:
           DEBUG_IMAGE: "1"
           IMAGE_SUFFIX: "-debug"
+    - if: '$CI_COMMIT_BRANCH == "coreweave"'
+      variables:
+          DEBUG_IMAGE: "0"
+          IMAGE_SUFFIX: ""
 
 stages:
   - build
@@ -19,7 +23,6 @@ stages:
 build:
   stage: build
   variables:
-    <<: *variables
     REF_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
     FIXED_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
     DOCKERFILE: ${CI_PROJECT_DIR}/Dockerfile
@@ -49,6 +52,7 @@ build:
       - nginx.manifest.common.conf
       - nginx.manifest.stale.conf
       - create_ca_cert.sh
+      - .gitlab-ci.yml
 
 build:release:
   stage: build
@@ -74,7 +78,6 @@ release:
   dependencies:
     - build:release
   variables:
-    <<: *variables
     DOCKERFILE: $CI_PROJECT_DIR/Dockerfile
     LATEST_IMAGE: $CI_REGISTRY_IMAGE:latest
     REGPROXY_URI: ${REGPROXY_URI}
