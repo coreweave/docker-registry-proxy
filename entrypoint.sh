@@ -99,6 +99,10 @@ echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.wa
 
 # Set Docker Registry cache size, by default, 32 GB ('32g')
 CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
+CACHE_DEFAULT_TIME=${CACHE_DEFAULT_TIME:-60d}
+
+# Set default cache valid time for 200 and 205 response.
+sed -i "/# Cache all 200, 206 for 60 days default./a\        proxy_cache_valid 200 206 ${CACHE_DEFAULT_TIME};" /etc/nginx/nginx.conf
 
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough
