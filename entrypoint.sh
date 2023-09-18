@@ -99,14 +99,15 @@ echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.wa
 
 # Set Docker Registry cache size, by default, 32 GB ('32g')
 CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
-CACHE_DEFAULT_TIME=${CACHE_DEFAULT_TIME:-60d}
-
-# Set default cache valid time for 200 and 205 response.
-sed -i "/# Cache all 200, 206 for 60 days default./a\        proxy_cache_valid 200 206 ${CACHE_DEFAULT_TIME};" /etc/nginx/nginx.conf
 
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough
 echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE min_free=${CACHE_MIN_FREE:-1g} inactive=${CACHE_INACTIVE_TIME:-60d} keys_zone=cache:15m use_temp_path=off manager_threshold=${CACHE_MANAGER_THRESHOLD:-1000ms} manager_sleep=${CACHE_MANAGER_SLEEP:-250ms} manager_files=${CACHE_MANAGER_FILES:-100} loader_files=${CACHE_LOADER_FILES:-100} loader_threshold=${CACHE_LOADER_THRESHOLD:-200ms} loader_sleep=${CACHE_MANAGER_SLEEP:-50ms};" > /etc/nginx/conf.d/cache_max_size.conf
+
+CACHE_VALID_TIME=${CACHE_VALID_TIME:-60d}
+
+# Set default cache valid time for 200 and 205 response.
+sed -i "/# Cache all 200, 206 for 60 days default./a\        proxy_cache_valid 200 206 ${CACHE_VALID_TIME};" /etc/nginx/nginx.conf
 
 # Manifest caching configuration. We generate config based on the environment vars.
 echo -n "" >/etc/nginx/nginx.manifest.caching.config.conf
