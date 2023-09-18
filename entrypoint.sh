@@ -104,6 +104,7 @@ CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
 # Set to 32gb which should be enough
 echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE min_free=${CACHE_MIN_FREE:-1g} inactive=${CACHE_INACTIVE_TIME:-60d} keys_zone=cache:15m use_temp_path=off manager_threshold=${CACHE_MANAGER_THRESHOLD:-1000ms} manager_sleep=${CACHE_MANAGER_SLEEP:-250ms} manager_files=${CACHE_MANAGER_FILES:-100} loader_files=${CACHE_LOADER_FILES:-100} loader_threshold=${CACHE_LOADER_THRESHOLD:-200ms} loader_sleep=${CACHE_MANAGER_SLEEP:-50ms};" > /etc/nginx/conf.d/cache_max_size.conf
 
+# Set Docker Registry cache valid time, by default, 60 day ('60d')
 CACHE_VALID_TIME=${CACHE_VALID_TIME:-60d}
 
 # Set default cache valid time for 200 and 205 response.
