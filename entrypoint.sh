@@ -116,7 +116,7 @@ min_free=$(sed 's/g//I' <<< "${CACHE_MIN_FREE:-1g}")
 # Compare available space with the threshold
 if [ "${free_space}" -lt "${min_free}" ]; then
     echo "Free space in ${CACHE_DIRECTORY} is $free_space; less than defined CACHE_MIN_FREE $min_free; attempting clean-up before starting"
-    rm -rf "${CACHE_DIRECTORY}/*"
+    rm -rf "${CACHE_DIRECTORY:?}"/*
 fi
 
 # Set Docker Registry cache valid time, by default, 60 day ('60d')
