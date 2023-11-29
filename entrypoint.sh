@@ -100,9 +100,24 @@ echo "error_log  /var/log/nginx/error.log warn;" > /etc/nginx/error.log.debug.wa
 # Set Docker Registry cache size, by default, 32 GB ('32g')
 CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-32g}
 
+# Set cache directory location, by default, /docker_mirror_cache
+CACHE_DIRECTORY=${CACHE_DIRECTORY:-/docker_mirror_cache}
+
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough
-echo "proxy_cache_path /docker_mirror_cache levels=1:2 max_size=$CACHE_MAX_SIZE min_free=${CACHE_MIN_FREE:-1g} inactive=${CACHE_INACTIVE_TIME:-60d} keys_zone=cache:15m use_temp_path=off manager_threshold=${CACHE_MANAGER_THRESHOLD:-1000ms} manager_sleep=${CACHE_MANAGER_SLEEP:-250ms} manager_files=${CACHE_MANAGER_FILES:-100} loader_files=${CACHE_LOADER_FILES:-100} loader_threshold=${CACHE_LOADER_THRESHOLD:-200ms} loader_sleep=${CACHE_MANAGER_SLEEP:-50ms};" > /etc/nginx/conf.d/cache_max_size.conf
+echo "proxy_cache_path ${CACHE_DIRECTORY} levels=1:2 max_size=$CACHE_MAX_SIZE min_free=${CACHE_MIN_FREE:-1g} inactive=${CACHE_INACTIVE_TIME:-60d} keys_zone=cache:15m use_temp_path=off manager_threshold=${CACHE_MANAGER_THRESHOLD:-1000ms} manager_sleep=${CACHE_MANAGER_SLEEP:-250ms} manager_files=${CACHE_MANAGER_FILES:-100} loader_files=${CACHE_LOADER_FILES:-100} loader_threshold=${CACHE_LOADER_THRESHOLD:-200ms} loader_sleep=${CACHE_LOADER_SLEEP:-50ms};" > /etc/nginx/conf.d/cache_max_size.conf
+
+# Clear the cache directory if the free space is less than the threshold
+# Get the available space in the directory
+free_space=$(df -BG "${CACHE_DIRECTORY}" | awk 'NR==2 {print $4}' | tr -d 'G')
+
+min_free=$(sed 's/g//I' <<< "${CACHE_MIN_FREE:-1g}")
+
+# Compare available space with the threshold
+if [ "${free_space}" -lt "${min_free}" ]; then
+    echo "Free space in ${CACHE_DIRECTORY} is $free_space; less than defined CACHE_MIN_FREE $min_free; attempting clean-up before starting"
+    rm -rf "${CACHE_DIRECTORY}/*"
+fi
 
 # Set Docker Registry cache valid time, by default, 60 day ('60d')
 CACHE_VALID_TIME=${CACHE_VALID_TIME:-60d}
