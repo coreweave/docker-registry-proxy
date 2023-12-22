@@ -105,7 +105,28 @@ CACHE_DIRECTORY=${CACHE_DIRECTORY:-/docker_mirror_cache}
 
 # The cache directory. This can get huge. Better to use a Docker volume pointing here!
 # Set to 32gb which should be enough
-echo "proxy_cache_path ${CACHE_DIRECTORY} levels=1:2 max_size=$CACHE_MAX_SIZE min_free=${CACHE_MIN_FREE:-1g} inactive=${CACHE_INACTIVE_TIME:-60d} keys_zone=cache:15m use_temp_path=off manager_threshold=${CACHE_MANAGER_THRESHOLD:-1000ms} manager_sleep=${CACHE_MANAGER_SLEEP:-250ms} manager_files=${CACHE_MANAGER_FILES:-100} loader_files=${CACHE_LOADER_FILES:-100} loader_threshold=${CACHE_LOADER_THRESHOLD:-200ms} loader_sleep=${CACHE_LOADER_SLEEP:-50ms};" > /etc/nginx/conf.d/cache_max_size.conf
+echo "proxy_cache_path ${CACHE_DIRECTORY} levels=1:2 max_size=${CACHE_MAX_SIZE:-15g} min_free=${CACHE_MIN_FREE:-1g} inactive=${CACHE_INACTIVE_TIME:-60d} keys_zone=cache:${CACHE_KEYS_ZONE:-15m} use_temp_path=off manager_threshold=${CACHE_MANAGER_THRESHOLD:-1000ms} manager_sleep=${CACHE_MANAGER_SLEEP:-250ms} manager_files=${CACHE_MANAGER_FILES:-100} loader_files=${CACHE_LOADER_FILES:-100} loader_threshold=${CACHE_LOADER_THRESHOLD:-200ms} loader_sleep=${CACHE_LOADER_SLEEP:-50ms};" > /etc/nginx/conf.d/cache_max_size.conf
+
+if [[ "a${SLOW_TIER_ENABLED}" == "atrue" ]]; then
+    {
+        echo ""
+        echo "proxy_cache_path ${SLOW_CACHE_DIRECTORY} levels=1:2 max_size=${SLOW_CACHE_MAX_SIZ:-15g} min_free=${SLOW_CACHE_MIN_FREE:-1g} inactive=${SLOW_CACHE_INACTIVE_TIME:-120d} keys_zone=slow_cache:${SLOW_CACHE_KEYS_ZONE:-150m} use_temp_path=off manager_threshold=${SLOW_CACHE_MANAGER_THRESHOLD:-1000ms} manager_sleep=${SLOW_CACHE_MANAGER_SLEEP:-250ms} manager_files=${SLOW_CACHE_MANAGER_FILES:-100} loader_files=${SLOW_CACHE_LOADER_FILES:-100} loader_threshold=${SLOW_CACHE_LOADER_THRESHOLD:-200ms} loader_sleep=${SLOW_CACHE_LOADER_SLEEP:-50ms};"
+        echo ""
+        echo "map \$request_uri \$cache {"
+        echo "    ${SLOW_TIER_URIS%;};" | sed 's/;/  slow_cache;\n    /g'
+        echo "    default cache;"
+        echo "}"
+        echo ""
+    } >> /etc/nginx/conf.d/cache_max_size.conf; else
+
+    {
+        echo ""
+        echo "map \$request_uri \$cache {"
+        echo "    default cache;"
+        echo "}"
+        echo ""
+    } >> /etc/nginx/conf.d/cache_max_size.conf;
+fi
 
 # Clear the cache directory if the free space is less than the threshold
 # Get the available space in the directory

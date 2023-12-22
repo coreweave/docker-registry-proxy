@@ -75,6 +75,8 @@ ENV DEBUG="false"
 ENV DEBUG_HUB="false"
 # Enable nginx debugging mode; this uses nginx-debug binary and enabled debug logging, which is VERY verbose so separate setting
 ENV DEBUG_NGINX="false"
+# Enable slow caching tier; this allows caching in a secondary cache path on e.g a larger slower disk; for known URIs defined in SLOW_TIER_URIS
+ENV SLOW_TIER_ENABLED="false"
 
 # Manifest caching tiers. Disabled by default, to mimick 0.4/0.5 behaviour.
 # Setting it to true enables the processing of the ENVs below.
