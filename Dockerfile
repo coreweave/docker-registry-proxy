@@ -77,6 +77,8 @@ ENV DEBUG_HUB="false"
 ENV DEBUG_NGINX="false"
 # Enable slow caching tier; this allows caching in a secondary cache path on e.g a larger slower disk; for known URIs defined in SLOW_TIER_URIS
 ENV SLOW_TIER_ENABLED="false"
+# Statically define worker_processes; defaults to auto
+ENV WORKER_PROCESSES="auto"
 
 # Manifest caching tiers. Disabled by default, to mimick 0.4/0.5 behaviour.
 # Setting it to true enables the processing of the ENVs below.

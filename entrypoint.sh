@@ -374,6 +374,9 @@ else
     echo "Upstream SSL certificate verification is DISABLED."
 fi
 
+# Set worker processes if provided
+sed -i "s/worker_processes  auto;/worker_processes  ${WORKER_PROCESSES};/g" /etc/nginx/nginx.conf
+
 echo "Testing nginx config..."
 ${NGINX_BIN} -t
 
