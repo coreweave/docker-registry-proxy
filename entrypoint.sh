@@ -135,7 +135,7 @@ free_space=$(df -BG "${CACHE_DIRECTORY}" | awk 'NR==2 {print $4}' | tr -d 'G')
 min_free=$(sed 's/g//I' <<< "${CACHE_MIN_FREE:-1g}")
 
 # Compare available space with the threshold
-if [ "${free_space}" -lt "${min_free}" ]; then
+if [[ ! ("${free_space}" -gt "${min_free}") ]]; then
     echo "Free space in ${CACHE_DIRECTORY} is $free_space; less than defined CACHE_MIN_FREE $min_free; attempting clean-up before starting"
     rm -rf "${CACHE_DIRECTORY:?}"/*
 fi
