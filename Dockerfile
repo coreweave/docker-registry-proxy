@@ -1,8 +1,10 @@
 # We start from my nginx fork which includes the proxy-connect module from tEngine
 # Source is available at https://github.com/rpardini/nginx-proxy-connect-stable-alpine
 # This is already multi-arch!
-ARG BASE_IMAGE="docker.io/rpardini/nginx-proxy-connect-stable-alpine:nginx-1.20.1-alpine-3.12.7"
+ARG BASE_IMAGE="registry.gitlab.com/coreweave/nginx-proxy-connect-stable-alpine:v1.0.1"
+ARG DEBUG_IMAGE
 # Could be "-debug"
+
 ARG BASE_IMAGE_SUFFIX="${IMAGE_SUFFIX}"
 FROM ${BASE_IMAGE}${BASE_IMAGE_SUFFIX}
 
@@ -13,12 +15,14 @@ LABEL org.opencontainers.image.source https://github.com/rpardini/docker-registr
 RUN apk add --no-cache --update bash ca-certificates-bundle coreutils openssl
 
 # If set to 1, enables building mitmproxy, which helps a lot in debugging, but is super heavy to build.
+ARG DEBUG_IMAGE
 ARG DO_DEBUG_BUILD="${DEBUG_IMAGE:-"0"}"
 
 # Build mitmproxy via pip. This is heavy, takes minutes do build and creates a 90mb+ layer. Oh well.
 RUN [[ "a$DO_DEBUG_BUILD" == "a1" ]] && { echo "Debug build ENABLED." \
- && apk add --no-cache --update su-exec git g++ libffi libffi-dev libstdc++ openssl-dev python3 python3-dev py3-pip py3-wheel py3-six py3-idna py3-certifi py3-setuptools \
- && LDFLAGS=-L/lib pip install MarkupSafe==2.0.1 mitmproxy==5.2 \
+ && apk add --no-cache --update su-exec cargo bsd-compat-headers git g++ libffi libffi-dev libstdc++ openssl-dev python3 python3-dev py3-pip py3-wheel py3-six py3-idna py3-certifi py3-setuptools \
+ && rm /usr/lib/python3.*/EXTERNALLY-MANAGED \
+ && LDFLAGS=-L/lib pip install MarkupSafe mitmproxy \
  && apk del --purge git g++ libffi-dev openssl-dev python3-dev py3-pip py3-wheel \
  && rm -rf ~/.cache/pip \
  ; } || { echo "Debug build disabled." ; }
