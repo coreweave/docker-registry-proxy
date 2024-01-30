@@ -110,6 +110,9 @@ ENV ALLOW_PUSH="false"
 # Default is true to not change default behavior.
 ENV PROXY_REQUEST_BUFFERING="true"
 
+# Force HTTP/1.1 upstream connections, for http2 upstream that returns 426 Upgrade Required
+ENV FORCE_UPSTREAM_HTTP_1_1="false"
+
 # Stream data; reduce TTFB
 # Effectively disables caching
 # Default is true to not change default behavior.
