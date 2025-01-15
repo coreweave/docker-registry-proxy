@@ -1,0 +1,77 @@
+regproxy:
+  replicas: 19
+  service:
+    loadBalancerIP: "193.25.126.17"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: gpu.nvidia.com/model
+                operator: In
+                values:
+                  - A40
+              - key: node.coreweave.cloud/cni
+                operator: In
+                values:
+                  - calico
+              - key: node.coreweave.cloud/service-proxy
+                operator: NotIn
+                values:
+                  - kube-proxy
+              - key: topology.kubernetes.io/region
+                operator: NotIn
+                values:
+                  - BUF1
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 10
+          preference:
+            matchExpressions:
+              - key: node.coreweave.cloud/class
+                operator: In
+                values:
+                  - control-plane
+        - weight: 80
+          preference:
+            matchExpressions:
+              - key: node.coreweave.cloud/registry-proxy
+                operator: In
+                values:
+                  - "false"
+        - weight: 80
+          preference:
+            matchExpressions:
+              - key: ethernet.coreweave.cloud/speed
+                operator: In
+                values:
+                  - 25G
+                  - 40G
+                  - 100G
+        - weight: 60
+          preference:
+            matchExpressions:
+              - key: ethernet.coreweave.cloud/speed
+                operator: In
+                values:
+                  - 10G
+  topologySpreadConstraints:
+    - labelSelector:
+        matchLabels:
+          k8s-app: regproxy
+      maxSkew: 1
+      topologyKey: topology.kubernetes.io/region
+      whenUnsatisfiable: DoNotSchedule
+    - labelSelector:
+        matchLabels:
+          k8s-app: regproxy
+      maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+  tolerations:
+  - key: node.coreweave.cloud/service-proxy
+    value: kube-proxy
+    operator: Equal
+  - key: is_cpu_compute
+    operator: Exists
+  - key: is_gpu_compute
+    operator: Exists

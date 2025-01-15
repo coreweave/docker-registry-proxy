@@ -1,0 +1,94 @@
+coreweave:
+  clusterSecretStores:
+    regproxy:
+      project: regproxy
+      config: prod
+  externalSecrets:
+    auth-registries:
+      secretStoreName: regproxy
+      dataFrom:
+        - find:
+            decodingStrategy: Auto
+            name:
+              regexp: AUTH_REGISTRIES
+          rewrite:
+            - regexp:
+                source: .*
+                target: registries
+    regproxy-ca:
+      secretStoreName: regproxy
+      type: kubernetes.io/tls
+      dataFrom:
+        - find:
+            decodingStrategy: Auto
+            name:
+              regexp: CA_CERT
+          rewrite:
+            - regexp:
+                source: .*
+                target: tls.crt
+        - find:
+            decodingStrategy: Auto
+            name:
+              regexp: CA_KEY
+          rewrite:
+            - regexp:
+                source: .*
+                target: tls.key
+
+regproxy:
+  enabled: true
+  image: registry.gitlab.com/coreweave/docker-registry-proxy:v1.14.2
+  rbac:
+    create: false
+  service:
+    externalTrafficPolicy: "Local"
+  slowCache:
+    enabled: true
+  resources:
+    requests:
+      cpu: 2000m
+      memory: 360Gi
+      ephemeral-storage: 1Ti
+    limits:
+      memory: 360Gi
+      ephemeral-storage: 2Ti
+  env:
+    - name: WORKER_PROCESSES
+      valueFrom:
+        resourceFieldRef:
+          containerName: proxy
+          resource: limits.cpu
+    - name: SLOW_TIER_ENABLED
+      value: "true"
+    - name: SLOW_TIER_URIS
+      value: "~^/v2/replicate-production/(.*);~^/v2/fastertransformer_fudge/(.*);~^/v2/simplertransformer/(.*)"
+    - name: SLOW_CACHE_DIRECTORY
+      value: /slow_docker_mirror_cache
+    - name: CURL_TIMEOUT
+      value: "5"
+    - name: CACHE_MIN_FREE
+      value: "15g"
+    - name: REGISTRIES
+      value: "gcr.io quay.io registry.gitlab.com registry.crowdstrike.com nvcr.io cvedia.azurecr.io inflacr.azurecr.io inf5acr.azurecr.io ghcr.io us-docker.pkg.dev gitlab.com docker.artifacts.coreweave.com docker.cloudsmith.io" # gitlab.com required for pull-through auth of utility-images-customer-private
+    - name: CACHE_MAX_SIZE
+      value: "350g"
+    - name: ENABLE_MANIFEST_CACHE
+      value: "true"
+    - name: AUTH_REGISTRIES
+      valueFrom:
+        secretKeyRef:
+          key: registries
+          name: auth-registries
+    - name: ALLOW_OWN_AUTH
+      value: "true"
+    - name: ALLOW_PUSH_WITH_OWN_AUTH
+      value: "true"
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 3128
+      scheme: HTTP
+    failureThreshold: 2
+    periodSeconds: 10
+    timeoutSeconds: 10

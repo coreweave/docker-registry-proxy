@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-projects
+  namespace: akuity
+spec:
+  destination:
+    namespace: regproxy
+    server: "http://cluster-rt-test-cluster:8001"
+  project: core
+  source:
+    repoURL: https://github.com/coreweave/docker-registry-proxy.git
+    path: helm/regproxy
+    targetRevision: rt/deploy-testing
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+syncPolicy:
+  automated: {}

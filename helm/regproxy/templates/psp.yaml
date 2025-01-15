@@ -1,0 +1,67 @@
+{{- if and .Values.regproxy.rbac.create (.Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy") }}
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: regproxy
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: true
+  allowedCapabilities:
+    - NET_BIND_SERVICE
+  # Allow core volume types.
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+    - 'hostPath'
+  allowedHostPaths:
+    - pathPrefix: /var/lib/lxcfs
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    #    # Require the container to run without root privileges.
+    #    rule: 'MustRunAsNonRoot'
+    rule: 'RunAsAny'
+  seLinux:
+    # This policy assumes the nodes are using AppArmor rather than SELinux.
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: false
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: psp:regproxy
+rules:
+- apiGroups:
+  - extensions
+  resources:
+  - podsecuritypolicies
+  resourceNames:
+  - regproxy
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: psp:regproxy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: psp:regproxy
+subjects:
+- kind: ServiceAccount
+  name: regproxy
+  namespace: regproxy
+{{- end }}

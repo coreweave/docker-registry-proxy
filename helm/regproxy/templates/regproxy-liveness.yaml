@@ -1,0 +1,37 @@
+---
+apiVersion: v1
+data:
+  liveliness.sh: |+
+    #!/bin/bash
+
+    IFS=', '
+
+    read -r -a repos <<< "$LIVELINESS_REPOS"
+
+    for i in "${repos[@]}"
+    do
+      echo "repo $i liveliness check..."
+      response=$(curl --head -L -w '%{http_code}' -o /dev/null -s -k -x http://127.0.0.1:3128 "$i" -m "${CURL_TIMEOUT:-2}")
+      if [[ "$response" -lt "200" ]] || [[ "$response" -ge "400" ]]; then
+        echo "failed curl for repo $i with response $response" >&2
+        exit 1
+      fi
+    done
+
+    cache_dir="/docker_mirror_cache"
+
+    # Get the available space in the directory
+    free_space=$(df -BG "${cache_dir}" | awk 'NR==2 {print $4}' | tr -d 'G')
+    # Offset by a bit to prevent race condition w/ cache manager clean-up
+    min_free=$[$(sed 's/g//I' <<< "${CACHE_MIN_FREE:-10g}")-5]
+
+    # Compare available space with the threshold
+    if [ "${free_space}" -lt "${min_free}" ]; then
+        echo "Free space in $cache_dir is $free_space; less than defined CACHE_MIN_FREE $min_free" >&2
+        echo "true" > /docker_mirror_cache/wipe_me
+        exit 1
+    fi
+
+kind: ConfigMap
+metadata:
+  name: regproxy-liveliness

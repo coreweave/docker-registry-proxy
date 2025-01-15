@@ -1,0 +1,14 @@
+---
+# This applies psp/regproxy to the regproxy ServiceAccount
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: psp:regproxy
+subjects:
+  - kind: ServiceAccount
+    name: regproxy
+    namespace: regproxy
+roleRef:
+  kind: ClusterRole
+  name: psp:regproxy # A references to the role defined in k8s-cluster/in-cluster-config
+  apiGroup: rbac.authorization.k8s.io

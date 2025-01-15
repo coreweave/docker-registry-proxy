@@ -1,0 +1,10 @@
+regproxy:
+  enabled: false #Default false until further configuration is validated
+  dev: true
+  replicas: 1
+  image: registry.gitlab.com/atlantic-crypto/docker-registry-proxy:regproxy-probe
+  resources:
+    requests:
+      cpu: 250m
+      memory: 500Mi
+      ephemeral-storage: 1Gi

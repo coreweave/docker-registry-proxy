@@ -1,0 +1,15 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: regproxy
+  links:
+  - title: Deployment Definition URL
+    url: https://github.com/coreweave/k8s-services/tree/master/apps/common/regproxy
+    icon: code
+  description: TODO
+
+spec:
+  type: service
+  lifecycle: unknown
+  owner: group:cw/team_TODO
+  system: TODO
