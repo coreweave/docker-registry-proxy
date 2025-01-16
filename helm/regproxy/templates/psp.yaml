@@ -4,6 +4,7 @@ apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: regproxy
+  namespace: {{ $.Release.Namespace }}
   annotations:
     seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
 spec:

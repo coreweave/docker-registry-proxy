@@ -4,6 +4,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: regproxy-directpath
+  namespace: {{ $.Release.Namespace }}
   labels:
     k8s-app: regproxy
     kubernetes.io/cluster-service: "true"

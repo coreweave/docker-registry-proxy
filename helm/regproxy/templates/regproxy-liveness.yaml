@@ -35,3 +35,4 @@ data:
 kind: ConfigMap
 metadata:
   name: regproxy-liveliness
+  namespace: {{ $.Release.Namespace }}

@@ -4,6 +4,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: regproxy
+  namespace: {{ $.Release.Namespace }}
   labels:
     k8s-app: regproxy
     kubernetes.io/name: "regproxy"
