@@ -2,9 +2,10 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: regproxy
+  namespace: akuity
 spec:
   destination:
-    namespace: regproxy
+    namespace: regproxy-test
     server: "http://cluster-rt-test-cluster:8001"
   project: akuity-testing
   source:
@@ -16,4 +17,6 @@ spec:
         - values.yaml
         - values-dev.yaml
 syncPolicy:
+  syncOptions:
+    - CreateNamespace=true
   automated: {}
