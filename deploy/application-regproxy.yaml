@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: regproxy
-  namespace: argocd
+  namespace: akuity
 spec:
   destination:
     namespace: regproxy-test
