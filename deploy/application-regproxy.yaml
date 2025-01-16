@@ -6,7 +6,7 @@ spec:
   destination:
     namespace: regproxy
     server: "http://cluster-rt-test-cluster:8001"
-  project: default
+  project: rt
   source:
     repoURL: https://github.com/coreweave/docker-registry-proxy.git
     path: helm/regproxy
