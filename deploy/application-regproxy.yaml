@@ -16,6 +16,3 @@ spec:
       valueFiles:
         - values.yaml
         - values-dev.yaml
-syncPolicy:
-  syncOptions:
-    - CreateNamespace=true
