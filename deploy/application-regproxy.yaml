@@ -1,8 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-projects
-  namespace: akuity
+  name: regproxy
 spec:
   destination:
     namespace: regproxy
