@@ -1,0 +1,3 @@
+clusterSpec:
+  zone: us-east-02a
+  useZoneFiles: true

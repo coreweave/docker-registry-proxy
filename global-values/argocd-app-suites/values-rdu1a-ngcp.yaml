@@ -1,0 +1,78 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      public: "192.112.172.64/26"
+      cw-mgmt: "10.80.16.0/21"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-rdu1-ngcp.k8s.rdu1.int.coreweave.com
+
+applications:
+  appenheimer-extras-stag:
+    enabled: true
+  appenheimer-extras-prod:
+    enabled: true
+  appenheimer-stag:
+    enabled: true
+  appenheimer-prod:
+    enabled: true
+  argocd-ngcp:
+    enabled: true
+    valuesMerge:
+      argo-cd:
+        enabled: false
+      cmpPlugin:
+        disable: true
+      coreweave:
+        signedCertDisable: true
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.24.12
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 172.27.80.12
+            - 10.80.24.12
+            - 172.20.0.1
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "gb97370,gb974c0,gb97580"
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQU9nUTRreEdKRUxqT1cwNWxFQ2lvOVl3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU16RXlNalF3TURVMk5UbGFGdzB6TXpFeE1ERXdNRFUyCk5UbGFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRGFneFZwY3NoTWhya0V4UHphLzdmb0txZVNzRlJ2VG0yTWx6aXdFTjVQU0ZBZjNKMVZ5cmd5CnVwSTFobi9hbWxyMlF0bkR3dnBDMmx0YWNLZVBVN1hYbU9JYk55MVlzZnR3ZVJMZTN2TDVxYzZyNnZzeVkwdjQKMzFEQVFlWFhpMnQvSm8rcW1tZTRLd0MvK2V6QnhSdWpQZTRKUXNtQUxPVUxVdzAraVJHRVY3Tk54VWR6dXhqTQpCTkx1UkR2VmJVbnhZeVQzSmJDVEJ4U2tJSkQxMXFUTEFwOHdCeEkweDFuaTVkRFdSTGxlR0xGc1pNbGQ1WmZTCms0MGV0Z2h4THJOemVmQ1VUb05ndlVTa3BrcVR6d1BONjliWjQ2NnJOZ1BBVk8xRVkzaTJLeHdUbkdnY2hUSjMKSHRtUmYrRjNaV0w4NkZHVUN0T05YTzVtZHVrZzduWExBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVVsYm9veW13NXhOaVdFOWU0eVd0MG5ibEliOEF3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFFN1JiRDFpV1hsTHhmTUNwa1VSU3RxVEpaMWkwcHlUeitZSllKc2g4VzcvZVNkalh5SmkxOHhlYm5TRAoyQlcyVnZJNFZHMHFnTjFXL3RQd2tZYU13eWRzNWNoSFZQZjk5TmVFM3MrY3RSemFKWm1jYWlRaWtKSEx0TGgzCmhzcE8yM2VZR0FoakRVY1lOeWtCRlljdnBXcFNzdisyQjhnVEppT3RrMDFZQWE3SmdGZ3hQcGd4TnVwQ0JaOXQKajBrMXEyQUxSem5UWUh4S0pCelRCMXNrdmx2Z2p5cklxd1pjeENWZjk2SUt1ck05blRPNG1BZkh0TjR0MHIrTwpYcXpYN09iekcwRnFXNUYxQzhEVGh2b08wTEYzTFVwVmxwUy9uVHlKTlkrT256UTlpdGFvaEtIdDNNMnU2SXlRCnRYUGw1SVdBSlNoREc3cnR1RklYQ2hSK0E3WT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  katalyst-operator:
+    valuesMerge:
+      appenheimerEnabled: true
+  argo-sa:
+    enabled: true
+    values:
+      argo-workflows:
+        server:
+          extraArgs:
+            - --auth-mode=client
+            - --insecure-skip-verify
+          serviceAnnotations:
+            external-dns.alpha.kubernetes.io/hostname: workflows.sa.rdu1.int.coreweave.com
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rdu1-coreweave-rdu1-internal
+          namespace: victoria-metrics

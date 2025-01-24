@@ -1,0 +1,118 @@
+applications:
+  awx-fleetops-runner:
+    enabled: true
+  flcc-helper:
+    valuesMerge:
+      helper:
+        fleetOpsCluster: true
+  flcc-fleetops:
+    enabled: true
+  cilium:
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.2.0
+    valuesMerge: # can be removed once targetRevision is above 1.6.0
+      cilium:
+        enableIPv4BIGTCP: false # Requires special hardware for offloading
+        ipv4:
+          enabled: true
+        bgpControlPlane:
+          enabled: true
+          # v2Enabled: false # releases as part of 1.16
+        bpf:
+          masquerade: true # use bpf for pod traffic egressing node
+          hostLegacyRouting: false # skip host stack in direct routing, skips NF
+          tproxy: true # reduce use of iptables in favor of tproxy
+        enableCiliumEndpointSlice: true
+        endpointRoutes:
+          enabled: true
+        highScaleIPcache:
+          enabled: false
+        hubble:
+          tls:
+            enabled: true
+          ui:
+            enabled: true
+            tolerations:
+              - operator: Exists
+                key: is_cpu_compute
+              - key: node.coreweave.cloud/reserved
+                operator: Equal
+                value: a23e6272a875746a522968abe77c4ff953358e92 # control-plane
+          relay:
+            enabled: true
+            tolerations:
+              - operator: Exists
+                key: is_cpu_compute
+              - key: node.coreweave.cloud/reserved
+                operator: Equal
+                value: a23e6272a875746a522968abe77c4ff953358e92 # control-plane
+        ipam:
+          mode: "multi-pool"
+        k8s:
+          requireIPv4PodCIDR: false
+        kubeProxyReplacementHealthzBindAddr: "0.0.0.0:10256"
+        kubeProxyReplacement: "true"
+        loadBalancer:
+          acceleration: best-effort
+          algorithm: maglev
+          l7:
+            backend: envoy
+          mode: dsr
+          nodePort:
+            enabled: true
+        localRedirectPolicy: true
+        operator:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node.coreweave.cloud/reserved
+                        operator: In
+                        values:
+                          - control-plane
+          tolerations:
+            - operator: Exists
+              key: is_cpu_compute
+            - key: node.coreweave.cloud/reserved
+              operator: Equal
+              value: a23e6272a875746a522968abe77c4ff953358e92 # control-plane
+          prometheus:
+            enabled: true
+            serviceMonitor:
+              enabled: true
+        preflight:
+          enabled: false
+        prometheus:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            trustCRDsExist: true
+        routingMode: native
+        ipv4NativeRoutingCIDR: 10.0.0.0/8
+      networkConfig:
+        bgpPolicy:
+          gracefulRestart:
+            enabled: true
+  goldpinger:
+    valuesMerge:
+      tolerations:
+        - operator: Exists
+  fleetops-eso-writer:
+    enabled: true
+  external-secrets:
+    enabled: true
+    automated: true
+  eclypsium-scans:
+    enabled: false
+    valuesMerge:
+      app:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/state
+                      operator: In
+                      values:
+                        - production

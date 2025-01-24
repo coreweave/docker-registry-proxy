@@ -1,0 +1,132 @@
+clusterSpec:
+  region: us-east-04
+  scope: us-east-04-prod
+  clusterOrg: b5500f
+  networkAllocations:
+    externalLbCIDRs:
+      public: "166.19.10.144/28"
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-b5500f-us-east-04-prod.svc.cluster.local
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  # control-plane & etcd are managed by the Katalyst operator
+  control-plane:
+    enabled: false
+  # katalyst operator manages the konnectivity-agent deployment
+  konnectivity-agent:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: true
+  calico:
+    enabled: true
+  in-cluster-config:
+    enabled: false
+  nvidia-device-plugin:
+    valuesMerge:
+      runtimeConfig: |
+        disable-require = false
+        #swarm-resource = "DOCKER_RESOURCE_GPU"
+        accept-nvidia-visible-devices-envvar-when-unprivileged = true
+        accept-nvidia-visible-devices-as-volume-mounts = true
+
+        [nvidia-container-cli]
+        #root = "/run/nvidia/driver"
+        #path = "/usr/bin/nvidia-container-cli"
+        environment = []
+        #debug = "/var/log/nvidia-container-toolkit.log"
+        #ldcache = "/etc/ld.so.cache"
+        load-kmods = true
+        #no-cgroups = false
+        #user = "root:video"
+        ldconfig = "@/sbin/ldconfig.real"
+
+        [nvidia-container-runtime]
+        #debug = "/var/log/nvidia-container-runtime.log"
+        log-level = "info"
+
+        # Specify the runtimes to consider. This list is processed in order and the PATH
+        # searched for matching executables unless the entry is an absolute path.
+        runtimes = [
+            "docker-runc",
+            "runc",
+        ]
+
+        mode = "auto"
+
+            [nvidia-container-runtime.modes.csv]
+
+            mount-spec-path = "/etc/nvidia-container-runtime/host-files-for-container.d"
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      vast:
+        enabled: true
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        gpu:
+          targetNodes: 564
+          instanceType: gd-8xh100ib-i128
+        cpu-control-plane:
+          targetNodes: 3
+        cpu:
+          targetNodes: 10
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: 100.124.0.2
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: us-east-04-prod
+            cluster_org: b5500f
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.2/loki/api/v1/push
+  # Teleport is managed by the katalyst-operator
+  teleport:
+    enabled: false
+  vast-csi: &vast_csi
+    targetRevision: 1.55.0
+    useAllTenantsVipPool: false
+    valuesMerge:
+      attachRequired: false
+      image:
+        csiVastPlugin:
+          tag: v2.4.2-beta-1526814
+      storageClasses:
+        shared-vast:
+          vipPool: b5500f-prod
+          viewPolicy: nosquash-b5500f-prod
+          vipPoolFQDN: b5500f-prod.storage-backend01.us-east-04.int.coreweave.cloud
+  vast-csi-controller:
+    <<: *vast_csi
+  npo:
+    valuesMerge:
+      resources:
+        limits:
+          memory: "2Gi"
+        requests:
+          memory: "2Gi"
+  ping-exporter:
+    valuesMerge:
+      networkPolicy:
+        create: true
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

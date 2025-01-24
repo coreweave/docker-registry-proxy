@@ -1,0 +1,3355 @@
+clusterSpec:
+  #   region: dev1
+  #   scope: internal
+  zonesEnabled: false
+  useZoneFiles: false
+  apiserver:
+    port: 6443
+    # url: k8s.internal.dev.coreweave.com; typically generated dynamically
+  networkAllocations:
+    natOutgoing: true
+    customPodCIDRConfigs: {}
+    # podCIDRs: [ 10.136.192.0/19 ]
+    # serviceCIDRs: [ 10.136.176.0/20 ]
+    # internalLbCIDRs:
+    #  - name: tss
+    #    cidr: 10.136.236.0/24
+    # externalLbCIDRs:
+    #  - name: public
+    #    cidr: 10.136.236.0/24
+  typhaReplicas: 1
+  bgpPeersSelectors: true
+  # asNumber: 64512
+  #ingress
+  ingress:
+    metallbPool: public #default
+  # coreDnsIp: "" Dynamically set by default
+  regProxyIP: "100.122.0.6"
+  monitoring:
+    basicAuth:
+      enabled: true #defaults for internal cluster
+      mimirEnabled: false #default false
+    cephNodeExporter:
+      endpoints:
+        {}
+        # lga1:
+        #   - { ip: 10.136.15.10, nodename: croit-mgmt-lga1 }
+        #   - { ip: 10.136.15.11, nodename: R45-SVC-01 }
+argocd:
+  argocdInstanceNamespace: argocd
+  sync:
+    # automatedSync:
+    # enabled: false
+    # prune: true
+    showOrphanedResources: false
+  globalDefaults:
+    repoURL: https://github.com/coreweave/k8s-services.git
+    targetRevision: master
+    overrideAllTargetRevision: ""
+  selfManaged:
+    suites: []
+
+x-yaml-anchors:
+  x-ping-exporter-vast: &x-ping-exporter-vast
+    system: vast
+    team: storage
+
+defaultProject: core # This project is assigned to any apps that don't explicitly set a project
+projects:
+  cloud:
+    enabled: false
+    roles:
+      - name: ci
+        description: CI/CD automation token
+        policies:
+          - p, proj:cloud:ci, applications, sync, cloud/*, allow
+          - p, proj:cloud:ci, applications, get, cloud/*, allow
+  cloudops-sre:
+    enabled: false
+  cni:
+    enabled: false
+  common:
+    enabled: false
+  conductor:
+    enabled: false
+  core-interfaces:
+    enabled: false
+    roles:
+      - name: ci
+        description: CI/CD automation token
+        policies:
+          - p, proj:core-interfaces:ci, applications, sync, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, get, core-interfaces/*, allow
+        groups:
+          - sec-Argocd-prod-coreinterfaces
+  core:
+    enabled: false
+  corp:
+    enabled: false
+  csi:
+    enabled: false
+  data-platforms:
+    enabled: false
+  dev:
+    enabled: false
+  developer-productivity:
+    enabled: false
+  fleet-operations:
+    enabled: false
+  ml:
+    enabled: false
+  ml-interfaces:
+    enabled: false
+  monitoring:
+    enabled: false
+  network:
+    enabled: false
+    roles:
+      - name: ci
+        description: CI/CD automation token
+        policies:
+          - p, proj:network:ci, applications, sync, network/*, allow
+          - p, proj:network:ci, applications, get, network/*, allow
+  networkhpc:
+    enabled: false
+  ngcp:
+    enabled: false
+  security:
+    enabled: false
+  storage:
+    enabled: false
+  vpc:
+    enabled: false
+  sa:
+    enabled: false
+applications:
+  aclmapper:
+    enabled: false
+    namespace: acl-mapper-system
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/aclmapper/helm/charts/
+    chart: aclmapper
+    targetRevision: 1.2.6
+    valuesMerge:
+      image: docker.artifacts.coreweave.com/aclmapper/aclmapper:v1.2.3
+      imagePullSecrets:
+        - name: cloudsmith-registry
+  appenheimer-dev:
+    enabled: false
+    class: control-plane
+    namespace: appenheimer-dev
+    project: common
+    repoURL: https://github.com/coreweave/appenheimer
+    path: chart/appenheimer
+    targetRevision: dev
+    skipCrds: true
+    valuesMerge:
+      environment: dev
+  appenheimer-stag:
+    enabled: false
+    class: control-plane
+    namespace: appenheimer-stag
+    project: common
+    repoURL: https://github.com/coreweave/appenheimer
+    path: chart/appenheimer
+    targetRevision: stag
+    skipCrds: true
+    valuesMerge:
+      environment: stag
+  appenheimer-prod:
+    enabled: false
+    class: control-plane
+    namespace: appenheimer-prod
+    project: common
+    repoURL: https://github.com/coreweave/appenheimer
+    path: chart/appenheimer
+    targetRevision: prod
+    valuesMerge:
+      environment: prod
+  appenheimer-extras-dev:
+    enabled: false
+    class: control-plane
+    namespace: appenheimer-dev
+    project: common
+    repoURL: https://github.com/coreweave/k8s-services.git
+    path: apps/common/appenheimer-extras
+    targetRevision: master
+    valuesMerge:
+      environment: dev
+  appenheimer-extras-stag:
+    valuesMerge:
+      environment: stag
+    enabled: false
+    class: control-plane
+    namespace: appenheimer-stag
+    project: common
+    repoURL: https://github.com/coreweave/k8s-services.git
+    path: apps/common/appenheimer-extras
+    targetRevision: master
+  appenheimer-extras-prod:
+    valuesMerge:
+      environment: prod
+    enabled: false
+    class: control-plane
+    namespace: appenheimer-prod
+    project: common
+    repoURL: https://github.com/coreweave/k8s-services.git
+    path: apps/common/appenheimer-extras
+    targetRevision: master
+  argocd:
+    releaseName: argocd
+    path: apps/core/argocd
+    project: core
+    class: control-plane
+    automated: true
+  argo-crds:
+    namespace: infra
+    project: common
+    path: apps/common/argo-crds
+    plugin: kustomized-helm
+  argocd-projects:
+    namespace: argocd
+    project: appofapps
+    path: argocd-app-suites
+    automated: true
+    valueFiles:
+      - values-projects.yaml
+    enabled: false
+  argocd-ngcp:
+    path: apps/core/argocd
+    appName: argocd-ngcp
+    namespace: argocd
+    project: core
+    class: control-plane
+    destination:
+      server: https://172.27.80.12
+    automated: true
+    valuesMerge:
+      coreweave:
+        appOfApps:
+          enabled: false
+        appSuites:
+          automatedSync:
+            enabled: true
+            prune: false
+          enabled: true
+      argo-cd:
+        configs:
+          cm:
+            application.resourceTrackingMethod: annotation+label
+          params:
+            application.namespaces: "argocd, tenant*"
+        kubeVersionOverride: 1.24.15
+        server:
+          metrics:
+            enabled: true
+          service:
+            annotations:
+              metallb.universe.tf/address-pool: cw-mgmt
+            type: LoadBalancer
+        controller:
+          metrics:
+            enabled: true
+        repoServer:
+          metrics:
+            enabled: true
+  argocd-service-monitors:
+    namespace: argocd
+    project: common
+    path: apps/common/argocd-service-monitors
+  awx-fleetops-runner:
+    namespace: awx
+    project: fleet-operations
+    path: apps/fleet-operations/awx-fleetops-runner
+    syncPolicy:
+      automated:
+        prune: true
+  awx-operator:
+    namespace: awx
+    project: fleet-operations
+    path: apps/fleet-operations/awx-operator
+    plugin: kustomized-helm
+    valuesMerge:
+      coreweave:
+        externalSecrets:
+          coreweave-awx-admin-password:
+            secretStoreName: awxoperator
+            dataFrom:
+              - find:
+                  decodingStrategy: Auto
+                  name:
+                    regexp: AWX_ADMIN_PASSWORD
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "password"
+          coreweave-awx-secret-key:
+            secretStoreName: awxoperator
+            dataFrom:
+              - find:
+                  decodingStrategy: Auto
+                  name:
+                    regexp: AWX_SECRET_KEY
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "secret_key"
+      awx-operator:
+        AWX:
+          spec:
+            postgres_storage_class: shared-vast
+            postgres_storage_requirements:
+              requests:
+                storage: 100Gi
+      nginx:
+        enabled: true
+        tls:
+          enabled: true
+      teleport_bot:
+        enabled: true
+      galactory:
+        enabled: true
+  box-office:
+    namespace: box-office
+    path: apps/fleet-operations/box-office
+    project: fleet-operations
+  cert-exporter:
+    enabled: false
+    path: apps/core/cert-exporter
+    project: core
+    destination:
+      server: https://kubernetes.default.svc
+  cks-api-server-stag:
+    enabled: false
+    namespace: cks-api-stg-system
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/cks-api/helm/charts/
+    chart: cks-api-server
+    targetRevision: 0.3.7
+    valuesMerge:
+      image:
+        tag: v0.3.29
+  cks-api-server-prod:
+    enabled: false
+    namespace: cks-api-system
+    project: common
+    repoURL: "https://artifacts.coreweave.com/basic/cks-api/helm/charts/"
+    chart: cks-api-server
+    targetRevision: 0.3.7
+    valuesMerge:
+      image:
+        tag: v0.3.29
+  cks-api-worker-stag:
+    enabled: false
+    namespace: cks-api-stg-worker
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/cks-api/helm/charts/
+    chart: cks-api-worker
+    targetRevision: 0.3.5
+    syncPolicy:
+      automated:
+        prune: true
+    valuesMerge:
+      image:
+        tag: v0.3.31
+  cks-api-worker-prod:
+    enabled: false
+    namespace: cks-api-worker
+    project: common
+    repoURL: "https://artifacts.coreweave.com/basic/cks-api/helm/charts/"
+    chart: cks-api-worker
+    targetRevision: 0.3.5
+    syncPolicy:
+      automated:
+        prune: true
+    valuesMerge:
+      image:
+        tag: v0.3.31
+  ping-exporter:
+    enabled: false
+    namespace: ping-exporter
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    targetRevision: 1.3.1
+    project: fleet-operations
+    automated: true
+    automatedOptions:
+      prune: true
+    valuesMerge:
+      publicTargetsEnabled: true
+      publicTargets:
+        - 1.1.1.1:
+            system: public
+            target_name: one-one-one-one
+        - 8.8.8.8:
+            system: public
+            target_name: google-dns
+      config:
+        targets:
+        - 100.121.1.2:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-2
+        - 100.121.1.3:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-3
+        - 100.121.1.4:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-4
+        - 100.121.1.5:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-5
+        - 100.121.1.6:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-6
+        - 100.121.1.7:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-7
+        - 100.121.1.8:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-8
+        - 100.121.1.9:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-9
+        - 100.121.1.10:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-10
+        - 100.121.1.11:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-11
+        - 100.121.1.12:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-12
+        - 100.121.1.13:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-13
+        - 100.121.1.14:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-14
+        - 100.121.1.15:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-15
+        - 100.121.1.16:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-16
+        - 100.121.1.17:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-17
+        - 100.121.1.18:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-18
+        - 100.121.1.19:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-19
+        - 100.121.1.20:
+            <<: *x-ping-exporter-vast
+            target_name: vast-vip-20
+        dns:
+          nameserver: kubernetes.default.svc.cluster.local
+      type: DaemonSet
+      monitoring:
+        enabled: true
+        type: PodMonitor
+        relabelings:
+        - action: replace
+          sourceLabels: [ __meta_kubernetes_pod_node_name ]
+          targetLabel: node
+      tolerations:
+        - operator: Exists
+      securityContext:
+        capabilities:
+          add:
+            - NET_RAW
+          drop:
+          - ALL
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1000
+      resources:
+        limits:
+          memory: 50Mi
+        requests:
+          cpu: 50m
+          memory: 50Mi
+  target-prober:
+    enabled: false
+    namespace: target-prober
+    path: apps/fleet-operations/target-prober
+    project: fleet-operations
+    automated: true
+    automatedOptions:
+      prune: true
+    valuesMerge:
+      serviceMonitorTargets:
+        vast-vip-2: 100.121.1.2
+        vast-vip-3: 100.121.1.3
+        vast-vip-4: 100.121.1.4
+        vast-vip-5: 100.121.1.5
+        vast-vip-6: 100.121.1.6
+        vast-vip-7: 100.121.1.7
+        vast-vip-8: 100.121.1.8
+        vast-vip-9: 100.121.1.9
+        vast-vip-10: 100.121.1.10
+        vast-vip-11: 100.121.1.11
+        vast-vip-12: 100.121.1.12
+        vast-vip-13: 100.121.1.13
+        vast-vip-14: 100.121.1.14
+        vast-vip-15: 100.121.1.15
+        vast-vip-16: 100.121.1.16
+        vast-vip-17: 100.121.1.17
+        vast-vip-18: 100.121.1.18
+        vast-vip-19: 100.121.1.19
+        vast-vip-20: 100.121.1.20
+  mcp-exporter:
+    enabled: false
+    namespace: mcp-exporter
+    repoURL: https://artifacts.coreweave.com/basic/mcp-exporter/helm/charts/
+    targetRevision: 1.6.2
+    project: fleet-operations
+    syncPolicy:
+      automated:
+        prune: true
+  node-reporter:
+    namespace: node-reporter
+    enabled: true
+    repoURL: https://artifacts.coreweave.com/basic/node-reporter/helm/charts/
+    targetRevision: 1.22.3
+    project: fleet-operations
+    syncPolicy:
+      automated:
+        prune: true
+    valuesMerge:
+      externalCluster:
+        enabled: false
+  fleetops-imapabot:
+    namespace: fleetops-imapabot
+    enabled: false
+    repoURL: https://artifacts.coreweave.com/basic/fleetops-imapabot/helm/charts/
+    targetRevision: 0.20.0
+    project: fleet-operations
+    values:
+      externalCluster:
+        enabled: false
+    syncPolicy:
+      automated:
+        prune: true
+  bsr:
+    enabled: false
+    namespace: bsr
+    path: apps/developer-productivity/buf-schema-registry
+    project: developer-productivity
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
+  calico:
+    namespace: calico-system
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.16.0
+    project: core
+    class: control-plane
+    valuesMerge:
+      felix:
+        excludeCoreDnsFromNat: true
+        disableCTLB: false #This DOES NOT WORK currently
+  calico-cleanup-controller:
+    path: apps/core/calico-cleanup-controller
+    project: core
+    class: control-plane
+    destination:
+      server: https://kubernetes.default.svc
+    syncPolicy:
+      managedNamespaceMetadata:
+        labels:
+          admission.kubemod.io/ignore: "true"
+    valuesMerge:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.coreweave.cloud/reserved
+                    operator: In
+                    values:
+                      - control-plane
+      psp:
+        enabled: true
+        metallbAddressPool: tss
+  ceph-rbd-csi:
+    enabled: false
+    namespace: storage
+    project: csi
+    path: apps/csi/cw-ceph-rbd-csi
+  cert-manager:
+    targetRevision: cert-manager-v1.7.0
+    namespace: cert-manager
+    project: core
+    class: control-plane
+    plugin: kustomized-helm
+    path: apps/core/cert-manager
+    automated: true
+    valuesMerge:
+      externalSecrets:
+        enabled: true
+      cloudflare:
+        solvers:
+          - dns01:
+              cloudflare:
+                email: peter@atlanticcrypto.com
+                apiKeySecretRef:
+                  name: dns-keys-combined
+                  key: DNS_KEYS_API_KEY
+            selector:
+              dnsZones:
+                - coreweave.cloud
+          - dns01:
+              cloudflare:
+                apiKeySecretRef:
+                  key: DNS_KEYS_CW_API_KEY
+                  name: dns-keys-combined
+                email: arizzo@coreweave.com
+            selector:
+              dnsZones:
+                - coreweave.com
+  cks-cloud-managed-rbac:
+    enabled: false
+    path: apps/cloud/cks-rbac
+    project: cloud
+  cloudnative-pg:
+    enabled: false
+    repoURL: "https://cloudnative-pg.github.io/charts"
+    chart: cloudnative-pg
+    targetRevision: 0.22.0
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
+    valuesMerge:
+      tolerations:
+        - key: is_cpu_compute
+          operator: Exists
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 500Mi
+        requests:
+          cpu: 500m
+          memory: 500Mi
+  control-plane:
+    path: apps/core/control-plane
+    project: core
+    ignoreDifferences:
+      - group: apps
+        kind: StatefulSet
+        jqPathExpressions:
+          - .spec.template.spec.containers[]?.env[]? | select(.name == "ETCD_INITIAL_CLUSTER_STATE")
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      networkPolicy:
+        enabled: false
+      preInstallJobs:
+        enabled: true
+      kubeception:
+        apiserver:
+          psp:
+            enabled: true
+          deployment:
+            affinity:
+              nodeAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    preference:
+                      matchExpressions:
+                        - key: node.coreweave.cloud/class
+                          operator: NotIn
+                          values:
+                            - "control-plane"
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchExpressions:
+                          - key: k8s-app
+                            operator: In
+                            values:
+                              - kube-apiserver
+                      topologyKey: node.coreweave.cloud/rack
+                    weight: 100
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  - labelSelector:
+                      matchExpressions:
+                        - key: k8s-app
+                          operator: In
+                          values:
+                            - kube-apiserver
+                    topologyKey: kubernetes.io/hostname
+            oidcParams:
+              caFile: ""
+            resources:
+              requests:
+                cpu: 10
+                memory: 50Gi
+              limits:
+                memory: 300Gi
+            tolerations:
+              - key: is_cpu_compute
+                operator: Exists
+        scheduler:
+          deployment:
+            affinity:
+              nodeAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    preference:
+                      matchExpressions:
+                        - key: node.coreweave.cloud/class
+                          operator: NotIn
+                          values:
+                            - "control-plane"
+              podAntiAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  - labelSelector:
+                      matchExpressions:
+                        - key: k8s-app
+                          operator: In
+                          values:
+                            - kube-scheduler
+                    topologyKey: node.coreweave.cloud/rack
+            resources:
+              requests:
+                cpu: 1
+                memory: 256Mi
+            tolerations:
+              - key: is_cpu_compute
+                operator: Exists
+          serviceMonitor:
+            bearerTokenFile: ""
+        controllerManager:
+          deployment:
+            affinity:
+              nodeAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    preference:
+                      matchExpressions:
+                        - key: node.coreweave.cloud/class
+                          operator: NotIn
+                          values:
+                            - "control-plane"
+              podAntiAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  - labelSelector:
+                      matchExpressions:
+                        - key: k8s-app
+                          operator: In
+                          values:
+                            - kube-controller-manager
+                    topologyKey: node.coreweave.cloud/rack
+            resources:
+              requests:
+                cpu: 8
+                memory: 16Gi
+              limits:
+                cpu: 16
+                memory: 32Gi
+            tolerations:
+              - key: is_cpu_compute
+                operator: Exists
+          serviceMonitor:
+            bearerTokenFile: ""
+      etcd-local:
+        enabled: true
+        affinity: &etcd-node-affinity
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/class
+                      operator: NotIn
+                      values:
+                        - "control-plane"
+                - matchExpressions:
+                    - key: node.coreweave.cloud/local-persistent-storage
+                      operator: In
+                      values:
+                        - "true"
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - etcd-local
+                topologyKey: node.coreweave.cloud/rack
+        tolerations:
+          - key: is_cpu_compute
+            operator: Exists
+      etcd-events:
+        enabled: true
+        affinity:
+          <<: *etcd-node-affinity
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - etcd-events
+                topologyKey: node.coreweave.cloud/rack
+        tolerations:
+          - key: is_cpu_compute
+            operator: Exists
+      etcdMaintenance:
+        enabled: true
+        image:
+          tag: v1.5.1
+        caFile: /etcd/ssl/ca.crt
+        certFile: /etcd/ssl/tls.crt
+        keyFile: /etcd/ssl/tls.key
+      etcdBackup:
+        enabled: true
+        image:
+          tag: v1.5.0
+        enablePrefixPathing: true
+        etcd:
+          scheme: https
+          caFile: /etcd/ssl/ca.crt
+          certFile: /etcd/ssl/tls.crt
+          keyFile: /etcd/ssl/tls.key
+  coredns:
+    namespace: kube-system
+    path: apps/core/coredns
+    project: core
+    class: control-plane
+    syncPolicy:
+      managedNamespaceMetadata:
+        labels:
+          admission.kubemod.io/ignore: "true"
+  node-local-dns:
+    enabled: true
+    namespace: kube-system
+    path: apps/core/node-local-dns
+    project: core
+  crowdstrike:
+    enabled: true # security tools are enabled by default
+    project: security
+    path: apps/security/crowdstrike
+    namespace: crowdstrike
+    valuesMerge:
+      cs-k8s-protection-agent:
+        tolerations:
+          - operator: Exists
+            key: node-role.kubernetes.io/master
+          - operator: Exists
+            key: node-role.kubernetes.io/control-plane
+  cw-node-controller:
+    path: apps/fleet-operations/cw-node-controller
+    project: fleet-operations
+    class: control-plane
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      labelBundle:
+        enabled: true
+      controllerConfig:
+        inspectorRebootNamespace: kube-system
+    syncPolicy:
+      managedNamespaceMetadata:
+        labels:
+          admission.kubemod.io/ignore: "true"
+  dns-api:
+    enabled: false
+    namespace: dns-api
+    releaseName: dns-api
+    project: network
+    repoURL: "https://artifacts.coreweave.com/basic/dns-api/helm/charts/"
+    targetRevision: 1.1.4
+  dredd:
+    enabled: false
+    namespace: dredd-system
+    repoURL: "https://artifacts.coreweave.com/basic/dredd/helm/charts/"
+    chart: dredd
+    targetRevision: 0.4.0
+    project: common
+    valuesMerge:
+      image:
+        repository: docker.artifacts.coreweave.com/dredd/dredd
+        tag: v0.4.1
+  dredd-staging:
+    enabled: false
+    namespace: dredd-system-stg
+    repoURL: "https://artifacts.coreweave.com/basic/dredd/helm/charts/"
+    chart: dredd
+    targetRevision: 0.4.0
+    project: common
+    valuesMerge:
+      image:
+        repository: docker.artifacts.coreweave.com/dredd/dredd
+        tag: v0.4.1
+  fleet-lifecycle-controller:
+    namespace: fleet-lifecycle
+    project: fleet-operations
+    repoURL: "https://artifacts.coreweave.com/basic/fleet-lifecycle-controller/helm/charts/"
+    targetRevision: 0.34.2
+  flcc-helper:
+    path: apps/fleet-operations/flcc-helper
+    project: fleet-operations
+    destination:
+      server: https://kubernetes.default.svc
+  flcc-ngcp:
+    path: apps/fleet-operations/flcc-ngcp
+    project: fleet-operations
+    namespace: flcc-ngcp
+  flcc-fleetops:
+    path: apps/fleet-operations/flcc-fleetops
+    project: fleet-operations
+  fleetops-s3proxy:
+    namespace: fleetops-s3proxy
+    project: fleet-operations
+    path: apps/fleet-operations/fleetops-s3proxy
+    values: {}
+  flipt:
+    namespace: flipt
+    project: common
+    path: apps/common/flipt
+    enabled: false
+    values: {}
+  deviceslot-operator:
+    namespace: deviceslot-operator
+    project: fleet-operations
+    values: {}
+    repoURL: "https://artifacts.coreweave.com/basic/deviceslot-operator/helm/charts/"
+    chart: deviceslot-operator
+    targetRevision: 0.1.2
+    syncPolicy:
+      automated:
+        prune: true
+  harmonizer:
+    namespace: harmonizer
+    project: fleet-operations
+    repoURL: "https://artifacts.coreweave.com/basic/harmonizer/helm/charts"
+    chart: harmonizer
+    targetRevision: 0.4.3
+    syncPolicy:
+      automated:
+        prune: true
+  eclypsium-alerts:
+    enabled: false
+    namespace: eclypsium-alerts
+    releaseName: eclypsium-alerts
+    project: security
+    path: apps/security/eclypsium-alerts
+  eclypsium-scans:
+    enabled: false
+    namespace: eclypsium-scans
+    releaseName: eclypsium-scans
+    project: security
+    path: apps/security/eclypsium-scans
+  epimetheus:
+    enabled: true
+    path: apps/fleet-operations/epimetheus
+    plugin: null
+    project: fleet-operations
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      inClusterKubeConfig: false
+      clusterRole:
+        createClusterRole: false
+  eventrouter:
+    path: apps/core/eventrouter/base
+    project: core
+    namespace: eventrouter
+    sources: |
+      - path: apps/core/eventrouter/base
+        repoURL: {{ $.Values.argocd.globalDefaults.repoURL }}
+        targetRevision: master
+  external-dns-client:
+    enabled: false
+    namespace: external-dns-client
+    releaseName: external-dns-client
+    path: apps/app-platforms/external-dns-client
+    project: app-platforms
+  external-dns:
+    project: core
+    class: control-plane
+    path: apps/core/externaldns
+    namespace: external-dns
+    valuesMerge:
+      external-dns:
+        sources:
+          - service
+          - ingress
+        domainFilters: ["coreweave.com"]
+        resources:
+          requests:
+            cpu: 500m
+            memory: 500Mi
+          limits:
+            cpu: 2
+            memory: 2Gi
+  external-secrets:
+    namespace: external-secrets
+    path: apps/core/external-secrets
+    project: core
+    class: control-plane
+  goldpinger:
+    enabled: true
+    namespace: goldpinger
+    path: apps/core/goldpinger
+    project: core
+    class: control-plane
+    valuesMergeTpl: |
+      externalDnsHostname: 'goldpinger.{{- .Values.clusterSpec.scope -}}.{{- .Values.clusterSpec.region -}}.int.coreweave.com'
+      externalPodsDnsHostname: 'goldpinger-pods.{{- .Values.clusterSpec.scope -}}.{{- .Values.clusterSpec.region -}}.int.coreweave.com'
+      service:
+        extraLabels:
+          cluster: {{ include "common.clusterName" . }}
+          cluster_org: {{ .Values.clusterSpec.clusterOrg }}
+          region: {{ .Values.clusterSpec.region }}
+      tolerations:
+        - operator: Exists
+  dso-netracker:
+    namespace: netracker
+    project: fleet-operations
+    repoURL: "https://artifacts.coreweave.com/basic/dso-netracker/helm/charts/"
+    chart: netracker
+    targetRevision: 1.3.0
+    syncPolicy:
+      automated:
+        prune: true
+  in-cluster-config:
+    namespace: kube-system
+    path: apps/core/in-cluster-config
+    project: core
+    valuesMerge:
+      bootstrap:
+        tokenid: ""
+        tokensecret: ""
+  infra-canary:
+    enabled: false
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.4.0
+  hpc-verification:
+    releaseName: hpc-verification
+    path: apps/fleet-operations/hpc-verification
+    project: fleet-operations
+    namespace: hpc-verification
+    values:
+      argo-workflows:
+        server:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node.coreweave.cloud/class
+                        operator: In
+                        values:
+                          - control-plane
+                          - cpu
+        controller:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node.coreweave.cloud/class
+                        operator: In
+                        values:
+                          - control-plane
+                          - cpu
+  infrahub:
+    enabled: false
+    namespace: infrahub
+    releaseName: infrahub
+    project: network
+    path: apps/network/infrahub
+
+  internal-control-plane:
+    path: apps/core/internal-control-plane
+    project: core
+    namespace: kube-system
+    appName: internal-control-plane
+    destination:
+      server: https://kubernetes.default.svc
+  ipam:
+    project: core-interfaces
+    class: control-plane
+    enabled: false
+    repoURL: "https://artifacts.coreweave.com/basic/ipam-operator/helm/charts"
+    targetRevision: v1.12.1
+    destination:
+      server: https://kubernetes.default.svc
+    chart: ipam
+    valuesMerge:
+      env: PROD
+      image:
+        repository: docker.artifacts.coreweave.com/ipam-operator/ipam-operator
+        tag: "v1.12.1"
+      podMonitor:
+        enabled: true
+      kubeconfig:
+        cks:
+          filename: admin-config
+  ipam-operator-mgmt:
+    path: apps/core-interfaces/ipam-operator-mgmt
+    project: core-interfaces
+    class: control-plane
+    enabled: false
+    targetRevision: ipam-operator-mgmt-v1.5.0
+  jwks-auth-push:
+    project: security
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    targetRevision: 1.1.3
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      image:
+        tag: v1.6.0
+      pushHost: jwks-auth.us-east-03.int.coreweave.com
+      outOfBand: true
+  jwks-auth-push-internal:
+    project: security
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    chart: jwks-auth-push
+    targetRevision: 1.1.3
+    destination:
+      server: https://kubernetes.default.svc
+    namespace: jwks-auth
+    valuesMerge:
+      image:
+        tag: v1.6.0
+      pushHost: jwks-auth.us-east-03.int.coreweave.com
+  jwks-auth-server:
+    path: apps/security/jwks-auth-server
+    project: security
+    namespace: jwks-auth
+    valuesMerge:
+      jwks-auth:
+        tlsEnabled: true # Enable TLS for the service
+        image:
+          tag: v1.7.2
+  jspolicy:
+    path: apps/common/jspolicy
+    project: common
+    plugin: kustomized-helm
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      policies:
+        enabled: false
+      hpa:
+        enabled: false
+      job:
+        enabled: false
+      jspolicy:
+        env:
+          KUBECONFIG: /etc/kubeconfig/admin-config
+          GOMAXPROCS: &cpuLimit "2" # Upstream chart does not allow downnward API; match to CPU limit
+        service:
+          type: LoadBalancer
+        jspolicy:
+          extraVolumes:
+            - name: admin-kubeconfig
+              secret:
+                secretName: admin-kubeconfig
+          extraVolumeMounts:
+            - name: admin-kubeconfig
+              mountPath: /etc/kubeconfig
+              readOnly: true
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: *cpuLimit
+            requests:
+              memory: 2Gi
+              cpu: 500m
+        serviceAccount:
+          name: default
+          create: false
+        clusterRoleBinding:
+          create: false
+        webhook:
+          create: false
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/class
+                      operator: In
+                      values:
+                        - cpu #Runs out of band so don't run on control-plane nodes
+    syncPolicy:
+      managedNamespaceMetadata:
+        labels:
+          admission.kubemod.io/ignore: "true"
+  jspolicy-policies:
+    path: apps/common/jspolicy
+    project: common
+    plugin: kustomized-helm
+    values:
+      policies:
+        updateAddOrgId: true
+        validatePodSunkAccelerator: false
+        validateGpuAnnotation: false
+        validateGpuExpr: false
+        validateGpuNodeSelector: false
+        validatePreferredGpuExpr: false
+        mutateIngressClassName: false
+        validateIngressClassName: false
+        mutateIngressLabel: false
+        enableWildcardCert: false
+        mutateIngress: false
+        mutateStripNamespace: false
+        mutateDisableKnativeWildcard: false
+        mutatePodTailscaleNetfilter: false
+        mutatePodTailscaleResources: false
+        mutateScheduler: false
+        updatePodLabels: false
+        validateMemoryRequestEqualLimits: false
+        validatePodExecTarget: false
+        validatePriorityClass: false
+        validateProbeHostFields: false
+        validateRestrictTolerations: false
+        validateSunkAccelerator: false
+        mutateDisableNodePort: false
+        validateRejectExternalIPs: false
+        validateStorageclass: false
+        mutateTraefikCRIngressClassLabel: false
+        mutateVmiRootDiskSata: false
+        mutateKServiceStaticCPU: false
+        mutateKServiceScheduler: false
+        mutateKServeAddSHM: false
+        mutateDefaultResources: false
+        enableKnativeWildcard: false
+        mutateIsvcIngressLabel: false
+        mutatePodDefaultResources: false
+        validateServiceRejectExternalIPs: false
+        validateGPUTypes: false
+        mutateNamespaceDisableKnativeWildcard: false
+        mutateServiceDisableNodePort: false
+        mutateMonitorsStripNamespace: false
+        mutateKserviceIngress: false
+      jspolicy:
+        serviceAccount:
+          create: false
+        clusterRoleBinding:
+          create: false
+        service:
+          create: false
+        serviceMonitor:
+          enabled: false
+        webhook:
+          create: false
+        deployment:
+          create: false
+      hpa:
+        enabled: false
+      job:
+        enabled: false
+  k8s-internal-svc:
+    path: apps/
+    namespace: kube-system
+    project: core
+    plugin: raw-yaml
+    rawYaml: |
+      ---
+  katalog:
+    enabled: false
+    namespace: katalog
+    project: common
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    chart: katalog
+    targetRevision: 1.1.3
+  in-katalog-config:
+    enabled: false
+    namespace: kube-system
+    project: common
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    chart: in-katalog-config
+    targetRevision: 1.13.0
+  ### Staging version of katalog
+  katalog-staging:
+    enabled: false
+    namespace: katalog-staging
+    project: common
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    chart: katalog
+    targetRevision: 1.1.3
+  in-katalog-config-staging:
+    enabled: false
+    namespace: kube-system
+    project: common
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    chart: in-katalog-config
+    targetRevision: 1.13.0
+  in-ngcp-config-smoky:
+    enabled: false
+    namespace: kube-system
+    project: common
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    chart: in-ngcp-config-smoky
+    targetRevision: 1.0.2
+  katalyst-operator:
+    enabled: false
+    class: control-plane
+    namespace: katalyst-operator-system
+    project: common
+    repoURL: "https://artifacts.coreweave.com/basic/katalyst-operator/helm/charts/"
+    chart: katalyst-operator
+    targetRevision: 1.40.0
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
+    valuesMerge:
+      # New Default, remote workloads are disabled by default until Syncer clusters are reprioritized
+      remoteWorkloadDisabled: true
+      env: PROD
+      image:
+        repository: docker.artifacts.coreweave.com/katalyst-operator/katalyst-operator
+        tag: v2.47.1
+      releaseChannels:
+        # Stable inherited from base values
+        beta:
+          image:
+            repository: docker.artifacts.coreweave.com/katalyst-operator/katalyst-operator
+            tag: v2.47.1
+        staging:
+          image:
+            repository: docker.artifacts.coreweave.com/katalyst-operator/katalyst-operator
+            tag: v2.47.1
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 256Mi
+  katalyst-proxy:
+    namespace: katalyst-proxy
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.22.0
+    project: monitoring
+    valuesMerge:
+      minReplicas: 4
+      maxReplicas: 20
+  klimber:
+    enabled: false
+    namespace: klimber
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/klimber/helm/charts/
+    chart: klimber
+    targetRevision: 1.3.1
+    valuesMerge:
+      image:
+        tag: v1.3.0
+      imagePullSecrets:
+        - name: cloudsmith-registry
+  konnectivity-agent:
+    namespace: kube-system
+    path: apps/core/konnectivity-agent
+    project: core
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.8.0
+  kubemod:
+    namespace: kubemod-system
+    path: apps/common/kubemod
+    project: common
+    plugin: kustomized-helm
+    ignoreDifferences:
+      - group: admissionregistration.k8s.io
+        kind: MutatingWebhookConfiguration
+        jqPathExpressions:
+          - ".webhooks[]?.clientConfig.caBundle"
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+        jqPathExpressions:
+          - ".webhooks[]?.clientConfig.caBundle"
+    syncPolicy:
+      managedNamespaceMetadata:
+        labels:
+          admission.kubemod.io/ignore: "true"
+  local-storage-provisioner:
+    path: apps/core/local-storage-provisioner
+    namespace: local-storage-provisioner
+    project: core
+    valuesMerge:
+      serviceMonitor:
+        enabled: false
+      classes:
+        - name: local-ssd
+          hostDir: /mnt/local/k8s-local-storage
+          volumeMode: Filesystem
+          fsType: xfs
+          namePattern: "*"
+          blockCleanerCommand:
+            - "/scripts/shred.sh"
+            - "2"
+          storageClass:
+            reclaimPolicy: Retain
+            isDefaultClass: false
+      daemonset:
+        tolerations:
+          - key: is_cpu_compute
+            operator: Exists
+          - key: node.coreweave.cloud/reserved
+            operator: Exists
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: node.coreweave.cloud/state
+                  operator: In
+                  values:
+                  - production
+        nodeSelector: null
+  grafana:
+    enabled: false
+    namespace: grafana
+    path: apps/monitoring/grafana
+    project: monitoring
+  loki:
+    path: apps/monitoring/loki
+    plugin: kustomized-helm
+    project: monitoring
+    namespace: loki
+  metallb:
+    targetRevision: metallb-v1.17.0
+    namespace: metallb-system
+    path: apps/core/metallb
+    project: common
+    class: control-plane
+    plugin: kustomized-helm
+    ignoreDifferences:
+      - group: apiextensions.k8s.io
+        kind: CustomResourceDefinition
+        jsonPointers:
+          - /spec/conversion/webhook/clientConfig/caBundle
+    valuesMerge:
+      speaker: false
+      resources:
+        requests:
+          cpu: 100m
+          memory: 100Mi
+        limits:
+          cpu: 1000m
+          memory: 2000Mi
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.coreweave.cloud/reserved
+                    operator: In
+                    values:
+                      - control-plane
+  metrics:
+    enabled: true
+    path: apps/monitoring/metrics
+    plugin: kustomized-helm
+    project: monitoring
+    class: control-plane
+    namespace: metrics
+    valuesMerge:
+      coreweave:
+        rules:
+          enabled: true
+          name: tenant
+      prometheus-operator:
+        kubeControllerManager:
+          enabled: false
+        kubeEtcd:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+  metrics-server:
+    enabled: true
+    namespace: kube-system
+    targetRevision: master
+    plugin: kustomized-helm
+    path: apps/core/metrics-server
+    project: core
+    class: control-plane
+  multus:
+    path: apps/cni/multus
+    project: cni
+    namespace: multus
+    releaseName: multus
+    plugin: kustomized-helm
+  multus-cni:
+    path: apps/vpc/multus-cni
+    namespace: multus-cni
+    releaseName: multus-cni
+    project: vpc
+    plugin: kustomized-helm
+  mgmt-ntp:
+    namespace: mgmt-ntp
+    releaseName: mgmt-ntp
+    project: network
+    path: apps/network/mgmt-ntp
+    automated: true
+  ncore:
+    path: apps/systems-engineering/ncore
+    project: systems-engineering
+    automated: true
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+  netbox-dns:
+    namespace: netbox-dns
+    releaseName: netbox-dns
+    project: network
+    path: apps/network/netbox-dns
+    automated: true
+  network-datastores:
+    project: network
+    enabled: false
+    releaseName: network-datastores
+    path: apps/network/network-datastores
+  nfd:
+    enabled: true
+    namespace: kube-system
+    path: apps/core/nfd
+    project: core
+    class: control-plane
+    valuesMerge:
+      master:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/reserved
+                      operator: In
+                      values:
+                        - control-plane
+  nimbus-core-crs:
+    enabled: false
+    path: apps/network-data-path/nimbus-core-crs
+    project: network-data-path
+    ignoreDifferences:
+      - group: "nimbus.infra.coreweave.com"
+        kind: "IPAMPool"
+        jsonPointers:
+          - /spec/ipam/static
+    syncPolicy:
+      syncOptions:
+        - RespectIgnoreDifferences=true
+  nimbus-crds:
+    path: apps/network-data-path/nimbus-crds
+    project: network-data-path
+  nimbus-bmn-controller:
+    path: apps/network-data-path/nimbus-bmn-controller
+    project: network-data-path
+  nimbus-vpc-controller:
+    path: apps/network-data-path/nimbus-vpc-controller
+    project: network-data-path
+  agi-crds:
+    path: apps/network-data-path/agi-crds
+    project: network-data-path
+  agi-backend:
+    path: apps/network-data-path/agi-backend
+    project: network-data-path
+  node-assigner:
+    enabled: false
+    project: core-interfaces
+    namespace: sorting-hat-system
+    repoURL: "https://artifacts.coreweave.com/basic/sorting-hat/helm/charts"
+    targetRevision: v1.28.0
+    valuesMerge:
+      bareMetalNodeClientConfig:
+        unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+        unassignedBMNLabelValues:
+          - 'be1096'
+      env: prod
+      podMonitor:
+        enabled: true
+      db:
+        configRefreshInterval: "1h"
+      image:
+        repository: docker.artifacts.coreweave.com/sorting-hat/node-assigner
+        tag: v1.28.0
+      imagePullSecrets:
+        - name: "sortinghat-cloudsmith-registry"
+      healthcheck:
+        port: 5000
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 500m
+          memory: 512Mi
+  node-pci-exporter:
+    path: apps/core/node-pci-exporter
+    plugin: kustomized-helm
+    project: core
+    namespace: node-pci-exporter
+  npo:
+    project: core-interfaces
+    class: coreweave
+    repoURL: "https://artifacts.coreweave.com/basic/nodepool-operator/helm/charts"
+    chart: npo
+    targetRevision: v1.22.0
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      env: prod
+      podMonitor:
+        enabled: true
+      image:
+        repository: docker.artifacts.coreweave.com/nodepool-operator/nodepool-operator
+        tag: v1.22.0
+      cksCluster:
+        enabled: true
+        kubeConfigSecretName: admin-kubeconfig
+        filename: admin-config
+        mountpoint: /tmp/kubeconfig
+      registerControllerDryRun: true
+      disableGateKeeperConnectController: false
+      disableDeleteController: false
+      deleteControllerDryRun: true
+      backfillBareMetalNodes: false
+      deleteNodeOnScaledownDryRun: true
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 250m
+          memory: 1Gi
+      enableInstanceTypeAndTypeLabelSetting: false
+      dreddConfig:
+        serviceAddress: dredd.us-east-03.int.coreweave.com:80
+        enforceQuotas: true
+  node-stitcher:
+    enabled: false
+    namespace: node-stitcher-system
+    repoURL: "https://artifacts.coreweave.com/basic/node-stitcher/helm/charts"
+    targetRevision: v0.3.0
+    project: core
+    valuesMerge:
+      image:
+        tag: v0.3.0
+  npo-cfg:
+    project: core-interfaces
+    class: control-plane
+    repoURL: "https://artifacts.coreweave.com/basic/nodepool-operator/helm/charts/"
+    chart: npo-cfg
+    targetRevision: v1.22.0
+  node-problem-detector:
+    project: fleet-operations
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.34.0
+    namespace: node-problem-detector
+    syncPolicy:
+      automated: {}
+    enabled: true
+    class: control-plane
+    valuesMerge:
+      canaryCheckAddress: 100.121.1.2 # Random Vast VIP. Used to be 100.121.0.1 storage t0 switch anycast VIP, but that started showing loss for some reason (CoPP?). Will fail if Vast C-Node is restarted.
+  nvidia-device-plugin:
+    path: apps/core/nvidia-device-plugin
+    project: core
+    plugin: kustomized-helm
+    namespace: nvidia-device-plugin
+    releaseName: nvidia-device-plugin
+  nvidia-device-plugin-sunk:
+    path: apps/core/nvidia-device-plugin
+    project: core
+    plugin: kustomized-helm
+    namespace: nvidia-device-plugin
+    releaseName: nvidia-device-plugin-sunk
+    valueFiles:
+      - values-sunk.yaml
+  oidc:
+    namespace: kube-system
+    path: apps/core/oidc
+    project: core
+  katalog-configmaps:
+    enabled: false
+    path: apps/common/katalog-configmaps
+    namespace: katalog
+  katalog-configmaps-staging:
+    enabled: false
+    path: apps/common/katalog-configmaps
+    namespace: katalog-staging
+  overlay-utils:
+    enabled: false
+    namespace: overlay-utils
+    releaseName: overlay-utils
+    project: network
+    path: apps/network/overlay-utils
+    automated: true
+  promtail:
+    enabled: true
+    project: monitoring
+    path: apps/monitoring/promtail
+    plugin: kustomized-helm
+    namespace: promtail
+    releaseName: promtail
+  provisionator:
+    enabled: false
+    namespace: provisionator
+    releaseName: provisionator
+    project: network
+    path: apps/network/provisionator
+  storage-flcc-operator:
+    enabled: false
+    namespace: storage-flcc-operator
+    path: apps/storage-flcc-operator
+    project: storage
+    repoURL: https://github.com/coreweave/storage.git
+    targetRevision: main
+  vector:
+    enabled: false
+    project: monitoring
+    path: apps/monitoring/vector
+    plugin: kustomized-helm
+    namespace: vector
+    releaseName: vector
+    valuesMerge:
+      vector_gateway:
+        enabled: false
+    ignoreDifferences:
+      - group: apps
+        kind: Deployment
+        jsonPointers:
+          - /spec/replicas
+    vector_ingester:
+      syslog_tls:
+        enabled: false
+  o11y-custom:
+    enabled: false
+    project: monitoring
+    path: apps/monitoring/o11y-custom
+    targetRevision: hl/custom_vector
+    plugin: kustomized-helm
+    namespace: o11y
+    releaseName: o11y
+    ignoreDifferences:
+      - group: apps
+        kind: Deployment
+        jsonPointers:
+          - /spec/replicas
+  o11y-alerting-rpc:
+    enabled: false
+    project: monitoring
+    path: apps/monitoring/o11y-alerting-rpc
+    targetRevision: master
+    plugin: kustomized-helm
+    namespace: o11y
+    releaseName: o11y-alerting-rpc
+    ignoreDifferences:
+      - group: apps
+        kind: Deployment
+        jsonPointers:
+          - /spec/replicas
+  vertical-pod-autoscaler:
+    enabled: false
+    namespace: kube-system
+    project: common
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    chart: vertical-pod-autoscaler
+    targetRevision: 1.1.0
+  victoria-metrics:
+    enabled: true
+    project: monitoring
+    class: control-plane
+    path: apps/monitoring/victoria-metrics
+    namespace: victoria-metrics
+    releaseName: victoria-metrics
+  victoria-metrics-metao11y:
+    enabled: false
+    project: monitoring
+    class: victoria-metrics
+    path: apps/monitoring/victoria-metrics
+    namespace: victoria-metrics-metao11y
+    releaseName: victoria-metrics-metao11y
+  postgres-operator:
+    enabled: false
+    namespace: postgres-operator-system
+    path: apps/common/postgres-operator
+    project: common
+    values:
+      resources:
+        controller:
+          requests:
+            cpu: 256m
+            memory: 4Gi
+          limits:
+            cpu: 1
+            memory: 8Gi
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.coreweave.cloud/class
+                    operator: In
+                    values:
+                      - cpu
+      tolerations:
+        - key: is_cpu_compute
+          operator: Exists
+  pvmo:
+    namespace: pv-management
+    path: apps/core/pv-management-operator
+    project: storage
+    valuesMerge:
+      controller:
+        resources:
+          limits:
+            cpu: 1
+            memory: 4Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+  pure-storage-exporter:
+    enabled: false
+    namespace: storage
+    path: apps/storage/pure-storage-exporter
+    project: storage
+  redfish-services:
+    path: apps/common/redfish-services
+    project: fleet-operations
+    plugin: kustomized-helm
+    namespace: metaldev
+    enabled: false # Disabled by default
+    valuesMerge:
+      redis:
+        commonLabels:
+          teleport.coreweave.cloud/app: discover
+          service.coreweave.cloud/class: metaldev
+        master:
+          persistence:
+            enabled: false
+          service:
+            annotations:
+              teleport.dev/protocol: tcp
+              teleport.dev/port: "6379"
+      exporter:
+        enabled: false
+        image:
+          repository: docker.artifacts.coreweave.com/metaldev/exporter
+          tag: v1.131.10
+        imagePullSecret: redfish-cloudsmith-registry
+        resources:
+          requests:
+            cpu: "4"
+            memory: 8Gi
+          limits:
+            cpu: "4"
+            memory: 8Gi
+        service:
+          annotations:
+            teleport.dev/protocol: tcp
+            teleport.dev/port: "50051"
+          labels:
+            teleport.coreweave.cloud/app: discover
+            service.coreweave.cloud/class: metaldev
+        serviceMonitor:
+          scrapeTimeout: 30s
+        env:
+          NETRACKER_ADDR: "server-dso-netracker-mgmt.netracker:8080"
+          NETRACKER_DPU: "true"
+          REDFISH_TIMEOUT: "30s"
+          VAULT_ADDR: "https://fleetops-vault.int.coreweave.com"
+      controller:
+        enabled: false
+        replicas: 2
+        image:
+          repository: docker.artifacts.coreweave.com/metaldev/controller
+          tag: v1.131.10
+        imagePullSecret: redfish-cloudsmith-registry
+        env:
+          DEBUG: "true"
+          DISABLE_REBOOT: "false"
+          FIRMWARE_BUCKET_REGION: "ord1"
+          FIRMWARE_BUCKET_ENDPOINT: "object.ord1.coreweave.com"
+          REBOOT_WAIT: "200s"
+          VAULT_ADDR: "https://fleetops-vault.int.coreweave.com"
+          REDFISH_TIMEOUT: "30s"
+      discovery:
+        enabled: false
+        replicas: 1
+        image:
+          repository: docker.artifacts.coreweave.com/metaldev/discovery
+          tag: v1.131.10
+        imagePullSecret: redfish-cloudsmith-registry
+        env:
+          NETRACKER_ADDR: "server-dso-netracker-mgmt.netracker:8080"
+          REDFISH_TIMEOUT: "30s"
+          VAULT_ADDR: "https://fleetops-vault.int.coreweave.com"
+        service:
+          annotations:
+            teleport.dev/protocol: tcp
+            teleport.dev/port: "9002"
+          labels:
+            teleport.coreweave.cloud/app: discover
+            service.coreweave.cloud/class: metaldev
+      harvester:
+        enabled: false
+        replicas: 1
+        image:
+          repository: docker.artifacts.coreweave.com/metaldev/harvester
+          tag: v1.131.10
+        imagePullSecret: redfish-cloudsmith-registry
+        env:
+          NETRACKER_ADDR: "server-dso-netracker-mgmt.netracker:8080"
+          VAULT_ADDR: "https://fleetops-vault.int.coreweave.com"
+          REDFISH_TIMEOUT: "30s"
+      aurora:
+        enabled: false
+        replicas: 3
+        image:
+          repository: docker.artifacts.coreweave.com/metaldev/aurora
+          tag: v1.131.10
+        imagePullSecret: redfish-cloudsmith-registry
+        env:
+          NETRACKER_ADDR: "server-dso-netracker-mgmt.netracker:8080"
+          VAULT_ADDR: "https://fleetops-vault.int.coreweave.com"
+          TLS_CERT_PATH: "/etc/tls/certs/tls.crt"
+          TLS_KEY_PATH: "/etc/tls/certs/tls.key"
+      rbac:
+        create: false
+      coreweave:
+        vault:
+          enabled: true
+        clusterSecretStores:
+          redfish-secrets:
+            project: redfish
+          fleetops-secrets:
+            config: fmt_support_bundler
+            project: fleetops
+        externalSecrets:
+          redfish-secrets:
+            secretStoreName: redfish-secrets
+            dataFrom:
+              - find:
+                  name:
+                    regexp: .*
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "$1"
+  reloader:
+    project: common
+    repoURL: https://stakater.github.io/stakater-charts
+    targetRevision: v1.0.80
+    chart: reloader
+    values:
+      reloader:
+        reloadOnCreate: true
+        syncAfterRestart: true
+  regproxy-cache-warmer:
+    path: apps/common/regproxy-cache-warmer
+    project: common
+    automated: true
+    namespace: regproxy
+    enabled: false
+  regproxy:
+    path: apps/common/regproxy
+    project: common
+    plugin: kustomized-helm
+    namespace: regproxy
+    valuesMerge:
+      regproxy:
+        replicas: 3
+        tolerations:
+          - key: is_cpu_compute
+            operator: Exists
+        resources:
+          requests:
+            memory: 256Gi
+            ephemeral-storage: 350Gi
+          limits:
+            memory: 256Gi
+            ephemeral-storage: 350Gi
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: k8s-app
+                      operator: In
+                      values:
+                        - regproxy
+                topologyKey: kubernetes.io/hostname
+          nodeAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                preference:
+                  matchExpressions:
+                    - key: node.coreweave.cloud/class
+                      operator: In
+                      values:
+                        - cpu
+  rook-ceph:
+    namespace: rook-ceph
+  rook-cluster:
+  rook-operator:
+  prometheus-smartctl-exporter:
+    enabled: false
+    namespace: metrics
+    path: apps/monitoring/prometheus-smartctl-exporter
+    project: monitoring
+  shat-gatekeeper:
+    enabled: false
+    project: core-interfaces
+    repoURL: "https://artifacts.coreweave.com/basic/sorting-hat/helm/charts"
+    chart: gatekeeper
+    namespace: sorting-hat-system
+    targetRevision: v1.28.0
+    valuesMerge:
+      env: prod
+      podMonitor:
+        enabled: true
+      image:
+        repository: docker.artifacts.coreweave.com/sorting-hat/gatekeeper
+        tag: "v1.28.0"
+      imagePullSecrets:
+        - name: "sortinghat-cloudsmith-registry"
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'be1096'
+  shat-reservation:
+    enabled: false
+    project: core-interfaces
+    repoURL: "https://artifacts.coreweave.com/basic/sorting-hat/helm/charts"
+    chart: reservation-api
+    namespace: sorting-hat-system
+    targetRevision: v1.28.0
+    valuesMerge:
+      env: prod
+      podMonitor:
+        enabled: true
+      db:
+        configSecretName: reservation-api-db-config-secret
+        configRefreshInterval: "1h"
+      image:
+        repository: docker.artifacts.coreweave.com/sorting-hat/reservation-api
+        tag: "v1.28.0"
+      imagePullSecrets:
+        - name: "sortinghat-cloudsmith-registry"
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'be1096'
+  shat-resource-availability:
+    enabled: false
+    project: core-interfaces
+    repoURL: "https://artifacts.coreweave.com/basic/sorting-hat/helm/charts"
+    chart: resourceavailability-api
+    namespace: sorting-hat-system
+    targetRevision: v1.28.0
+    valuesMerge:
+      env: prod
+      podMonitor:
+        enabled: true
+      db:
+        configSecretName: resourceavailability-api-db-config-secret
+        configRefreshInterval: "1h"
+      config:
+        syncSiteCapacityFrequency: 24h
+        netboxConfig:
+          userAgent: resource-availability-api-prod
+          netboxURL: https://coreweave.cloud.netboxapp.com/graphql/
+          secretName: resourceavailability-api-netbox-token-secret
+          timeout: "45s"
+      image:
+        repository: docker.artifacts.coreweave.com/sorting-hat/resourceavailability-api
+        tag: "v1.28.0"
+      imagePullSecrets:
+        - name: "sortinghat-cloudsmith-registry"
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+  storm-trooper:
+    enabled: false
+    namespace: hpcnet
+    project: networkhpc
+    path: apps/networkhpc/storm-trooper
+    automated: true
+  ufm-proxy:
+    enabled: false
+    namespace: hpcnet
+    project: networkhpc
+    path: apps/networkhpc/ufm-proxy
+    automated: true
+  vast-csi: &vast_csi
+    # Default vast-csi version to use (includes PROD). To override staging, modify:
+    # https://github.com/coreweave/k8s-services/blob/vastcsi-v1.42.0/argocd-app-suites/values-rno2-cw-internal-platforms-staging.yaml#L180
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.46.0
+    chart: vastcsi
+    namespace: vast-csi
+    path: apps/csi/vast-csi
+    project: storage
+    valuesMerge: &valuesMerge
+      mountOptions:
+        - vers=3
+        - nconnect=16
+        - lookupcache=pos
+        - noacl
+        - noatime
+      serviceMonitor:
+        enabled: false
+        endpoints:
+          - path: /api/prometheusmetrics/devices
+            interval: 10s
+            scrapeTimeout: 10s
+          - path: /api/prometheusmetrics/all
+            interval: 30s
+            scrapeTimeout: 30s
+      vmsService:
+        enabled: true
+      nodeplugin:
+        enabled: true
+      controller:
+        enabled: false
+  vast-csi-controller: &vast_csi_controller
+    <<: *vast_csi
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      <<: *valuesMerge
+      nodeplugin:
+        enabled: false
+      controller:
+        enabled: true
+        args:
+          - --kubeconfig=/etc/kubeconfig/admin-config
+        env:
+          - name: KUBECONFIG
+            value: /etc/kubeconfig/admin-config
+        volumeMounts:
+          - name: admin-kubeconfig
+            mountPath: /etc/kubeconfig
+            readOnly: true
+      vmsService:
+        enabled: true
+      coreweave:
+        externalSecrets:
+          vast:
+            dataFrom:
+              - find:
+                  name:
+                    regexp: .*
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "$1"
+  vast-grpc:
+    enabled: false
+    namespace: vast-csi
+    path: apps/storage/vast-grpc
+    project: storage
+  vast-grpc-staging:
+    enabled: false
+    namespace: vast-csi-staging
+    path: apps/storage/vast-grpc
+    project: storage
+  vast-grpc-sandbox:
+    enabled: false
+    namespace: vast-csi-sandbox
+    path: apps/storage/vast-grpc
+    project: storage
+  topolvm-csi:
+    enabled: false
+    namespace: topolvm-system
+    path: apps/csi/topolvm
+    project: storage
+  cw-weka-operator:
+    chart: cw-weka-operator
+    namespace: weka-operator-system
+    path: apps/storage/cw-weka-operator
+    project: storage
+  cw-weka-cluster:
+    chart: cw-weka-cluster
+    namespace: weka-operator-system
+    path: apps/storage/cw-weka-cluster
+    project: storage
+  cw-weka-csi:
+    chart: weka-csi
+    namespace: weka-operator-system
+    path: apps/csi/weka-csi
+    project: storage
+  windmill:
+    enabled: false
+    namespace: windmill
+    releaseName: windmill
+    project: network
+    path: apps/network/windmill
+  windmill-workers:
+    enabled: false
+    namespace: windmill-workers
+    releaseName: windmill-workers
+    project: network
+    path: apps/network/windmill-workers
+    automated: true
+  object-cache:
+    path: apps/storage/object-cache
+    project: storage
+    namespace: object-cache
+  tailscale-operator:
+    enabled: false
+    namespace: tailscale
+    releaseName: tailscale
+    project: common
+    path: apps/common/tailscale-operator
+  teleport-in-cluster:
+    enabled: false
+    namespace: teleport-in-cluster # explicitly setting this to NOT just teleport in case it's deployed into the same cluser as a full teleport instance by mistake
+    path: apps/security/teleport
+    releaseName: teleport
+    project: security
+    class: control-plane
+  teleport-katalog:
+    enabled: false
+    namespace: katalog
+    path: apps/security/teleport
+    releaseName: teleport
+    project: security
+    class: control-plane
+  teleport-katalog-staging:
+    enabled: false
+    namespace: katalog-staging
+    path: apps/security/teleport
+    releaseName: teleport
+    project: security
+    class: control-plane
+  teleport-oob:
+    enabled: false
+    namespace: teleport-oob
+    path: apps/security/teleport
+    releaseName: teleport
+    project: security
+    class: control-plane
+  teleport-rbac:
+    enabled: false
+    namespace: teleport
+    path: apps/security/teleport-rbac
+    releaseName: teleport-rbac
+    project: security
+    class: control-plane
+  teleport:
+    enabled: true
+    namespace: teleport
+    path: apps/security/teleport
+    releaseName: teleport
+    project: security
+    class: control-plane
+    valuesMerge:
+      tssEnabled: true #new network enabled true here
+      coreweave:
+        persistence:
+          storageClassName: shared-vast
+      teleport-cluster:
+        enabled: false
+        # tls: # configure on cluster level - we're using letsencrypt certs for this now via the HA settings
+        #   existingSecretName: teleport-tls-letsencrypt
+      teleport-kube-agent:
+        enabled: true
+        enterprise: true
+        highAvailability:
+          replicaCount: 2
+        podMonitor:
+          enabled: false # custom implementation is used instead
+        storage:
+          enabled: false
+      etcd:
+        enabled: false
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/class
+                      operator: In
+                      values:
+                        - cpu
+                        - control-plane
+                - matchExpressions:
+                    - key: node.coreweave.cloud/local-persistent-storage
+                      operator: In
+                      values:
+                        - "true"
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - etcd
+                topologyKey: node.coreweave.cloud/rack
+        tolerations:
+          - key: is_cpu_compute
+            operator: Exists
+        persistence:
+          storageClass: local-ssd
+          size: 40Gi
+        extraEnvVars:
+          - name: ETCD_QUOTA_BACKEND_BYTES
+            value: "42949672960"
+        resources:
+          requests:
+            memory: 40.1Gi
+          limits:
+            memory: 40.1Gi
+  traefik:
+    namespace: traefik
+    path: apps/common/traefik
+    project: common
+  managed-traefik:
+    enabled: false
+    namespace: traefik
+    releaseName: traefik
+    path: apps/app-platforms/managed-traefik
+    project: app-platforms
+    plugin: kustomized-helm
+  remote-dns:
+    enabled: false
+    path: apps/app-platforms/remote-dns
+    project: app-platforms
+    syncPolicy:
+      automated:
+        prune: true
+  kabinet-operator:
+    enabled: false
+    skipCrds: true
+    destination:
+      server: https://kubernetes.default.svc
+    path: apps/app-platforms/kabinet-operator
+    project: app-platforms
+  kabinet-operator-crds:
+    enabled: false
+    path: apps/app-platforms/kabinet-operator
+    project: app-platforms
+    automated: true
+    values:
+      coreweave: {}
+      deployment:
+        create: false
+      rbac:
+        create: false
+      serviceAccount:
+        create: false
+
+  # ML Interfaces Apps
+  knative-operator:
+    project: ml-interfaces
+    namespace: knative-operator
+    repoURL: http://helm.corp.ingress.ord1.coreweave.com/
+    targetRevision: 1.0.0
+    ignoreDifferences:
+      - group: rbac.authorization.k8s.io
+        kind: ClusterRole
+        managedFieldsManagers:
+          - clusterrole-aggregation-controller
+  knative-serving:
+    project: ml-interfaces
+    namespace: knative-serving
+    repoURL: http://helm.corp.ingress.ord1.coreweave.com/
+    targetRevision: 1.0.2
+    ignoreDifferences:
+      - group: admissionregistration.k8s.io
+        kind: MutatingWebhookConfiguration
+        jqPathExpressions:
+          - ".webhooks[]?.clientConfig.caBundle"
+      - group: admissionregistration.k8s.io
+        kind: ValidatingWebhookConfiguration
+        jqPathExpressions:
+          - ".webhooks[]?.clientConfig.caBundle"
+  docker-registry-sa:
+    enabled: false
+    project: sa
+    namespace: sa-management
+    sources: |-
+      - chart: harbor
+        repoURL: https://helm.goharbor.io
+        targetRevision: 1.14.0
+        helm:
+          valueFiles:
+          - $values/apps/sa/docker-registry/values.yaml
+      - repoURL: https://github.com/coreweave/k8s-services.git
+        targetRevision: master
+        ref: "values"
+    values: {}
+  cilium:
+    enabled: false
+    class: control-plane
+    path: apps/core/cilium
+    project: core
+    namespace: cilium-system
+    valuesMerge:
+      cilium:
+        operator:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node.coreweave.cloud/reserved
+                        operator: In
+                        values:
+                          - control-plane
+          tolerations:
+            - operator: Exists
+              key: is_cpu_compute
+            - key: node.coreweave.cloud/reserved
+              operator: Equal
+              value: a23e6272a875746a522968abe77c4ff953358e92 # control-plane
+  cilium-crs:
+    enabled: false
+    class: control-plane
+    path: apps/core/cilium
+    project: core
+    namespace: cilium-system
+    templateName: cilium
+    chart: cilium
+    valuesMerge:
+      deployCRs: true
+      cilium:
+        enabled: false
+  cilium-preflight:
+    enabled: false
+    class: control-plane
+    path: apps/core/cilium
+    project: core
+    namespace: cilium-system
+    templateName: cilium
+    valuesMerge:
+      deployCRs: false
+      cilium:
+        preflight:
+          enabled: true
+        operator:
+          enabled: false
+        agent: false
+        hubble:
+          ui:
+            enabled: false
+          relay:
+            enabled: false
+  speedtest:
+    path: apps/common/speedtest-new
+    project: common
+    namespace: speedtest
+    appName: speedtest
+    automated: true
+
+  kabinet-charts:
+    enabled: false
+    namespace: kabinet-charts
+    releaseName: kabinet-charts
+    project: app-platforms
+    path: apps/app-platforms/kabinet-charts
+
+  kabinet-charts-staging:
+    enabled: false
+    namespace: kabinet-charts-staging
+    releaseName: kabinet-charts-staging
+    project: app-platforms
+    path: apps/app-platforms/kabinet-charts
+
+  cloud-console-qa:
+    enabled: false
+    path: apps/cloud/cloud-console
+    releaseName: cloud-console-qa
+    appName: cloud-console-qa
+    project: cloud
+    namespace: cloud-console-qa
+    valueFiles:
+      - values-qa-image.yaml
+      - values-qa.yaml
+  cloud-console-staging:
+    enabled: false
+    path: apps/cloud/cloud-console
+    releaseName: cloud-console-staging
+    appName: cloud-console-staging
+    project: cloud
+    namespace: cloud-console-staging
+    valueFiles:
+      - values-staging-image.yaml
+      - values-staging.yaml
+  cloud-console:
+    enabled: false
+    path: apps/cloud/cloud-console
+    releaseName: cloud-console
+    appName: cloud-console
+    project: cloud
+    namespace: cloud-console
+    valueFiles:
+      - values-prod-image.yaml
+      - values-prod.yaml
+  api-gateway-qa:
+    enabled: false
+    path: apps/cloud/api-gateway
+    releaseName: api-gateway-qa
+    appName: api-gateway-qa
+    project: cloud
+    namespace: api-gateway-qa
+    valuesMerge:
+      api-gateway:
+        kubernetes-ingress:
+          controller:
+            ingressClassResource:
+              name: cloud-console-qa
+            ingressClass: cloud-console-qa
+        doppler:
+          config: qa
+        envVarConfiguration:
+          POSTGRES_HOST: console-postgres.qa.us-east-03.int.coreweave.com
+          SESSION_COOKIE_NAME: cks_sessionid_qa
+          PRINT_DEBUG: true
+  api-gateway-staging:
+    enabled: false
+    path: apps/cloud/api-gateway
+    releaseName: api-gateway-staging
+    appName: api-gateway-staging
+    project: cloud
+    namespace: api-gateway-staging
+    valuesMerge:
+      api-gateway:
+        kubernetes-ingress:
+          controller:
+            ingressClassResource:
+              name: cloud-console-staging
+            ingressClass: cloud-console-staging
+        doppler:
+          config: staging
+        envVarConfiguration:
+          POSTGRES_HOST: console-postgres.staging.us-east-03.int.coreweave.com
+          SESSION_COOKIE_NAME: cks_sessionid_staging
+          PRINT_DEBUG: true
+  api-gateway:
+    enabled: false
+    path: apps/cloud/api-gateway
+    releaseName: api-gateway
+    appName: api-gateway
+    project: cloud
+    namespace: api-gateway
+    valuesMerge:
+      api-gateway:
+        kubernetes-ingress:
+          controller:
+            ingressClassResource:
+              name: cloud-console
+            ingressClass: cloud-console
+        doppler:
+          config: prod
+        envVarConfiguration:
+          POSTGRES_HOST: console-postgres.us-east-03.int.coreweave.com
+          SESSION_COOKIE_NAME: cks_sessionid
+          PRINT_DEBUG: false
+  api-gateway-sandbox:
+    enabled: false
+    namespace: api-gateway-sandbox
+    releaseName: api-gateway-sandbox
+    project: storage
+    path: apps/cloud/api-gateway-sandbox
+  promforward-cks:
+    enabled: false
+    namespace: promforward-cks
+    releaseName: promforward-cks
+    appName: promforward-cks
+    project: cloud
+    path: apps/cloud/promforward
+    valueFiles:
+      - values-cks-prod.yaml
+      - values-prod-image.yaml
+  promforward-cks-qa:
+    enabled: false
+    namespace: promforward-cks-qa
+    releaseName: promforward-cks-qa
+    appName: promforward-cks-qa
+    project: cloud
+    path: apps/cloud/promforward
+    valueFiles:
+      - values-cks-qa.yaml
+      - values-qa-image.yaml
+  promforward-cks-staging:
+    enabled: false
+    namespace: promforward-cks-staging
+    releaseName: promforward-cks-staging
+    appName: promforward-cks-staging
+    project: cloud
+    path: apps/cloud/promforward
+    valueFiles:
+      - values-cks-staging.yaml
+      - values-staging-image.yaml
+  managed-grafana: &managed-grafana
+    enabled: false
+    namespace: managed-grafana
+    releaseName: managed-grafana
+    appName: managed-grafana
+    ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: grafana
+    automated: true
+    project: cloud
+    path: apps/cloud/managed-grafana
+    valueFiles:
+      - values-prod.yaml
+  managed-grafana-qa:
+    <<: *managed-grafana
+    namespace: managed-grafana-qa
+    releaseName: managed-grafana-qa
+    appName: managed-grafana-qa
+    valueFiles:
+      - values-qa.yaml
+  managed-grafana-staging:
+    <<: *managed-grafana
+    namespace: managed-grafana-staging
+    releaseName: managed-grafana-staging
+    appName: managed-grafana-staging
+    valueFiles:
+      - values-staging.yaml
+  github-runner:
+    enabled: false
+    namespace: git-devprod
+    releaseName: github-runner
+    project: developer-productivity
+    path: apps/developer-productivity/github-runner
+    automated: true
+    automatedOptions:
+        prune: true
+        selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+    valuesMerge: {}
+
+  hello-world:
+    enabled: false
+    namespace: git-devprod
+    class: coreweave
+    releaseName: hello-world-app
+    project: developer-productivity
+    path: apps/developer-productivity/hello-world-app
+    automated: true
+
+  vault:
+    enabled: false
+    namespace: vault # explicitly setting this to NOT just teleport in case it's deployed into the same cluser as a full teleport instance by mistake
+    path: apps/security/vault
+    releaseName: vault
+    project: security
+    unsealerImageDef: ghcr.io/coreweave/vault-unsealer:6b32df5
+    dnsNames:
+      - secvault.int.coreweave.com
+      - secvault.us-east-03.int.coreweave.com
+  tailscale-derp:
+    enabled: false
+    appName: tailscale-derp
+    project: app-platforms
+    repoURL: ghcr.io/coreweave/tailscale-derp/chart
+    path: tailscale-derp
+    # renovate: datasource=docker depName=ghcr.io/coreweave/tailscale-derp/chart/tailscale-derp
+    targetRevision: 0.12.0
+    automated: true
+    valuesMerge:
+      podLabels:
+        coreweave.cloud/severity: critical
+        coreweave.cloud/team: app-platforms
+      podAnnotations:
+        net.coreweave.cloud/attachLoadbalancerIP: '{{ include "tailscale-derp.fullname" . }}-direct'
+      deploymentAnnotations:
+        secret.reloader.stakater.com/reload: "{{ .Release.Name }}-tls"
+      env:
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        - name: DERP_ACCEPT_CONNECTION_LIMIT
+          value: "500"
+        - name: DERP_ACCEPT_CONNECTION_BURST
+          value: "1000"
+        - name: DERP_HOSTNAME
+          value: '{{ include "tailscale-derp.hostname" . }}'
+        - name: DERP_CERTMODE
+          value: "manual"
+        - name: DERP_CERTDIR
+          value: "/app/certs"
+      service:
+        annotations: {}
+        directAttach:
+          enabled: true
+          annotations:
+            argocd.argoproj.io/sync-wave: "-1"
+            metallb.universe.tf/address-pool: public
+            external-dns.alpha.kubernetes.io/hostname: '{{ include "tailscale-derp.hostname" . }}'
+
+      livenessProbe:
+        timeoutSeconds: 60
+        initialDelaySeconds: 60
+      readinessProbe:
+        timeoutSeconds: 60
+        initialDelaySeconds: 60
+
+      tls:
+        enabled: true
+        annotations:
+          argocd.argoproj.io/sync-wave: "-1"
+        domain: '{{ include "tailscale-derp.hostname" . }}'
+      volumes:
+        - name: cert
+          secret:
+            secretName: "{{ .Release.Name }}-tls"
+
+      volumeMounts:
+        - name: cert
+          mountPath: '/app/certs/{{ include "tailscale-derp.hostname" . }}.crt'
+          subPath: tls.crt
+        - name: cert
+          mountPath: '/app/certs/{{ include "tailscale-derp.hostname" . }}.key'
+          subPath: tls.key
+          readOnly: true
+  temporal-codec-server-vault:
+    enabled: false
+    appName: temporal-codec-server-vault
+    namespace: temporal-codec-server-vault-system
+    project: security
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    targetRevision: v1.3.0
+    valuesMerge:
+      image:
+        tag: v1.2.0
+      temporal:
+        namespaces:
+          - cks-test-platforms.kzw3l
+          - cks-platforms.kzw3l
+          - cks-production.kzw3l
+          - object-storage-us-east-03-storage.kzw3l
+          - object-storage-us-east-04-storage.kzw3l
+          - global-object-storage-prod.kzw3l
+        url: https://cloud.temporal.io
+      externalSecrets:
+        genericPullSecrets:
+          enabled: true
+      pki:
+        dnsNames:
+          - temporal-codec-server.int.coreweave.com
+        selfSigned: false
+        issuer:
+          name: letsencrypt-prod
+          kind: ClusterIssuer
+      service:
+        port: 443
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: temporal-codec-server.int.coreweave.com
+          metallb.universe.tf/address-pool: "cw-mgmt"
+        type: LoadBalancer
+      env:
+        - name: VAULT_ADDR
+          value: "https://secvault.int.coreweave.com"
+  cks-worker:
+    class: control-plane
+    enabled: false
+    namespace: cks-worker-system
+    project: common
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    chart: katalog-temporal-worker
+    targetRevision: v1.7.0
+    valuesMerge:
+      image:
+        tag: v1.27.2
+  cks-worker-staging:
+    class: control-plane
+    enabled: false
+    namespace: cks-worker-staging-system
+    project: common
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    chart: katalog-temporal-worker
+    targetRevision: v1.7.0
+    valuesMerge:
+      image:
+        tag: v1.27.2
+  katalog-executor:
+    class: control-plane
+    enabled: false
+    namespace: katalog
+    appName: katalog-executor
+    project: common
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    chart: katalog-executor
+    targetRevision: v1.4.1
+    valuesMerge:
+      image:
+        tag: v1.26.0
+  katalog-executor-staging:
+    class: control-plane
+    enabled: false
+    namespace: katalog-staging
+    appName: katalog-executor-staging
+    project: common
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    chart: katalog-executor
+    targetRevision: v1.4.1
+    valuesMerge:
+      image:
+        tag: v1.26.0
+  chartmuseum-ha:
+    enabled: false
+    namespace: chartmuseum-ha
+    releaseName: chartmuseum-ha
+    project: common
+    path: apps/common/chartmuseum-ha
+    values:
+      redis:
+        enabled: true
+      chartmuseum:
+        enabled: true
+      coreweave:
+        objectStorage:
+          enabled: false
+        clusterSecretStores:
+          chartmuseum-ha:
+            enabled: true
+        externalSecrets:
+          chartmuseum-ha-redis-keys:
+            enabled: true
+          chartmuseum-ha-keys:
+            enabled: true
+  sortinghat-common:
+    enabled: false
+    namespace: sorting-hat-system
+    project: core-interfaces
+    repoURL: "https://artifacts.coreweave.com/basic/sorting-hat/helm/charts"
+    chart: sortinghat-common
+    targetRevision: v1.28.0
+    valuesMerge:
+      env: prod
+  sortinghat-api:
+    enabled: false
+    namespace: sorting-hat-system
+    project: core-interfaces
+    repoURL: "https://artifacts.coreweave.com/basic/sorting-hat/helm/charts"
+    chart: sortinghat-api
+    targetRevision: v1.28.0
+    valuesMerge:
+      env: prod
+      podMonitor:
+        enabled: true
+      image:
+        repository: docker.artifacts.coreweave.com/sorting-hat/sortinghat-api
+        tag: v1.28.0
+      imagePullSecrets:
+        - name: "sortinghat-cloudsmith-registry"
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 500Mi
+      config:
+        quotaServiceConfig:
+          enforceQuota: true
+          serviceAddress: dredd.us-east-03.int.coreweave.com:80
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'be1096'
+  katalog-resources:
+    enabled: false
+    path: apps/common/katalog-resources
+    appName: katalog-resources
+    destination:
+      server: https://10.80.64.10:6443
+    sources: |-
+      - repoURL: 'https://github.com/coreweave/k8s-services.git'
+        path: apps/common/katalog-resources
+        targetRevision: master
+        helm:
+          valueFiles:
+            - values-production.yaml
+  katalog-resources-staging:
+    enabled: false
+    appName: katalog-resources-staging
+    destination:
+      server: https://10.80.64.1:6443
+    sources: |-
+      - repoURL: 'https://github.com/coreweave/k8s-services.git'
+        path: apps/common/katalog-resources
+        targetRevision: master
+        helm:
+          valueFiles:
+            - values-staging.yaml
+            - $cks-core-appsets/clusters/staging.yaml
+      - repoURL: https://github.com/coreweave/cks-core-appsets.git
+        targetRevision: main
+        ref: "cks-core-appsets"
+  fleetops-cluster:
+    enabled: false
+    path: apps/core/cks-cluster
+    namespace: tenant-cw-internal-fleetops
+    destination:
+      server: https://kubernetes.default.svc
+  fleetops-eso-writer:
+    enabled: false
+    path: apps/fleet-operations/fleetops-eso-writer
+    automated: true
+    project: fleet-operations
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+  shat-db-migrations:
+    enabled: false
+    namespace: sorting-hat-system
+    project: core-interfaces
+    repoURL: "https://artifacts.coreweave.com/basic/sorting-hat/helm/charts"
+    chart: sortinghat-db-migrations
+    targetRevision: v1.28.0
+    valuesMerge:
+      env: prod
+      image:
+        repository: docker.artifacts.coreweave.com/sorting-hat/sortinghat-db-migrations
+        tag: v1.28.0
+      imagePullSecrets:
+        - name: "sortinghat-cloudsmith-registry"
+  nimbus-worker:
+    class: control-plane
+    enabled: false
+    namespace: nimbus-worker-system
+    project: common
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    chart: katalog-temporal-worker
+    targetRevision: v1.6.1
+    valuesMerge:
+      image:
+        tag: v1.22.2
+  nimbus-worker-staging:
+    class: control-plane
+    enabled: false
+    namespace: nimbus-worker-staging-system
+    project: common
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/ngcp/
+    chart: katalog-temporal-worker
+    targetRevision: v1.6.1
+    valuesMerge:
+      image:
+        tag: v1.22.2
+  nodepools:
+    enabled: false
+    project: common
+    path: apps/common/nodepools
+  testkube-control-plane:
+    chart: testkube-control-plane
+    enabled: false
+    namespace: testkube
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    targetRevision: 1.1.2
+    project: common
+  testkube-core-agent-kinf:
+    chart: testkube-core-agents
+    enabled: false
+    namespace: testkube-kinf
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    targetRevision: 1.8.0
+    project: common
+  testkube-core-agent-kplat:
+    chart: testkube-core-agents
+    enabled: false
+    namespace: testkube-kplat
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    targetRevision: 1.5.1
+    project: common
+  testkube-core-agent-clops:
+    chart: testkube-core-agents
+    enabled: false
+    namespace: testkube-clops
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    targetRevision: 1.15.2
+    project: common
+    syncPolicy:
+      automated: {}
+      retry:
+        backoff:
+          duration: 1m
+          factor: 1
+          maxDuration: 5m
+        limit: 5
+  testkube-core-agent-dataplat:
+    chart: testkube-core-agents
+    enabled: false
+    namespace: testkube-dataplat
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    targetRevision: 1.8.4
+    project: common
+  testkube-core-agent-cldcon:
+    chart: testkube-core-agents
+    enabled: false
+    namespace: testkube-cldcon
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    targetRevision: 1.8.2
+    project: common
+  testkube-remote-agent:
+    chart: testkube-core-agents
+    enabled: false
+    namespace: testkube-remote
+    repoURL: "https://charts.core-services.ingress.int.coreweave.com/ngcp/"
+    targetRevision: 1.8.10
+    project: common
+    valueFiles:
+      - values-prod-remote-agent-kinf.yaml
+    valuesMergeTpl: |
+      envVals:
+        envName: {{ include "common.clusterName" . }}
+  kubevirt:
+    enabled: false
+    namespace: kubevirt
+    path: apps/common/kubevirt
+    project: common
+    plugin: kustomized-helm
+  sortinghat-api-stg:
+    enabled: false
+    namespace: sorting-hat-system
+    project: core-interfaces
+    repoURL: "https://artifacts.coreweave.com/basic/sorting-hat/helm/charts"
+    chart: sortinghat-api
+    targetRevision: v1.28.0
+    valuesMerge:
+      env: prod
+      podMonitor:
+        enabled: true
+      image:
+        repository: docker.artifacts.coreweave.com/sorting-hat/sortinghat-api
+        tag: v1.28.0
+      imagePullSecrets:
+        - name: "sortinghat-cloudsmith-registry"
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 500Mi
+      config:
+        quotaServiceConfig:
+          enforceQuota: true
+          serviceAddress: dredd-stg.us-east-03.int.coreweave.com:80
+  sloth-operator:
+    enabled: false
+    namespace: sloth
+    path: apps/cloudops-sre/sloth-operator
+    targetRevision: master
+    project: cloudops-sre
+  slo:
+    enabled: false
+    namespace: slo
+    path: apps/cloudops-sre/slo
+    targetRevision: master
+    project: cloudops-sre
+    syncPolicy:
+      automated: {}
+      retry:
+        backoff:
+          duration: 1m
+          factor: 1
+          maxDuration: 5m
+        limit: 5
+  backstage:
+    enabled: false
+    namespace: backstage
+    project: cloudops-sre
+    path: apps/cloudops-sre/backstage
+    releaseName: backstage
+    valueFiles: []
+    syncPolicy:
+      automated: {}
+      retry:
+        backoff:
+          duration: 1m
+          factor: 1
+          maxDuration: 5m
+        limit: 5
+      syncOptions:
+        - CreateNamespace=true
+        - PruneLast=true
+        - RespectIgnoreDifferences=true
+  backstage-staging:
+    enabled: false
+    namespace: backstage-staging
+    project: cloudops-sre
+    path: apps/cloudops-sre/backstage
+    releaseName: backstage-staging
+    valueFiles: []
+    syncPolicy:
+      automated: {}
+      retry:
+        backoff:
+          duration: 1m
+          factor: 1
+          maxDuration: 5m
+        limit: 5
+      syncOptions:
+        - CreateNamespace=true
+        - PruneLast=true
+        - RespectIgnoreDifferences=true
+  backstage-to-jira-assets:
+    enabled: false
+    namespace: inci-tools
+    path: apps/cloudops-sre/backstage-to-jira-assets
+    targetRevision: master
+    project: cloudops-sre
+    syncPolicy:
+      automated: {}
+      retry:
+        backoff:
+          duration: 1m
+          factor: 1
+          maxDuration: 5m
+        limit: 5
+      syncOptions:
+        - CreateNamespace=true
+        - PruneLast=true
+        - RespectIgnoreDifferences=true
+  zoom-to-gdrive:
+    enabled: false
+    namespace: inci-tools
+    path: apps/cloudops-sre/zoom-to-gdrive
+    targetRevision: master
+    project: cloudops-sre
+    syncPolicy:
+      automated: {}
+      retry:
+        backoff:
+          duration: 1m
+          factor: 1
+          maxDuration: 5m
+        limit: 5
+      syncOptions:
+        - CreateNamespace=true
+        - PruneLast=true
+        - RespectIgnoreDifferences=true
+  synthetics:
+    enabled: false
+    namespace: synthetics
+    path: apps/cloudops-sre/synthetics
+    targetRevision: master
+    project: cloudops-sre
+    syncPolicy:
+      automated: {}
+      retry:
+        backoff:
+          duration: 1m
+          factor: 1
+          maxDuration: 5m
+        limit: 5
+      syncOptions:
+        - CreateNamespace=true
+        - PruneLast=true
+        - RespectIgnoreDifferences=true
+  ib-partition-controller:
+    enabled: false
+    namespace: hpcnet
+    path: apps/networkhpc/ib-partition-controller
+    project: networkhpc
+  ib-bmn-controller:
+    enabled: false
+    namespace: hpcnet
+    path: apps/networkhpc/ib-bmn-controller
+    project: networkhpc
+  kafka-cluster:
+    enabled: false
+    namespace: kafka-cluster
+    path: apps/data-platforms/kafka-cluster
+    project: data-platforms
+  kafka-operator:
+    enabled: false
+    namespace: kafka-operator
+    path: apps/data-platforms/kafka-operator
+    project: data-platforms
+  kafka-o11y-test:
+    enabled: false
+    namespace: kafka-o11y-test
+    path: apps/data-platforms/kafka-o11y-test
+    project: data-platforms
+  kafka-fred-test:
+    enabled: false
+    namespace: kafka-fred-test
+    path: apps/data-platforms/kafka-fred-test
+    project: data-platforms
+  dice-proxy:
+    enabled: false
+    automated: true
+    namespace: dice-proxy
+    path: apps/developer-productivity/dice-proxy
+    project: developer-productivity
+  vpc-api-server-stag:
+    enabled: false
+    namespace: vpc-api-stg-system
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/vpc-api/helm/charts/
+    chart: vpc-api-server
+    targetRevision: 1.0.6
+    valuesMerge:
+      image:
+        tag: v1.3.26
+  prefix-api-server-stag:
+    enabled: false
+    namespace: vpc-api-stg-system
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/vpc-api/helm/charts/
+    chart: prefix-api-server
+    targetRevision: 1.0.4
+    valuesMerge:
+      image:
+        tag: v1.3.25
+  vpc-api-worker-stag:
+    enabled: false
+    namespace: vpc-api-stg-worker
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/vpc-api/helm/charts/
+    chart: vpc-api-worker
+    targetRevision: 1.0.4
+    syncPolicy:
+      automated:
+        prune: true
+    valuesMerge:
+      image:
+        tag: v1.3.25
+  vpc-api-server-prod:
+    enabled: false
+    namespace: vpc-api-system
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/vpc-api/helm/charts/
+    chart: vpc-api-server
+    targetRevision: 1.0.6
+    valuesMerge:
+      image:
+        tag: v1.3.26
+  prefix-api-server-prod:
+    enabled: false
+    namespace: vpc-api-system
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/vpc-api/helm/charts/
+    chart: prefix-api-server
+    targetRevision: 1.0.4
+    valuesMerge:
+      image:
+        tag: v1.3.22
+  vpc-api-worker-prod:
+    enabled: false
+    namespace: vpc-api-worker
+    project: common
+    repoURL: https://artifacts.coreweave.com/basic/vpc-api/helm/charts/
+    chart: vpc-api-worker
+    targetRevision: 1.0.4
+    syncPolicy:
+      automated:
+        prune: true
+    valuesMerge:
+      image:
+        tag: v1.3.22
+  canary-checker:
+    project: common
+    namespace: canary-checker
+    enabled: false
+    repoURL: https://flanksource.github.io/charts
+    targetRevision: 1.0.259
+    values:
+      serviceMonitor: true
+      global:
+        tolerations:
+          - operator: Exists
+            key: is_cpu_compute
+  cwobject-checks:
+    project: storage
+    namespace: canary-checker
+    enabled: false
+    path: apps/monitoring/canary/cwobject-checks
+    releaseName: cwobject-checks
+  upd:
+    enabled: false
+    namespace: upd
+    project: fleet-operations
+    repoURL: "https://artifacts.coreweave.com/basic/upd/helm/charts/"
+    chart: upd
+    targetRevision: 0.7.0
+    valuesMerge:
+      upd:
+        seedURL: "https://seed.core-services.ingress.int.coreweave.com"
+        workflow: node-update
+      image:
+        tag: v0.13.0
+  seed:
+    enabled: false
+    namespace: seed
+    repoURL: "https://artifacts.coreweave.com/basic/seed/helm/charts/"
+    chart: seed
+    targetRevision: 3.15.1
+    project: fleet-operations
+    syncPolicy:
+      automated:
+        prune: true
+    valuesMerge:
+      image:
+        tag: v3.12.1
+      seed_config:
+        jwks:
+          endpoint: ""
+  telecaster:
+    enabled: false
+    namespace: telecaster
+    path: apps/monitoring/telecaster
+    project: monitoring
+  admin-app-staging:
+    enabled: false
+    project: cloud
+    namespace: admin-app-staging
+    repoURL: https://artifacts.coreweave.com/basic/admin-app/helm/charts/
+    chart: admin-app
+    targetRevision: 0.5.3
+    valuesMerge:
+      image:
+        tag: v0.4.0
+  admin-app-prod:
+    enabled: false
+    project: cloud
+    namespace: admin-app
+    repoURL: https://artifacts.coreweave.com/basic/admin-app/helm/charts/
+    chart: admin-app
+    targetRevision: 0.5.3
+    valuesMerge:
+      image:
+        tag: v0.4.0
+  unicaster:
+    enabled: false
+    project: monitoring
+    path: apps/monitoring/unicaster
+    plugin: kustomized-helm
+    namespace: unicaster
+    releaseName: unicaster
+    valuesMerge:
+      unicaster:
+        enabled: false

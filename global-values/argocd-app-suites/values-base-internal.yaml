@@ -1,0 +1,613 @@
+clusterSpec:
+  scope: internal
+  clusterOrg: coreweave
+  monitoring:
+    mimirEnabled: true #direct to mimir
+  coreDnsIp: 172.26.64.3
+  networkAllocations:
+    podCIDRs: ["172.26.0.0/20"]
+    serviceCIDRs: ["172.26.64.0/23"]
+    internalLbCIDRs:
+      default: "172.27.80.0/23"
+
+projects:
+  app-platforms:
+    enabled: true
+  cloud:
+    enabled: true
+  cni:
+    enabled: true
+  common:
+    enabled: true
+  core:
+    enabled: true
+  core-interfaces:
+    enabled: true
+    roles:
+      - name: ci
+        description: CI/CD automation token
+        policies:
+          - p, proj:core-interfaces:ci, applications, sync, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, get, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, delete, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, update, core-interfaces/*, allow
+        groups:
+          - sec-Argocd-prod-coreinterfaces
+  csi:
+    enabled: true
+  fleet-operations:
+    enabled: true
+  monitoring:
+    enabled: true
+  network:
+    enabled: true
+    roles:
+      - description: CI/CD automation token
+        name: ci
+        policies:
+          - p, proj:network:ci, applications, sync, network/*, allow
+          - p, proj:network:ci, applications, get, network/*, allow
+  networkhpc:
+    enabled: true
+  network-data-path:
+    enabled: true
+  ngcp:
+    enabled: true
+  security:
+    enabled: true
+  storage:
+    enabled: true
+  vpc:
+    enabled: true
+  sa:
+    enabled: true
+  systems-engineering:
+    enabled: true
+  developer-productivity:
+    enabled: true
+applications:
+  argocd-service-monitors:
+    enabled: true
+    appName: argocd-service-monitors
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.2.0
+  box-office:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.206.0
+    appName: box-office
+    namespace: box-office
+  calico:
+    enabled: true
+    appName: calico
+    targetRevision: 1.36.0
+    valuesMerge:
+      felix:
+        disableCTLB: false
+      networkConfig:
+        vrfs:
+          k8s:
+            enabled: true
+            filter:
+              enabled: true
+          tss:
+            enabled: false
+          ipmi:
+            enabled: true
+          net:
+            enabled: true
+          dpu:
+            enabled: true
+          cw_mgmt:
+            enabled: true
+      resources:
+        requests:
+          cpu: 500m
+          memory: 4Gi
+        limits:
+          cpu: 16
+          memory: 4Gi
+      calicoController:
+        replicas: 1
+        resources:
+          requests:
+            cpu: "1"
+            memory: 4Gi
+          limits:
+            memory: 4Gi
+      typha:
+        enabled: false
+      calicoNode:
+        calico-node-ebpf:
+          overrideServicesEndpoint:
+            host: 127.0.0.1
+            port: 6444
+          updateStrategy:
+            type: RollingUpdate
+            rollingUpdate:
+              maxUnavailable: 1
+    valuesMergeTpl: |
+      calicoNode:
+        calico-node-ebpf:
+          cleanupNatRules:
+          - ip: {{ include "common.apiserver.internalLb.serviceIP" . }}
+            port: 6443
+  calico-cleanup-controller:
+    enabled: true
+    appName: calico-cleanup-controller
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.12.0
+    values:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.coreweave.cloud/reserved
+                    operator: In
+                    values:
+                      - control-plane
+      psp:
+        enabled: true
+        metallbAddressPool: cw-mgmt
+      externalCluster:
+        enabled: false
+  cert-exporter:
+    enabled: true
+    appName: internal-cert-exporter
+    namespace: cert-exporter
+  cert-manager:
+    enabled: true
+    appName: cert-manager
+    targetRevision: cert-manager-v1.8.0
+    automated: false
+  cilium:
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.0.0
+    valuesMerge:
+      cilium:
+        operator:
+          replicas: 1
+          prometheus:
+            serviceMonitor:
+              enabled: true
+          rolloutPods: true
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node.coreweave.cloud/reserved
+                        operator: In
+                        values:
+                          - control-plane
+                          - cpu
+                          - coreweave
+                          - nlcc-onboard
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  preference:
+                    matchExpressions:
+                      - key: node.coreweave.cloud/reserved
+                        operator: In
+                        values:
+                          - control-plane
+          tolerations:
+            # The operator must be able to schedule on unready nodes
+            # in order to intialize CRDs/etc for cilium agents as part
+            # of bootstrapping a k8s internal cluster.
+            - operator: Exists
+        prometheus:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            trustCRDsExist: true
+        rollOutCiliumPods: true
+        k8sServiceHost: 127.0.0.1
+        k8sServicePort: 6444
+        hubble:
+          relay:
+            enabled: true
+            replicas: 2
+            tls:
+              server:
+                enabled: true
+          ui:
+            enabled: false # Broken in 1.15.4: https://github.com/cilium/cilium/issues/18816
+            service:
+              type: LoadBalancer
+          tls:
+            auto:
+              method: certmanager
+              certManagerIssuerRef:
+                group: cert-manager.io
+                kind: Issuer
+                name: cilium-issuer
+  coredns:
+    enabled: true
+    appName: coredns
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.13.0
+    valuesMerge:
+      affinity: |
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: k8s-app
+                operator: In
+                values:
+                - kube-dns
+            topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: k8s-app
+                  operator: In
+                  values:
+                  - kube-dns
+              topologyKey: node.coreweave.cloud/rack
+      commonLabels:
+        k8s-app: kube-dns
+      configMapName: cw-coredns
+  crowdstrike:
+    enabled: true
+    appName: crowdstrike
+    valuesMerge:
+      cs-k8s-protection-agent:
+        securityContext:
+          runAsUser: 1000
+  cw-node-controller:
+    enabled: true
+    namespace: kube-system
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.158.0
+    valuesMerge:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.coreweave.cloud/reserved
+                    operator: In
+                    values:
+                      - control-plane
+                      - cpu
+                      - coreweave
+                      - nlcc-onboard
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: node.coreweave.cloud/reserved
+                    operator: In
+                    values:
+                      - control-plane
+      controllerConfig:
+        # Nodes to be brought up as quick as possible.
+        bootTaintTime: 60
+        inspectorRebootNamespace: cwnc-inspectors
+      nodeLifeCycle:
+        deliveredReservation: coreweave
+        boxoffice:
+          createTickets: true
+      conditionBehaviors:
+        enableAlertBehaviors: false
+      externalCluster:
+        enabled: false
+      tolerations:
+        - effect: NoSchedule
+          key: is_cpu_compute
+          operator: Exists
+        # CWNC runs in the kube-system namespace in internal clusters, jspolicy doesn't do anything to pods in kube-system
+        - key: node.coreweave.cloud/reserved
+          operator: Equal
+          value: a23e6272a875746a522968abe77c4ff953358e92 # control-plane
+        - key: node.coreweave.cloud/reserved
+          operator: Equal
+          value: c9f1021c4c06b6eb061d428cc53041f541efd369 # coreweave
+        - key: node.coreweave.cloud/reserved
+          operator: Equal
+          value: 44063f7a1eda49e0a14418496aa8ec06bf79d61b # nlcc-onboard
+  deviceslot-operator:
+    enabled: true
+  eventrouter:
+    enabled: true
+    appName: eventrouter
+  epimetheus:
+    namespace: kube-system
+    valuesMerge:
+      externalCluster: null
+      inClusterKubeConfig: true
+      clusterRole:
+        createClusterRole: true
+  external-dns:
+    enabled: true
+    appName: external-dns
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.7.0
+  external-secrets:
+    enabled: true
+    appName: external-secrets
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.5.0
+  goldpinger:
+    enabled: true
+    appName: goldpinger
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.0.0
+  internal-control-plane:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.8.0
+    valuesMerge:
+      haProxyPodMonitor:
+        enabled: true
+  infra-canary:
+    enabled: true
+    valuesMerge:
+      minimum_nodes: 3
+      minimum_racks: 3
+  jwks-auth-push-internal:
+    enabled: true
+  jspolicy:
+    enabled: true
+    class: control-plane
+    targetRevision: jspolicy-v1.36.0
+    valuesMerge:
+      job:
+        enabled: false
+      jspolicy:
+        env:
+          KUBECONFIG: null
+        jspolicy:
+          extraVolumeMounts: null
+          extraVolumes: null
+        serviceAccount:
+          name: jspolicy-sa
+          create: true
+          clusterRole: cluster-admin
+        clusterRoleBinding:
+          create: true
+        priorityClassName: "system-cluster-critical"
+        webhook:
+          create: true
+        tolerations:
+          - key: is_cpu_compute
+            operator: Exists
+          - key: node.coreweave.cloud/reserved
+            operator: Equal
+            value: a23e6272a875746a522968abe77c4ff953358e92 # control-plane
+          - key: node.coreweave.cloud/reserved
+            operator: Equal
+            value: 44063f7a1eda49e0a14418496aa8ec06bf79d61b # nlcc-onboard
+          - key: node.coreweave.cloud/reserved
+            operator: Equal
+            value: c9f1021c4c06b6eb061d428cc53041f541efd369 # coreweave
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/reserved
+                      operator: In
+                      values:
+                        - control-plane
+                        - cpu
+                        - coreweave
+                        - nlcc-onboard
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                preference:
+                  matchExpressions:
+                    - key: node.coreweave.cloud/reserved
+                      operator: In
+                      values:
+                        - control-plane
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - '{{ template "jspolicy.fullname" . }}'
+                topologyKey: kubernetes.io/hostname
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - '{{ template "jspolicy.fullname" . }}'
+                  topologyKey: node.coreweave.cloud/rack
+  jspolicy-policies:
+    enabled: true
+    valuesMerge:
+      policies:
+        mutateLBClass: false
+  local-storage-provisioner:
+    enabled: true
+    appName: local-storage-provisioner
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.3.0
+    chart: provisioner
+    valuesMerge:
+      daemonset:
+        tolerations:
+          - operator: Exists
+      classes:
+        - name: local-ssd
+          hostDir: /mnt/local/k8s-local-storage
+          volumeMode: Filesystem
+          fsType: xfs
+          namePattern: "*"
+          blockCleanerCommand:
+            - "/scripts/shred.sh"
+            - "2"
+          storageClass:
+            reclaimPolicy: Retain
+            isDefaultClass: true
+  metallb:
+    enabled: true
+    appName: metallb
+    targetRevision: metallb-v1.10.0
+  metrics:
+    enabled: true
+    appName: metrics
+    targetRevision: metrics-v1.510.2
+    valuesMerge:
+      sli:
+        monitor:
+          enabled: true
+      prometheus-operator:
+        coreDns:
+          service:
+            selector:
+              k8s-app: kube-dns
+        kubeControllerManager:
+          enabled: true
+        kubeEtcd:
+          enabled: true
+        kubeScheduler:
+          enabled: true
+        kube-state-metrics:
+          affinity: null
+  metrics-server:
+    enabled: true
+    appName: metrics-server
+    targetRevision: metrics-server-v1.6.1
+    values:
+      metrics-server:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/class
+                      operator: In
+                      values:
+                        - control-plane
+                        - cpu
+  nfd:
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.5.0
+    valueFiles:
+      - values.yaml
+  node-local-dns:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.18.0
+    valuesMerge:
+      coreDNSLabels:
+        k8s-app: kube-dns
+  node-problem-detector:
+    enabled: true
+    appName: node-problem-detector
+    valuesMerge:
+      image:
+        pullSecretsRequired: true
+      canaryCheckAddress: "172.31.255.1"
+  oidc:
+    enabled: true
+    appName: oidc
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    chart: oidc-permissions
+    targetRevision: 1.2.0
+  promtail:
+    enabled: true
+    appName: promtail
+  prometheus-smartctl-exporter:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.3.0
+    valuesMerge:
+      prometheus-smartctl-exporter:
+        serviceMonitor:
+          enabled: true
+        prometheusRules:
+          enabled: true
+  reloader:
+    enabled: true
+  regproxy:
+    replicas: 2
+    enabled: true
+    targetRevision: regproxy-v1.27.0
+    valuesMerge:
+      regproxy:
+        rbac:
+          create: true
+        service:
+          loadBalancerIP: "172.27.80.50"
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 32Gi
+            ephemeral-storage: 32Gi
+          limits:
+            memory: 32Gi
+            ephemeral-storage: 32Gi
+  teleport:
+    enabled: true
+    appName: teleport
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.30.1
+    valuesMerge:
+      coreweave:
+        slackBotRestartCron:
+          enabled: false
+      dopplerScope: internal
+      teleport-kube-agent:
+        joinGeoCluster: true
+        storage:
+          storageClassName: local-ssd
+      teleport-plugin-slack:
+        enabled: false
+      proxyAddress: teleport.na.int.coreweave.com:443
+  k8s-internal-svc:
+    enabled: true
+    appName: k8s-internal-svc
+    rawYaml: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        annotations:
+          metallb.universe.tf/address-pool: default
+          external-dns.alpha.kubernetes.io/hostname: {{ include "common.apiserver.addtlUrl" . }}
+        name: k8s-apiserver-custom
+      spec:
+        externalTrafficPolicy: Local
+        loadBalancerIP: {{ include "common.apiserver.internalLb.serviceIP" . }}
+        ports:
+        - port: 6443
+          protocol: TCP
+          targetPort: 6443
+        selector:
+          component: kube-apiserver
+        type: LoadBalancer
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        annotations:
+          metallb.universe.tf/address-pool: cw-mgmt
+          external-dns.alpha.kubernetes.io/hostname: {{ include "common.apiserver.mgmtUrl" . }}
+        name: k8s-apiserver-custom-cw-mgmt
+      spec:
+        externalTrafficPolicy: Local
+        loadBalancerIP: {{ include "common.apiserver.mgmt.serviceIP" . }}
+        ports:
+        - port: 6443
+          protocol: TCP
+          targetPort: 6443
+        selector:
+          component: kube-apiserver
+        type: LoadBalancer
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        remoteWrite: []

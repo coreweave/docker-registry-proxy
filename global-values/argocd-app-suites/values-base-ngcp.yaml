@@ -1,0 +1,457 @@
+clusterSpec:
+  scope: ngcp
+  clusterOrg: coreweave
+  monitoring:
+    mimirEnabled: true #direct to mimir
+  networkAllocations:
+    podCIDRs: ["172.16.0.0/14"]
+    serviceCIDRs: ["172.20.0.0/18"]
+    internalLbCIDRs:
+      default: "172.21.0.0/20"
+    externalLbCIDRs:
+      tss: "100.124.0.0/18"
+argocd:
+  targetClusterURL: https://172.27.80.12
+
+projects:
+  sa:
+    enabled: true
+  core-interfaces:
+    enabled: true
+    roles:
+      - name: ci
+        description: CI/CD automation token
+        policies:
+          - p, proj:core-interfaces:ci, applications, sync, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, get, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, delete, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, update, core-interfaces/*, allow
+        groups:
+          - sec-Argocd-prod-coreinterfaces
+applications:
+  argocd-ngcp:
+    enabled: true
+    valuesMerge:
+      argo-cd:
+        enabled: false
+      cmpPlugin:
+        disable: true
+      coreweave:
+        signedCertDisable: true
+  argocd-projects:
+    enabled: true
+  argocd-service-monitors:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.2.0
+  box-office:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.206.0
+  calico:
+    enabled: true
+    targetRevision: 1.36.0
+    valuesMerge:
+      networkConfig:
+        vrfs:
+          k8s:
+            enabled: true
+            filter:
+              enabled: true
+          tss:
+            enabled: true
+          ipmi:
+            enabled: true
+          net:
+            enabled: false
+          dpu:
+            enabled: false
+          cw_mgmt:
+            enabled: true
+      typha:
+        enabled: false # Disable typha since these clusters are small and don't need the extra overhead
+  calico-cleanup-controller:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.12.0
+  cert-exporter:
+    enabled: true
+    valueFiles:
+      - values-kubecepted.yaml
+  cert-manager:
+    enabled: true
+  cks-api-worker-stag:
+    enabled: true
+  cks-api-worker-prod:
+    enabled: true
+  control-plane:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.80.0
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          control-plane-ngcp-cluster:
+            project: control-plane
+            config: prod
+          generic-pull-secrets-ngcp-cluster:
+            project: generic-pull-secrets
+            config: prod
+        externalSecrets:
+          mimir-credentials:
+            secretStoreName: control-plane-ngcp-cluster
+            type: Opaque
+            dataFrom:
+              - find:
+                  conversionStrategy: Default
+                  decodingStrategy: None
+                  name:
+                    regexp: (.*)
+                rewrite:
+                  - regexp:
+                      source: MIMIR_USERNAME
+                      target: USERNAME
+                  - regexp:
+                      source: MIMIR_PASSWORD
+                      target: PASSWORD
+            gitlab-registry:
+              secretStoreName: generic-pull-secrets-ngcp-cluster
+              type: kubernetes.io/dockerconfigjson
+              dataFrom:
+                - find:
+                    conversionStrategy: Default
+                    decodingStrategy: None
+                    name:
+                      regexp: GITLAB_IMAGE_PULL_SECRET
+                  rewrite:
+                    - regexp:
+                        source: (.*)
+                        target: .dockerconfigjson
+              target:
+                creationPolicy: Owner
+                deletionPolicy: Retain
+                template:
+                  engineVersion: v2
+                  mergePolicy: Replace
+                  type: kubernetes.io/dockerconfigjson
+          gitlab-registry:
+            secretStoreName: generic-pull-secrets-ngcp-cluster
+            type: kubernetes.io/dockerconfigjson
+            dataFrom:
+              - find:
+                  conversionStrategy: Default
+                  decodingStrategy: None
+                  name:
+                    regexp: GITLAB_IMAGE_PULL_SECRET
+                rewrite:
+                  - regexp:
+                      source: (.*)
+                      target: .dockerconfigjson
+            target:
+              creationPolicy: Owner
+              deletionPolicy: Retain
+              template:
+                engineVersion: v2
+                mergePolicy: Replace
+                type: kubernetes.io/dockerconfigjson
+      kubeception:
+        apiserver:
+          service:
+            loadBalancerIP: 172.27.80.12
+            addtlLocalService:
+              enabled: true
+        controllerManager:
+          deployment:
+            replicas: 3
+            strategy:
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 1
+              type: RollingUpdate
+            tuningParams:
+              nodeMonitorGracePeriod: 20s
+              nodeMonitorPeriod: 3s
+              terminatedPodGCThreshold: 500
+        scheduler:
+          deployment:
+            replicas: 3
+            strategy:
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 1
+              type: RollingUpdate
+        extraSchedulers:
+          enabled: false
+          schedulers: []
+  coredns:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.13.0
+  crowdstrike:
+    enabled: true
+    valuesMerge:
+      falconSensor:
+        tags: "control-plane"
+  cw-node-controller:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.158.0
+    valuesMerge:
+      nodeLifeCycle:
+        deliveredReservation: coreweave
+        boxoffice:
+          createTickets: true
+      conditionBehaviors:
+        enableAlertBehaviors: false
+  deviceslot-operator:
+    enabled: true
+  eventrouter:
+    enabled: true
+  external-dns:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.7.0
+  external-dns-client:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.1.0
+  external-secrets:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.5.0
+  flcc-ngcp:
+    enabled: true
+  goldpinger:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.0.0
+  ipam:
+    enabled: false
+  in-cluster-config:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.35.0
+    chart: tenant-cluster-config
+    valuesMerge:
+      kubeletConfigOverrides:
+        nodeStatusUpdateFrequency: 5s
+  infra-canary:
+    enabled: true
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 3
+  jwks-auth-push:
+    enabled: true
+  jspolicy:
+    enabled: true
+    valuesMerge:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - '{{ template "jspolicy.fullname" . }}'
+                topologyKey: node.coreweave.cloud/rack
+  jspolicy-policies:
+    enabled: true
+    values:
+      policies:
+        mutateControlPlaneAffinity: false
+  local-storage-provisioner:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.1.0
+    valuesMerge:
+      daemonset:
+        tolerations:
+          - operator: Exists
+  katalyst-operator:
+    enabled: true
+    valuesMerge:
+      extraAffinityMatchExprs:
+        - key: node.coreweave.cloud/class
+          operator: In
+          values:
+            - control-plane
+      extraTolerations:
+        - key: node.coreweave.cloud/reserved
+          operator: Equal
+          value: a23e6272a875746a522968abe77c4ff953358e92
+  aclmapper:
+    enabled: true
+  katalyst-proxy:
+    enabled: false
+  kubemod:
+    enabled: false
+  metallb:
+    enabled: true
+  metrics:
+    enabled: true
+    targetRevision: metrics-v1.510.2
+    valuesMerge:
+      sli:
+        monitor:
+          enabled: true
+      prometheus-operator:
+        kubelet:
+          serviceMonitor:
+            cAdvisorMetricRelabelings:
+              # Match current behavior since helm cannot merge lists
+              - sourceLabels: ["__name__"]
+                regex: "container_memory_cache|container_memory_working_set_bytes|container_memory_usage_bytes|container_cpu_usage_seconds_total|container_memory_rss|container_network_receive_packets_total|container_network_transmit_packets_total|container_memory_working_set_bytes|container_memory_usage_bytes|container_memory_rss|container_network_receive_packets_total|container_network_transmit_packets_total|container_network_transmit_bytes_total|container_network_receive_bytes_total|container_fs_writes_bytes_total|container_fs_reads_bytes_total|container_cpu_cfs_throttled_seconds_total|container_accelerator_memory_used_bytes|container_accelerator_duty_cycle|container_accelerator_memory_total_bytes|machine_memory_bytes|machine_cpu_cores"
+                action: keep
+              # Correct cluster and cluster_org for controlplane components in tenant namespaces
+              - sourceLabels: ["namespace", "pod"]
+                action: replace
+                separator: /
+                regex: "tenant-(?:sta-)?(coreweave|cw-internal|[a-z0-9]+)-(.+)/(kube-apiserver.*|kube-controller-manager.*|kube-scheduler.*|konnectivity-server.*|etcd-.*)"
+                targetLabel: cluster_org
+                replacement: "$1"
+              - sourceLabels: ["namespace", "pod"]
+                separator: /
+                action: replace
+                regex: "tenant-(?:sta-)?(coreweave|cw-internal|[a-z0-9]+)-(.+)/(kube-apiserver.*|kube-controller-manager.*|kube-scheduler.*|konnectivity-server.*|etcd-.*)"
+                targetLabel: cluster
+                replacement: "$2"
+  metrics-server:
+    enabled: true
+  nfd:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.5.0
+  node-problem-detector:
+    enabled: true
+    valuesMerge:
+      image:
+        pullSecretsRequired: true
+      canaryCheckAddress: "172.31.255.1"
+  node-reporter:
+    enabled: true
+  oidc:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    chart: oidc-permissions
+    targetRevision: 1.3.0
+  promtail:
+    enabled: true
+    valuesMerge:
+      promtail:
+        config:
+          snippets:
+            extraRelabelConfigs:
+              - action: replace
+                regex: true/(.*)
+                separator: /
+                source_labels:
+                  - __meta_kubernetes_pod_labelpresent_katalyst_coreweave_cloud_org
+                  - __meta_kubernetes_pod_label_katalyst_coreweave_cloud_org
+                target_label: cluster_org
+              - action: replace
+                regex: true/(.*)
+                separator: /
+                source_labels:
+                  - __meta_kubernetes_pod_labelpresent_katalyst_coreweave_cloud_cluster
+                  - __meta_kubernetes_pod_label_katalyst_coreweave_cloud_cluster
+                target_label: cluster
+  prometheus-smartctl-exporter:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.3.0
+    valuesMerge:
+      prometheus-smartctl-exporter:
+        serviceMonitor:
+          enabled: true
+        prometheusRules:
+          enabled: true
+  pvmo:
+    enabled: true
+    namespace: ""
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      ESO:
+        create: true
+      oob:
+        enabled: true
+        kubeConfigSecretName: admin-kubeconfig
+      service:
+        type: LoadBalancer
+  reloader:
+    enabled: true
+  rook-ceph:
+    enabled: true
+  rook-operator:
+    enabled: true
+  teleport-oob:
+    enabled: true
+    destination:
+      server: https://kubernetes.default.svc
+    namespace: ngcp-cluster
+    valuesMerge:
+      dopplerScope: internal
+      teleport-kube-oob-agent:
+        enabled: true
+        proxyAddr: teleport.na.int.coreweave.com:443
+  teleport:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.30.1
+    valuesMerge:
+      coreweave:
+        slackBotRestartCron:
+          enabled: false
+      scope: mgmt #points to the doppler config for pulling join tokens in
+      dopplerScope: mgmt
+      teleport-cluster:
+        enabled: false
+      teleport-kube-agent:
+        enabled: true
+        storage:
+          storageClassName: local-ssd
+      teleport-plugin-slack:
+        enabled: false
+  traefik:
+    enabled: false
+  vast-csi:
+    enabled: true
+  vast-csi-controller:
+    enabled: true
+  argo-sa:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.31.0
+    chart: sa-argo
+    path: apps/sa/argo
+    project: sa
+    namespace: sa-management
+  secrets-sa:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.0.0
+    chart: sa-secrets
+    path: apps/sa/secrets
+    namespace: sa-management
+    project: sa
+  cks-worker:
+    enabled: true
+  cks-worker-staging:
+    enabled: true
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        remoteWrite: []
+        tolerations:
+          - key: is_cpu_compute
+            operator: Exists
+        resources:
+          requests:
+            cpu: "2"
+            memory: 5Gi
+          limits:
+            cpu: "4"
+            memory: 10Gi

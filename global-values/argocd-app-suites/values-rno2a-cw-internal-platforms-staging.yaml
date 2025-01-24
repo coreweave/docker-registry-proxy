@@ -1,0 +1,207 @@
+clusterSpec:
+  region: rno2
+  scope: platforms-staging
+  clusterOrg: cw-internal
+  networkAllocations:
+    externalLbCIDRs:
+      public: "166.19.5.40/29"
+
+argocd:
+  targetClusterURL: https://172.20.9.51
+
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "g1cbef2,g8150e0"
+      nodeLifeCycle:
+        applyTaints: false
+  konnectivity-agent:
+    values:
+      serverAddress: konn-tss.cw-internal-platforms-staging.k8s.rno2.coreweave.com
+  cilium:
+    enabled: false
+    valuesMerge:
+      cilium:
+        hubble:
+          tls:
+            enabled: false
+  calico:
+    enabled: true
+    valuesMerge:
+      networkConfig:
+        vrfs:
+          tss:
+            enabled: true
+          cw_mgmt:
+            enabled: true
+      images:
+        node: ghcr.io/coreweave/calico/node:v3.28.0-patched
+        cni: docker.io/calico/cni:v3.28.0
+      calicoController:
+        image: docker.io/calico/kube-controllers:v3.28.0
+      typha:
+        image: docker.io/calico/typha:v3.28.0
+      felix:
+        excludeCoreDnsFromNat: true
+        disableCTLB: false
+  calico-cleanup-controller:
+    releaseName: cw-int-staging-calico-cleanup-controller
+  coredns:
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.0.31"
+      kubeconfig:
+        cluster: cw-internal-platforms-staging
+        path: /etc/kubernetes/admin-config
+      secretName: internal-admin-kubeconfig
+      monitoring:
+        enabled: false
+      extraServiceAnnotations:
+        metallb.universe.tf/address-pool: tss
+  control-plane:
+    valuesMerge:
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: 100.124.0.24
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.cw-internal-platforms-staging.k8s.rno2.coreweave.com
+      kubeception:
+        apiserver:
+          serviceMonitor:
+            enabled: true
+            tlsConfig:
+              ca:
+                secret:
+                  name: cert-admin-client
+                  key: ca.crt
+              cert:
+                secret:
+                  name: cert-admin-client
+                  key: tls.crt
+              keySecret:
+                name: cert-admin-client
+                key: tls.key
+              insecureSkipVerify: true
+            scheme: https
+          deployment:
+            advertiseAddress: ""
+          service:
+            loadBalancerIP: 10.80.0.14
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: 100.124.0.14
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.16.0.1
+            - 100.124.0.14
+            - 100.124.0.24
+            - 10.80.0.14
+            - 172.20.9.51
+            - 172.20.37.69
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRUXI1cjRFR0dMVDBDT3ZBUU5Hc3NXekFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1ETXdNVEF5TURBek0xb1hEVE0wTURFd09EQXlNREF6Ck0xb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFNUTFJQ0VwbG1VR0tGS0lYcVRuNElEbmZIZ0JrdlF0cUJpY3pYbnBnU0daV0oraHEzNjdJQzdsCktGZjE1bzBBNFh2bmJjNm1lQ0ZyVk8vN0o1YnFQVWVzT3VpaFpkcmN2SjBrZkxhNy8vVVJjZ2RyWHhpYnJveTYKQUVFdWtsQUtrS0t0d0pKaVBIYzRub3pLWjgvVXIwcUhhcHM1Sk1JL0U5STBaUjBtL1Zwait3ckk3UVVEaE1sUwo4MDgxRkh5SDVwVExzNXJabDlySExyczZyb1drckJmclFqVmg5eXF5V1lBSExOWUc1Z3U3OTh3c0k0WGFIemFwCnBFdmtacjZDTTMzSHpIdk5NUi9nYTZPQUFHb1RQM0Y4SlpoTnQ3cngra1VsOVlMK216RmVNc2FKVmFlYWcvc1IKbUo3RDc0a3FuK2RjY3Vod2JBdnh5d3lWalFLSUJIa0NBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCU20xN3o1SW82cGZCR0c4Uks3UTRxZE56Y1NNekFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQW1ZTkxKc0l0LzdwQ1ZIZWtSUDhYM3lpaDZuYk12SXcvdk5nT25sUDIzV0pHZ3pWY2dRczZMSE5UVUJ5cwpZL3RpWWpYcEE3NCs2V0JSZmF4dkpRK2ZoREU2VUVBVng5a1Y2U1Y0NUdGTW43QUc5Sis1aG95ZWQwM1FFam1WCkpxTHVlWmdmbEtubVRlZm84R0FrWVV5b0tUOVFiTkxZVHEvU1VvQ21qWmNxY3BYZnQ1ZDJtSDlVSlpYRUhwZnYKUnB1dWFxRXFxOEN0QUVUOWkwUlBTTllRd2ZnY0ludlVyOU5MVzRidStNcnlvNzQrcEthY3J2RHVoV3hEdHVmYwpkUXUyT2tFTEhtV2JwNW00R1BhdzM3MzZEem5ud1F1TlVmVVNlRkxyMFBqUXVMNy9xb09rUmQ3SkhDT21jQUZmCjBvVDN0ZWM1S0EwcndRbERpT0x1VVpuaTNnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.0.31"
+      nldClusterIP: "10.16.0.30"
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.34"
+  external-secrets:
+    enabled: true
+  katalyst-operator:
+    enabled: true
+    targetRevision: 1.29.3
+    valuesMerge:
+      env: STA
+      image:
+        tag: v2.37.0
+      releaseChannels:
+        beta:
+          image:
+            tag: v2.37.0
+  local-storage-provisioner:
+    enabled: true
+    appName: local-storage-cw-int-plat-staging
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  traefik:
+    enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: platforms-staging
+            cluster_org: cw-internal
+            region: rno2
+          config:
+            lokiAddress: http://100.124.0.34/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-csi: &vast_csi
+    targetRevision: 1.55.0
+    hasDedicatedTenant: true
+    valuesMerge: &vast_csi_valuesMerge
+      csiSecret:
+        config: prod_lga1-staging-automation
+      promSecret:
+        config: prod_lga1-staging-automation
+      image:
+        csiVastPlugin:
+          tag: v2.4.2-beta-1526814
+      vmsService:
+        services:
+          - name: vms
+            endpoints:
+              - ip: 10.137.155.50
+  vast-csi-controller:
+    <<: *vast_csi
+    valuesMerge:
+      <<: *vast_csi_valuesMerge
+      coreweave:
+        clusterSecretStores:
+          vast-cw-internal-platforms-staging:
+            config: prod_lga1-staging-automation
+  vector:
+    enabled: false
+    valuesMerge:
+      coreweave:
+        cluster: platforms-staging
+        cluster_org: cw-internal
+        region: rno2
+        vectorIngester: 100.123.0.2
+  node-problem-detector:
+    valuesMerge:
+      extraEnvVars:
+        - name: NPD_NO_PUBTEST
+          value: "1"
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-ngcp
+          namespace: victoria-metrics

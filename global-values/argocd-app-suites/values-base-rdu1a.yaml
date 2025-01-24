@@ -1,0 +1,3 @@
+clusterSpec:
+  zone: rdu1a
+  useZoneFiles: true

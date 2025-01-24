@@ -1,0 +1,454 @@
+clusterSpec:
+  geoRegion: na
+  region: dev1
+  zonesEnabled: true
+  networkAllocations:
+    asNumber: "64321"
+  monitoring:
+    basicAuth:
+      enabled: false
+
+applications:
+  argocd-ngcp:
+    enabled: false
+  argocd-service-monitors:
+    enabled: true
+  blastshield-gw:
+    enabled: false
+  box-office:
+    enabled: false
+  calico:
+    valuesMerge:
+      resources:
+        requests:
+          memory: 512Mi
+        limits:
+          cpu: 2
+          memory: 1Gi
+      calicoController:
+        replicas: 1
+        resources:
+          requests:
+            memory: 256Mi
+          limits:
+            memory: 1Gi
+      networkConfig:
+        peerASN: 65432
+        hostCIDRs:
+          - 10.100.1.0/24
+        vrfs:
+          k8s:
+            enabled: true
+            filter:
+              enabled: true
+            peerIP: 10.100.1.1
+          tss:
+            enabled: false
+          ipmi:
+            enabled: false
+          net:
+            enabled: false
+          dpu:
+            enabled: false
+          cw_mgmt:
+            enabled: false
+      typha:
+        replicas: 1
+        resources:
+          requests:
+            cpu: 500m
+            memory: 256Mi
+          limits:
+            cpu: ~
+            memory: 1Gi
+  calico-cleanup-controller:
+    values:
+      coreweave:
+        clusterSecretStores:
+          generic-pull-secrets-calico-cleanup:
+            config: dev
+      psp:
+        enabled: false
+        metallbAddressPool: cw-mgmt
+      externalCluster:
+        enabled: false
+  cert-exporter:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          generic-pull-secrets:
+            config: dev
+  cert-manager:
+    enabled: true
+    valuesMerge:
+      letsencrypt:
+        prod:
+          enabled: false
+        staging:
+          enabled: false
+      cloudflare:
+        enabled: false
+  cilium:
+    enabled: false
+    valuesMerge:
+      cilium:
+        hubble:
+          relay:
+            replicas: 1
+      networkConfig:
+        vrfs:
+          k8s:
+            enabled: false
+        bgpPolicy:
+          peerIP: 10.100.1.1
+          gracefulRestart:
+            enabled: false
+        peerASN: 65432
+  control-plane:
+    valuesMerge:
+      coreweave:
+        externalSecrets:
+          mimir-credentials:
+            enabled: "false"
+      etcdBackup:
+        enabled: false
+      etcd-events:
+        pdb:
+          create: false
+        persistence:
+          size: 1Gi
+        replicaCount: 1
+        resources:
+          requests:
+            memory: 512Mi
+      etcd-local:
+        pdb:
+          create: false
+        persistence:
+          size: 1Gi
+        replicaCount: 1
+        resources:
+          requests:
+            memory: 512Mi
+      kubeception:
+        apiserver:
+          deployment:
+            livenessProbe:
+              failureThreshold: 8
+              httpGet:
+                path: /livez
+                port: 6443
+                scheme: HTTPS
+              initialDelaySeconds: 16
+              periodSeconds: 10
+              successThreshold: 1
+              timeoutSeconds: 15
+              tcpSocket: null
+            readinessProbe:
+              initialDelaySeconds: 5
+              failureThreshold: 3
+              httpGet:
+                path: /readyz
+                port: 6443
+                scheme: HTTPS
+              periodSeconds: 1
+              successThreshold: 1
+              timeoutSeconds: 1
+              tcpSocket: null
+            replicas: 1
+            resources:
+              requests:
+                cpu: 100m
+                memory: 200Mi
+          psp:
+            enabled: false
+          service:
+            addtlLocalService:
+              enabled: false
+        controllerManager:
+          deployment:
+            replicas: 1
+            resources:
+              requests:
+                cpu: 100m
+                memory: 200Mi
+        scheduler:
+          deployment:
+            replicas: 1
+            resources:
+              requests:
+                cpu: 100m
+                memory: 200Mi
+  coredns:
+    valuesMerge:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 50Mi
+  crowdstrike:
+    enabled: false
+  cw-node-controller:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          cwnc:
+            config: dev
+          cwnc-generic-pull-secrets:
+            config: dev
+      proxy:
+        resources:
+          limits:
+            cpu: 300m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      manager:
+        resources:
+          limits:
+            cpu: 300m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      nodeLifeCycle:
+        applyTaints: false  # the decision has been made to leave auto tainting off until cwnc has been adjusted to not apply the default taint
+      features:
+        DEVICESLOT_ENABLED: true
+  deviceslot-operator:
+    enabled: false
+  dso-netracker:
+    class: control-plane  # This should not be here, but we currently only have control-plane nodes in dev1-mgmt
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          dso-netracker:
+            config: dev
+      netracker-blackbox:
+        replicas: 0
+  epimetheus:
+    enabled: false
+  eventrouter:
+    enabled: true
+  external-dns:
+    enabled: false
+  external-secrets:
+    valuesMerge:
+      external-secrets:
+        resources:
+          requests:
+            memory: 100Mi
+        webhook:
+          resources:
+            requests:
+              memory: 100Mi
+        certController:
+          resources:
+            requests:
+              memory: 100Mi
+  goldpinger:
+    valuesMerge:
+      metallbAddressPool: default
+  jspolicy:
+    valuseMerge:
+      jspolicy:
+        jspolicy:
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              memory: 100Mi
+  metallb:
+    valuesMerge:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 100Mi
+      speaker: false
+  metrics-server:
+    enabled: true
+    values:
+      metrics-server:
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+  ipmi-exporter:
+    enabled: false
+  metrics:
+    valuesMerge:
+      sli:
+        monitor:
+          enabled: true
+      prometheus-operator:
+        alertmanager:
+          enabled: true
+        defaultRules:
+          create: true
+        kube-state-metrics:
+          affinity: null
+          resources: null
+        prometheus-node-exporter:
+          resources: null
+        prometheusOperator:
+          prometheusConfigReloader:
+            resources: null
+  nfd:
+    enabled: true
+  node-local-dns:
+    valuesMerge:
+      upstreamDNSResolvers: "10.100.1.1"
+  node-problem-detector:
+    enabled: true
+    valuesMerge:
+      canaryCheckAddress: "10.100.1.1"
+      coreweave:
+        clusterSecretStores:
+          npd-image:
+            config: dev
+  node-reporter:
+    enabled: false
+  promtail:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+    values:
+      traefik:
+        additionalArguments:
+          - '--serverstransport.insecureskipverify=true'
+        autoscaling:
+          enabled: false
+      resources: null
+      service:
+        annotations:
+          metallb.universe.tf/address-pool: default
+        enabled: true
+        spec:
+          externalTrafficPolicy: Local
+  reloader:
+    enabled: false
+  speedtest:
+    enabled: false
+  tailscale-derp:
+    enabled: false
+
+  agi-backend:
+    enabled: false
+  agi-crds:
+    enabled: false
+  argo-sa:
+    enabled: false
+  argocd-projects:
+    enabled: false
+  fleet-lifecycle-controller:
+    enabled: false
+  harmonizer:
+    enabled: false
+  ipam-operator:
+    enabled: false
+  jwks-auth-push-management:
+    enabled: false
+  katalyst-proxy:
+    enabled: false
+    valuesMerge:
+      loadBalancerIP: "100.124.0.18"
+  mcp-exporter:
+    enabled: false
+  mgmt-ntp:
+    enabled: false
+  ncore:
+    enabled: false
+  netbox-dns:
+    enabled: false
+  nimbus-bmn-controller:
+    enabled: false
+  nimbus-core-crs:
+    enabled: false
+  nimbus-crds:
+    enabled: false
+  nimbus-vpc-controller:
+    enabled: false
+  object-cache:
+    enabled: false
+  overlay-utils:
+    enabled: false
+  postgres-operator:
+    enabled: false
+  prometheus-smartctl-exporter:
+    enabled: false
+  provisionator:
+    enabled: false
+  pure-storage-exporter:
+    enabled: false
+  pvmo:
+    enabled: false
+  redfish-services:
+    enabled: false
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  shat-db-migrations:
+    enabled: false
+  shat-resource-availability:
+    enabled: false
+  sortinghat-api:
+    enabled: false
+  sortinghat-api-stg:
+    enabled: false
+  sortinghat-common:
+    enabled: false
+  tailscale-operator:
+    enabled: false
+  teleport-oob:
+    enabled: false
+  vast-csi:
+    enabled: false
+  vast-csi-controller:
+    enabled: false
+  vector:
+    enabled: false
+  victoria-metrics:
+    enabled: true
+    valuesMerge:
+      victoria-metrics-agent:
+        resources:
+          requests:
+            cpu: "500m"
+            memory: 512Mi
+          limits:
+            memory: 1Gi
+  testkube-control-plane:
+    appName: testkube-control-plane
+    enabled: false
+    namespace: testkube
+    path: apps/common/testkube/testkube-control-plane
+    project: common
+    targetRevision: master
+    valueFiles:
+      - values-dev1-tkcp.yaml
+  testkube-core-agent-kinf:
+    appName: testkube-core-agent-kinf
+    enabled: false
+    namespace: testkube-kinf
+    path: apps/common/testkube/testkube-core-agents
+    project: common
+    targetRevision: master
+    valueFiles:
+      - values-dev1-tkca-kinf.yaml
+  testkube-core-agent-kplat:
+    appName: testkube-core-agent-kplat
+    enabled: false
+    namespace: testkube-kplat
+    path: apps/common/testkube/testkube-core-agents
+    project: common
+    targetRevision: master
+    valueFiles:
+      - values-dev1-tkca-kplat.yaml

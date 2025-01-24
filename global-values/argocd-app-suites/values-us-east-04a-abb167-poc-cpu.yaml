@@ -1,0 +1,102 @@
+clusterSpec:
+  region: us-east-04
+  scope: poc-cpu
+  clusterOrg: abb167
+  cni: cilium
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 166.19.16.0/23
+    podCIDRs: ["10.48.0.0/13"]
+    serviceCIDRs: ["10.56.0.0/22"]
+    internalLbCIDRs:
+      default: 10.56.4.0/22
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-abb167-poc-cpu.svc.cluster.local
+
+applications:
+  calico:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: false
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.15.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.15.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.85"
+  konnectivity-agent:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  node-local-dns:
+    valuesMerge:
+      vast:
+        enabled: true
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 4
+          instanceType: cd-hc-a384-genoa
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: poc-cpu
+            cluster_org: abb167
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.85/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: abb167-d6b985c82dde
+          viewPolicy: nosquash-abb167-d6b985c82dde
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

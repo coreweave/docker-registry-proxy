@@ -1,0 +1,683 @@
+clusterSpec:
+  ingress:
+    metallbPool: "default"
+  region: us-east-03
+  scope: dm1
+  clusterOrg: 54952e
+  networkAllocations:
+    internalLbCIDRs:
+      default: "10.18.0.0/16"
+
+argocd:
+  targetClusterURL: "https://172.20.29.2"
+
+x-yaml-anchors:
+  x-ping-exporter-pure-storage: &x-ping-exporter-pure-storage
+    system: pure-storage
+    team: storage
+  x-ping-exporter-vast: &x-ping-exporter-vast
+    system: vast
+    team: storage
+
+applications:
+  ping-exporter:
+    valuesMerge:
+      publicTargetsEnabled: false
+      config:
+        ping:
+          interval: 1s
+          history-size: 200
+      extraTargets:
+      - 10.183.80.1:
+          <<: *x-ping-exporter-pure-storage
+          target_name: cluster-gg2-c-r032
+      - 10.183.80.65:
+          <<: *x-ping-exporter-pure-storage
+          target_name: cluster-gg2-c-r033
+      - 10.183.80.129:
+          <<: *x-ping-exporter-pure-storage
+          target_name: cluster-gg2-c-r034
+      - 10.183.80.193:
+          <<: *x-ping-exporter-pure-storage
+          target_name: cluster-gg2-c-r035
+      - 10.183.81.1:
+          <<: *x-ping-exporter-pure-storage
+          target_name: cluster-gg2-c-r036
+      - 10.183.81.65:
+          <<: *x-ping-exporter-pure-storage
+          target_name: cluster-gg2-c-r037
+      - 10.183.81.129:
+          <<: *x-ping-exporter-pure-storage
+          target_name: cluster-gg2-c-r038
+      - 10.7.13.104:
+          # team: ???
+          # system: slurm-controller
+          target_name: dm1-control-pod
+      - 100.121.34.1:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-01
+      - 100.121.34.2:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-02
+      - 100.121.34.3:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-03
+      - 100.121.34.4:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-04
+      - 100.121.34.5:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-05
+      - 100.121.34.6:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-06
+      - 100.121.34.7:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-07
+      - 100.121.34.8:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-08
+      - 100.121.34.9:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-09
+      - 100.121.34.10:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-10
+      - 100.121.34.11:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-11
+      - 100.121.34.12:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-12
+      - 100.121.34.13:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-13
+      - 100.121.34.14:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-14
+      - 100.121.34.15:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-15
+      - 100.121.34.16:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-16
+      - 100.121.34.17:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-17
+      - 100.121.34.18:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-18
+      - 100.121.34.19:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-19
+      - 100.121.34.20:
+          <<: *x-ping-exporter-vast
+          target_name: vast-prod02-20
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: true
+      labelBundle:
+        config:
+          sku_types:
+            PowerEdge_XE9680:
+              fw_bundle:
+                firmware: dell-h100-default-20240605.01.00.01
+  # uncomment to implement second phase of removal
+  crowdstrike:
+    enabled: false
+    valuesMerge:
+      cs-k8s-protection-agent:
+        enabled: false
+  control-plane:
+    valuesMerge:
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: "100.124.0.6"
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.54952e-dm1.k8s.us-east-03.coreweave.com
+      kubeception:
+        scheduler:
+          deployment:
+            image: registry.k8s.io/kube-scheduler:v1.26.13
+            featureGates: []
+          config: |
+            apiVersion: kubescheduler.config.k8s.io/v1
+            clientConnection:
+              acceptContentTypes: ""
+              burst: 250
+              contentType: application/vnd.kubernetes.protobuf
+              kubeconfig: /var/run/kubeconfig-in-cluster/kubeconfig
+              qps: 200
+            enableContentionProfiling: false
+            enableProfiling: false
+            extenders: null
+            kind: KubeSchedulerConfiguration
+            leaderElection:
+              leaderElect: true
+              leaseDuration: 15s
+              renewDeadline: 10s
+              resourceLock: leases
+              resourceName: kube-scheduler
+              resourceNamespace: kube-system
+              retryPeriod: 2s
+            percentageOfNodesToScore: 0
+            podInitialBackoffSeconds: 3
+            podMaxBackoffSeconds: 90
+            profiles:
+              - schedulerName: default-scheduler
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: NodeResourcesFit
+                        weight: 100
+                      - name: ImageLocality
+                        weight: 5
+              - schedulerName: best-spread-scheduler
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: NodeResourcesBalancedAllocation
+                        weight: 10
+              - schedulerName: least-allocated-scheduler
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: NodeResourcesFit
+                        weight: 100
+              - schedulerName: binpack-scheduler
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: NodeResourcesFit
+                        weight: 100
+                      - name: ImageLocality
+                        weight: 5
+              - schedulerName: proritize-image-locality
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: ImageLocality
+                        weight: 100
+                      - name: NodeResourcesFit
+                        weight: 50
+              - schedulerName: prioritize-image-locality
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: ImageLocality
+                        weight: 100
+                      - name: NodeResourcesFit
+                        weight: 50
+        controllerManager:
+          deployment:
+            image: registry.k8s.io/kube-controller-manager:v1.26.13
+            featureGates:
+        extraSchedulers:
+          controller:
+            image: k8s.gcr.io/scheduler-plugins/controller:v0.20.10
+          schedulers:
+            coreweave-coscheduler:
+              enabled: false
+            exhaustive:
+              scheduler:
+                image: k8s.gcr.io/scheduler-plugins/kube-scheduler:v0.20.10
+            determined-coscheduler:
+              enabled: false
+        apiserver:
+          deployment:
+            image: registry.k8s.io/kube-apiserver:v1.26.13
+            admissionPlugins:
+              - NodeRestriction
+              - PodNodeSelector
+            advertiseAddress: ""
+            authnWebhookPath: /var/run/k8s-authn-webhook/authn-config.yaml
+            authnWebhookVersion: v1
+            volumes:
+              - name: k8s-ca
+                secret:
+                  secretName: k8s-ca
+              - name: cert-kube-api-server
+                secret:
+                  secretName: cert-kube-api-server
+              - name: cert-kubelet-api-server
+                secret:
+                  secretName: cert-kubelet-api-server
+              - name: cert-service-accounts
+                secret:
+                  secretName: cert-service-accounts
+              - name: cert-front-proxy-client
+                secret:
+                  secretName: cert-front-proxy-client
+              - name: oidc-root-ca
+                configMap:
+                  name: oidc-root-ca
+              - name: audit-policy
+                configMap:
+                  name: audit-policy
+              - name: auth-proxy-ca-cert
+                secret:
+                  secretName: auth-proxy-ca-cert
+              - name: k8s-authn-webhook
+                configMap:
+                  name: user-authn-config
+            volumeMounts:
+              - mountPath: /var/run/k8s-authn-webhook
+                name: k8s-authn-webhook
+                readOnly: true
+              - name: k8s-ca
+                mountPath: /var/run/ssl/k8s-ca
+                readOnly: true
+              - name: cert-kube-api-server
+                mountPath: /var/run/ssl/cert-kube-api-server
+                readOnly: true
+              - name: cert-kubelet-api-server
+                mountPath: /var/run/ssl/cert-kubelet-api-server
+                readOnly: true
+              - name: cert-service-accounts
+                mountPath: /var/run/ssl/cert-service-accounts
+                readOnly: true
+              - name: cert-front-proxy-client
+                mountPath: /var/run/ssl/cert-front-proxy-client
+                readOnly: true
+              - name: oidc-root-ca
+                mountPath: /usr/local/share/ca-certificates/oidc-root-ca.pem
+                subPath: oidc-root-ca.pem
+                readOnly: true
+              - mountPath: /var/run/ssl/auth-proxy-ca
+                name: auth-proxy-ca-cert
+                readOnly: true
+              - mountPath: /var/run/audit-policy
+                name: audit-policy
+                readOnly: true
+          service:
+            loadBalancerIP: "172.21.0.6" #TODO: Set this
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: "100.124.0.1" #TODO: Set this
+        konnectivity:
+          deployment:
+            image: registry.k8s.io/kas-network-proxy/proxy-server:v0.1.9
+            resources:
+              requests:
+                cpu: 2
+                memory: 8G
+              limits:
+                memory: 8G
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.16.0.1
+            - 172.21.0.6
+            - 100.124.0.1
+            - 10.80.0.2
+            - 172.20.29.2
+            - 172.20.34.152
+            - 10.18.0.0
+          dnsNames:
+            - kube-apiserver
+            - kubernetes
+            - kubernetes.default
+            - kubernetes.default.svc
+            - kubernetes.default.svc.cluster.local
+            - api.54952e-dm1.k8s.us-east-03.coreweave.com
+            - kube-apiserver.tenant-54952e-dm1.svc.cluster.local
+            - api-tss.54952e-dm1.k8s.us-east-03.coreweave.com
+            - konn-tss.54952e-dm1.k8s.us-east-03.coreweave.com
+            - kubernetes.54952e-dm1.k8s.us-east-03.coreweave.com
+            - k8s-api.dm1.cw.metafb.cloud
+      additionalServices:
+        - name: "kubernetes-proxy-headless-service"
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: kubernetes.54952e-dm1.k8s.us-east-03.coreweave.com
+            external-dns.alpha.kubernetes.io/target: 10.18.0.0
+          spec:
+            clusterIP: None
+            clusterIPs:
+              - None
+  in-cluster-config:
+    valuesMerge:
+      psp:
+        enroot: false
+        hpc: false
+        privileged: false
+        regproxy: false
+        restricted: false
+        trusted: false
+        netAdmin: false
+      kubeadmConfig:
+        clusterConfiguration: |
+          apiVersion: kubeadm.k8s.io/v1beta2
+          kind: ClusterConfiguration
+          kubernetesVersion: v1.26.0
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRT1A1VFYva1M5VnhJNHZzOFgzcE8rVEFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1ETXhNekF6TXpNME5Wb1hEVE0wTURFeU1EQXpNek0wCk5Wb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFNTkhEQzdQQnUxRk44ZzRYV0IxeDJ2Yk1sZUJGVWhoRy9RcHA1ZFRoSE1saDJKSndIM0ZwYzVRCmp4dzZ4TEdyblBTbVAvUXV6cDFKRTYvSWNld0lhaGJMcVV6MlRGemY5cHF4TVMzU29YYU1UeHVtWEZnM0I4eGMKZVVWZXFIU0VVT09ockJOS3NBMFczb3IwUVhURWNRWnZVS1NGZlBpYW91bVJaQzFyNzVhQWtOdmYwbVZyU0lqWApRVkdjN1RlMUVxVTlNTXl6U0ZsbVI2eFBNelpuaVczQ0ZWT1FqZUFWZFlUVEpHTDJyZHNwK0N0aEE2UDFYNGlHCnN0QitHVG5HeTcvQllQNml6MUVxT2JDL2tPOXljd242eXNaZEduMjl6OW02bUNyOWE5cVQ3QW56VEJjdDl2bkoKL2FrdUdSRVNaUDZlMUpWL2R0bThsclJ4eDVPZHRvc0NBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCUXNVVldKWHdBSjNUNkhZRXFBa2dBa0JsZC9WekFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQUllc3ZRbzhwYTFMZGhuaHdqUGRFamxVTHpBK3RPUFBTWUU0YU9qbEFSMFZYMWVhbVRyV2locjlVS2lWVgpGQzZRZmJJbVRaQzhQUCtvYWcxZGhQcEU0Z2U4MTFkQmYvL0pQR09xQkh0dFUya0F3a0doSE9kYTJrNzhpZ1ZOClVlZjNvVjRYUVIrU2xZNkY3dTBtTXBRT3I3emEyeXlqWlVqdVYvQUlrNUIwaWxTVDdLYU1LS3Y0OS9PZ1ArUkoKc3FveStoUTVDaVVEMlJpaUdmajNXbGhTcGU2Ymh1ZEFhRmVJU3pRSjlZSXo3bUIvZGJYWUJMUkRqbkt5K2MwaQoyTUpWa2ZSaTRDaFVISHczWCt0TE5kSHdnNEZWb1VhWnlvQzZ1OVcvWU1DNlIvVDJjRGRzbjVNNktMN3YreWdHCmtlVVlWWUNZQis0bnhRRVhBaUNNMlRQemZ3PT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  jspolicy-policies:
+    values:
+      policies:
+        updateAddOrgId: true
+        mutatePodContainerImage: true
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.0"
+  traefik:
+    enabled: false
+  managed-traefik:
+    valuesMerge:
+      traefik:
+        service:
+          annotations:
+            metallb.universe.tf/loadBalancerIPs: "10.18.0.0"
+  promtail:
+    enabled: false
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: dm1
+            cluster_org: 54952e
+            region: us-east-03
+          config:
+            lokiAddress: "" #TODO: set something like this http://10.16.4.2/loki/api/v1/push
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  node-local-dns:
+    valuesMerge:
+      vast:
+        enabled: true
+        backends:
+          - name: storage-backend02
+            ip: 100.121.33.10
+      lota:
+        enabled: true
+        dns:
+          enabled: true
+          ip: "10.16.2.106"
+  vector:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        cluster: dm1
+        cluster_org: 54952e
+        region: us-east-03
+        vectorIngester: 100.123.0.2 # static TSS IP for vector-ingester in region
+      vector_tunnel:
+        enabled: true
+        metricsToIngester:
+          enabled: false
+        client:
+          enabled: true
+        server:
+          enabled: false
+      vector_gateway:
+        enabled: true
+        replicas: 15
+        haproxy:
+          enabled: true
+          replicas: 5
+        resources:
+          requests:
+            memory: 10Gi
+          limits:
+            memory: 10Gi
+        additionalSinks:
+          gateway_external_metrics:
+            endpoint: "http://metrics.ext.dm1.cw.metafb.cloud:3030/receive"
+            type: prometheus_remote_write
+            inputs:
+              - gateway_prometheus_remap
+              - gateway_metrics_remap_int
+              - gateway_agent_metrics_remap_int
+            healthcheck:
+              enabled: false
+          gateway_external_logs:
+            address: "logs.ext.dm1.cw.metafb.cloud:5170"
+            type: socket
+            mode: tcp
+            encoding:
+              codec: json
+            inputs:
+              - gateway_kube_router._unmatched
+              - gateway_kube_events_remap
+              - gateway_kube_audits_remap
+              - gateway_kube_router.journald
+              - gateway_kube_router.syslog
+            healthcheck:
+              enabled: false
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        resources:
+          limits:
+            cpu: "15"
+            memory: 30Gi
+          requests:
+            cpu: "15"
+            memory: 30Gi
+      # agent must remoteWrite to vmsingle and heron remoteWrite endpoint
+      # use a standalone agent to avoid fanout backpressure on primary metrics pipeline
+      victoria-metrics-standalone-agent:
+        enabled: true
+        instances:
+          - remoteWrite:
+              - url: "http://vmsingle:8428/api/v1/write"
+              - url: "http://metrics.ext.dm1.cw.metafb.cloud:3030/receive"
+                concurrency: 36
+                inlineUrlRelabelConfig:
+                  - target_label: source
+                    replacement: "victoriametrics"
+            resources:
+              requests:
+                cpu: "10"
+                memory: 150Gi
+              limits:
+                cpu: "10"
+                memory: 150Gi
+            extraArgs:
+              loggerFormat: json
+              promscrape.maxScrapeSize: "671088640"
+              remoteWrite.queues: "144"
+              remoteWrite.showURL: "true"
+      # alert scrapes all VMRules in cluster, remoteWrites to vmsingle
+      victoria-metrics-alert:
+        enabled: true
+        remoteWrite:
+          url: "http://vmagent-us-east-03-54952e-dm1-forwarding:8429"
+        resources:
+          requests:
+            cpu: "4"
+            memory: 16Gi
+          limits:
+            cpu: "4"
+            memory: 16Gi
+      victoria-metrics-meta-single:
+        enabled: true
+        license: {}
+        image:
+          tag: "v1.101.0"
+        tolerations: {}
+        affinity: {}
+        server:
+          fullnameOverride: vmsingle
+          serviceMonitor:
+            enabled: true
+            relabelings:
+              - targetLabel: job
+                replacement: 54952e-dm1
+          resources:
+            requests:
+              cpu: "40"
+              memory: 150Gi
+            limits:
+              cpu: "40"
+              memory: 150Gi
+          retentionPeriod: 24h # this is the minimum possible retention period
+          persistentVolume:
+            enabled: false
+          emptyDir:
+            sizeLimit: "1Ti"
+          extraArgs:
+            maxLabelsPerTimeseries: 62
+            search.maxUniqueTimeseries: "2000000"
+            search.maxQueryDuration: "35s"
+  metrics:
+    valuesMerge:
+      dcgm-exporter:
+        hostNetwork: true
+        rollingUpdate:
+          maxUnavailable: 35%
+  metrics-server:
+    valuesMerge:
+      metrics-server:
+        resources:
+          limits:
+            cpu: 1200m
+            memory: 4Gi
+          requests:
+            cpu: 1200m
+            memory: 4Gi
+  konnectivity-agent:
+    valuesMerge:
+      deployment:
+        image: registry.k8s.io/kas-network-proxy/proxy-agent:v0.1.9
+
+  lota:
+    repoURL: https://github.com/coreweave/storage.git
+    targetRevision: main
+    enabled: true
+    path: apps/lota
+    project: storage
+    class: control-plane
+    namespace: object-storage
+    valueFiles:
+      - values-us-east-03-54952e-dm1.yaml
+  object-dns:
+    repoURL: https://github.com/coreweave/storage.git
+    targetRevision: main
+    enabled: true
+    path: apps/coredns
+    project: storage
+    class: control-plane
+    namespace: object-storage
+    valueFiles:
+      - values-us-east-03-54952e-dm1.yaml
+  npo:
+    valuesMerge:
+      resources:
+        limits:
+          memory: "4.5Gi"
+        requests:
+          memory: "4.5Gi"
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-03-coreweave-us-east-03-ngcp
+          namespace: victoria-metrics

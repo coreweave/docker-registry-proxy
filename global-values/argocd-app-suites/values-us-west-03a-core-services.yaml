@@ -1,0 +1,105 @@
+clusterSpec:
+  region: us-west-03
+  scope: core-services
+  clusterOrg: coreweave
+  apiserver:
+    addtlUrl: api-cw-mgmt.core-services.k8s.us-west-03.int.coreweave.com
+#  networkAllocations:
+#    externalLbCIDRs:
+#      public: "192.112.172.128/26"
+
+argocd:
+  targetClusterURL: "" #TODO: Add this
+
+applications:
+  awx-operator:
+    enabled: true
+    valuesMerge:
+      teleport_bot:
+        enabled: false
+
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: ""
+      nodeLifeCycle:
+        applyTaints: true
+        deliveredReservation: "coreweave"
+  deviceslot-operator:
+    enabled: true
+    values:
+      operatorConfig:
+        region: CORE
+  dso-netracker:
+    enabled: true
+    values:
+      netracker:
+        exportplanneddevices: false
+      scrapeconfig:
+        # setting exporters empty should disable all without enumeration needed
+        exporters:
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          deployment:
+            advertiseAddress: "100.124.0.8"
+            resources:
+              requests:
+                cpu: 5
+                memory: 50Gi
+              limits:
+                memory: 50Gi
+          service:
+            loadBalancerIP: "172.21.0.8"
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: "100.124.0.8"
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 172.20.50.180
+            - 172.21.0.8
+            - 100.124.0.8
+            - 10.16.0.1
+            - 10.16.4.10
+  in-cluster-config:
+    valuesMerge:
+      ipmiFanController:
+        enabled: true
+      clusterInfo:
+        certificateAuthorityData: ""
+
+  katalyst-proxy:
+    valuesMerge:
+      enableExternalDNS: false
+      loadBalancerIP: "100.124.0.3"
+  postgres-operator:
+    enabled: true
+    automated: true
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: us-west-03-core-services
+            cluster_org: coreweave
+            region: us-west-03
+          config:
+            lokiAddress: http://gateway.loki.coreweave.com/loki/api/v1/push
+
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  traefik:
+    enabled: false
+  kubemod:
+    enabled: false
+  vector:
+    valuesMerge:
+      coreweave:
+        cluster: us-west-03-core-services
+        cluster_org: coreweave
+        region: us-west-03

@@ -1,0 +1,111 @@
+clusterSpec:
+  region: rno2
+  scope: cilium-ipv6-dev
+  clusterOrg: cw-internal
+
+argocd:
+  targetClusterURL: https://172.20.55.186
+
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "" # TODO: UPDATE
+      nodeLifeCycle:
+        applyTaints: false
+  konnectivity-agent:
+    values:
+      serverAddress: konn-tss.cw-internal-cilium-ipv6-dev.k8s.rno2.coreweave.com
+  cilium:
+    enabled: true
+    valuesMerge:
+      cilium:
+        ipv6:
+          enabled: true
+  calico:
+    enabled: false
+  calico-cleanup-controller:
+    releaseName: cw-int-cilium-calico-cleanup-controller
+  control-plane:
+    valuesMerge:
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: 100.124.0.55
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.cw-internal-cilium-ipv6-dev.k8s.rno2.coreweave.com
+      kubeception:
+        apiserver:
+          serviceMonitor:
+            enabled: true
+            tlsConfig:
+              ca:
+                secret:
+                  name: cert-admin-client
+                  key: ca.crt
+              cert:
+                secret:
+                  name: cert-admin-client
+                  key: tls.crt
+              keySecret:
+                name: cert-admin-client
+                key: tls.key
+              insecureSkipVerify: true
+            scheme: https
+          deployment:
+            advertiseAddress: ""
+          service:
+            loadBalancerIP: "172.21.0.14"
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: 100.124.0.56
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.16.0.1
+            - 100.124.0.56
+            - 172.20.55.186
+            - 172.21.0.14
+            - 172.20.58.237
+
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRZTRKNUdQSmxOQUVMY2xjVlR1bWFBVEFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1EVXlPREl3TWpNd01sb1hEVE0wTURRd05qSXdNak13Ck1sb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFOUjloVndtQVE4WFdpbHdxMm4wMXAvK3NRTitJcEdxUXNlNEY3RnV6L2pXWVlFMjJGNnVrMk1NClFDVHBPdzhMdVNQbnBRWUJYQ01HYXJDRXRyOW9hNzlScThiQmxiNmU1NGhid3dULzlmMVJjYnc5VjZZRmZtamgKU2dMd1pXT0lSamh4Q0JmT0JBWXFaQVJMQ2dDMWZlOU1lYnJFYnFrTEgrY3BCM2c1RE41WHFPa0ZJQnZFYUR1aApWeDFRY0c2bG1QdS9QdkRtQlJ5WC9NWEIybjdCc3ZZdFFIR3Q4WDdNbG8rUHpwQ0FFU0hMUkY3NE5SbTR0bUdUCjJjbzZUUktYZHBJV1cwaFNaR25XMTI4UHdWSUc5Q1Vud0xLU0IxZHQzSXBzamZncHIxakF6TWF0RGl4TWZVTkQKaVRrYXJjcHUva0Z6WTRMRXFEQTM5cVJXdlVXODNETUNBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCU2lsMllndFA1d29kU0pBTG9jVlA5KzRwaFRjekFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQVB3NGRYaGhUYXFTbEtMRWZzOVhMWWtUc1EvekxpUExiK2U5bk8xQmdsTENSenpzaVNsek5ka0dZeGp0LwoyM2NkRmRvZDJhTXRoSlBtdzZBOGVKeVB1K1A2OHpiVVJ6a0NCTkVXT3VHUzVNZTV5S3R0Q0cwWFYzSWVSK2JWCkJvUi80QkJwT0Z4blZsUFdVdmRZU3NRUU9CajVJancyZ2ZaMVZYVU4wem1SbG1GVm5JTGF0ZFY3WjZXVDlwcksKNGg3TnZtdkVPYzBQU25qRFZKdGc0OERMZHBrQ3J3UXh5ekV3dW1uY1JBclE2T0hpbEJnamNnRWkrb2lEYzA3dApuU1l3YkRoY25rbko1eW5xMGVsMm16VzM1YUMyaURvblFIei9HS1RmbTJaSklleGdRa1M1TmRKSnVRWWhCM0xBCjIvT1A2b2pVeVVsZ1k1ZG9INEpXSFFMT1N3PT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  node-local-dns:
+    enabled: true
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.54"
+  external-secrets:
+    enabled: true
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  traefik:
+    enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: cilium-ipv6-dev
+            cluster_org: cw-internal
+            region: rno2
+          config:
+            lokiAddress: http://100.124.0.54/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  vector:
+    enabled: false
+  remote-dns:
+    enabled: false

@@ -1,0 +1,5 @@
+
+clusterSpec:
+  region: lga1
+  geoRegion: na
+  objStorageRegion: lga1

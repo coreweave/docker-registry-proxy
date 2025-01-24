@@ -1,0 +1,3 @@
+clusterSpec:
+  zone: rno2a
+  useZoneFiles: true

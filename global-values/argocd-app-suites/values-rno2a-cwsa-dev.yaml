@@ -1,0 +1,161 @@
+# TODO: pending full deployment - rwaltr
+clusterSpec:
+  region: rno2
+  scope: dev
+  clusterOrg: cwsa
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 192.112.169.0/24
+    externalLbCIDRs:
+      public: "166.19.6.96/27"
+
+argocd:
+  targetClusterURL: "https://172.20.50.113"
+
+applications:
+  calico:
+    valuesMerge:
+      felix:
+        featureDetectionOverride: "MASQFullyRandom=false,SNATFullyRandom=false"
+      calicoNode:
+        calico-node-ebpf:
+          nodeSelector:
+            kubernetes.io/arch: amd64
+        calico-node-ebpf-arm64:
+          image: ghcr.io/coreweave/calico/node:v3.28.0-arm64
+          nodeSelector:
+            kubernetes.io/arch: arm64
+
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+        mutatePodContainerImage: true
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "g323104,g32312a"
+
+      nodeLifeCycle:
+        deliveredReservation: "cwsa"
+        applyTaints: false
+
+  konnectivity-agent:
+    values:
+      serverAddress: konn-tss.cwsa-dev.k8s.rno2.coreweave.com
+  control-plane:
+    valuesMerge:
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: 100.124.0.47
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.cwsa-dev.k8s.rno2.coreweave.com
+      kubeception:
+        apiserver:
+          deployment:
+            replicas: 3
+            resources:
+              requests:
+                cpu: 4
+                memory: 4Gi
+              limits:
+                memory: 4Gi
+            advertiseAddress: ""
+            oidcParams:
+              caFile: ""
+              groupsClaim: groups
+              groupsPrefix: ""
+              usernamePrefix: ""
+              clientID: "cwsa-dev"
+              issuerURL: "https://login-sa.core-services.ingress.coreweave.com/application/o/cwsa-dev-cwsa/"
+              usernameClaim: preferred_username
+          service:
+            loadBalancerIP: 192.112.165.64
+            annotations:
+              metallb.universe.tf/address-pool: public
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: 100.124.0.46
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            # - 172.21.0.24
+            - 172.20.50.113
+            - 192.112.165.64
+            - 10.16.0.1
+            - 100.124.0.46
+            - 100.124.0.47
+  epimetheus:
+    valuesMerge:
+      slackChannelID:
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRRHlnYTllb3RlZ1Vvc0h3U0M1Nkg2VEFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1EVXdPREUwTWpBMU9Wb1hEVE0wTURNeE56RTBNakExCk9Wb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFNSzhPVmNwb2ZMSGhTSHcvNzJHSHZxcU0vMDNjbE40SVFXSHl4SXdjZnYwblNPNzBzVU1MRGVQCjNLc2w2Q1lyaFdUYlh3ZXRqWWFsUVVRTGRKTGtULzllalNaZ29MYnNaRXVNWVM0SVNFSEN4aGVUQXZ5MGh5aWsKSDErcEZpUTRqdklHQnF1ekhJTTI0SVpVcnQyajg4TTZWYzE3aFVaTndqY09CdG5YRnRRVU8rd0V0UTNqeHpmWgpLR1hxNURTYW5XdWJtam80WExac0RSVVVwZDV0dTNGd0l4a0FVdnZCWEtWeDQ1bnMzU2cweE9pRjdJNDJPMkhEClE5dHo4NG9DdUZva3VBbGxlbk4yd01ZbEJ2WC8vMzBEZ3JhNDluS2V4L2JTMHdwOUxER0lkd0d5MmoxYzk2c0oKQTVVbnEwTXFLandnM3RkclFRekcxbkFZbXErSS9GY0NBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCU3pUM0tVN2kwcnFiVGMvSmNKdUk3Z0ZrZ1VoakFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQXZjSHlBdjg3Ri96am1HMVVBN0pIS1lmMitycnJQblhqSUZ3T3MzMU1QY3JHSVY1ckU0K0ptOUxiVjRNbgpDVVJLNUlRNkllb0h4Nk9sQ2pLZktHSHhBZFR1bjNvRFlsTjJacWxlVWd5bDUzUEs5NGZmWktGOVNmbnp5Tm95ClB5blNiMzIyMjNGWkkwQnFpOG1WWXZZMmhMMDVzdWlhV21sMWNEOFBEdlRPUzZvMkhUTldTUVV6VzVNMllFVi8KcEZVM0pLaVpteHUxdTRvdmJoZ09TVzlUam5lSHRHZ0lTMGlUNTN4Z2tPd2pRbEU1Y0NndzlHRkZmK0ptQ09IWgpWb1RqUG1abkRVa2ZkTUhuMFgwaVJEcTA4ZXRtam1yaTBQWTMrSFF2SUtUOExBRGFrT1pSSC9jVkNLSVV0b0N5CjVBZk5wS2JmZENJUm9TTVRtdWhlbWFwY1BBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: 100.124.0.48
+  metrics-server:
+    valuesMerge:
+      metrics-server:
+        resources:
+          limits:
+            cpu: 4
+          requests:
+            cpu: 4
+  traefik:
+    enabled: false # TODO: enable traefik after fixing templates
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: dev
+            cluster_org: cwsa
+            region: rno2
+          config:
+            lokiAddress: http://100.124.0.48/loki/api/v1/push
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  teleport:
+    valuesMerge:
+      teleport-kube-agent:
+        storage:
+          storageClassName: local-ssd
+  rook-operator:
+    enabled: false
+  vast-csi: &vast_csi
+    targetRevision: 1.53.0
+    hasDedicatedTenant: true
+    vastClusters:
+      - name: prod-01
+      - name: prod-02
+        isDefault: true
+    valuesMerge:
+      image:
+        csiVastPlugin:
+          tag: v2.4.2-beta-1526814
+  vast-csi-controller:
+    <<: *vast_csi
+  vector:
+    enabled: false
+    valuesMerge:
+      coreweave:
+        cluster: dev
+        cluster_org: cwsa
+        region: rno2
+  kabinet-operator:
+    enabled: true
+  kabinet-operator-crds:
+    enabled: true
+  cert-manager:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-ngcp
+          namespace: victoria-metrics

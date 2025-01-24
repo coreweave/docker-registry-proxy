@@ -1,0 +1,104 @@
+clusterSpec:
+  region: rno2
+  scope: prod
+  clusterOrg: replicate
+  networkAllocations:
+    externalLbCIDRs:
+      public: "166.19.5.48/29"
+
+argocd:
+  targetClusterURL: "https://172.20.6.252"
+
+applications:
+  calico:
+    valuesMerge:
+      felix:
+        featureDetectionOverride: "MASQFullyRandom=false,SNATFullyRandom=false"
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: true
+  jspolicy-policies:
+    values:
+      policies:
+        updateAddOrgId: true
+  konnectivity-agent:
+    values:
+      serverAddress: konn-tss.replicate-prod.k8s.rno2.coreweave.com
+  control-plane:
+    valuesMerge:
+      etcd-local:
+        replicaCount: 0
+        metrics:
+          enabled: false
+      etcd-events:
+        enabled: false
+      etcdBackup:
+        enabled: false
+      etcdMaintenance:
+        enabled: false
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: "100.124.0.43"
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.replicate-prod.k8s.rno2.coreweave.com
+      kubeception:
+        apiserver:
+          deployment:
+            etcdServers:
+              overrides: ""
+              address: https://etcd-local-operator:2379
+            advertiseAddress: "100.124.0.42"
+          service:
+            loadBalancerIP: "192.112.165.72"
+            annotations:
+              metallb.universe.tf/address-pool: public
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: "100.124.0.42"
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.16.0.1
+            - 172.21.0.10
+            - 100.124.0.42
+            - 172.20.6.252
+            - 172.20.26.199
+            - 192.112.165.72
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQUkrMk5FYUxzcjExVWljNUtlTVd5Smd3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5EQTFNRE14TkRNME5EaGFGdzB6TkRBek1USXhORE0wCk5EaGFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRGs0SUZTVlc5KytueUFNV3UxaTJZcmNYRmpJcEFFbndJeGhuUnlFblVUcHZJRU9tR2JIbTFrClVjQVJBN3lkRWthemxKVVRxa0dVbjJHVGh5OG9nS2tsZFdlUTdjZW5ya2VNRllQVUI0ODRiU3lnQ1JEaTdEMW8KZlFsYWhPUFZkNWtBZzVmUjBWaFZvMmJ5RDFGZXAyMlJlRml4dlBuRTUxbVdMK05RQ2dhU2FNODV5VWtuT1UxUAovMVNkc1dkcVR4ZkFhdDFXWGxUSmE1NXVwVVlVTHVEMUF3U3pwZXRNbG5BbjlBeTdJNmhBTE1jMHpoMHhpNCtxCk95WHA0SHJiRzhUTmo2UUl1em5Jd0NLbVZ4NVlIWlljUmFpSjQxeEpWQ0h0UzlyQ3pRWUp2U3VXQjJ2NFBhTG4KQUVLMFR5Z1dBNjVWcjErWGphLzhQSmFReXJZWkZWVlpBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVVCTE1OMEdNT1ZSM3ZINGF1Z3Z6V2xYLys3aVl3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFEOFMyZkVSNHJhSW9KRmttT3pvek1qTlhBOUtHUmc5ejVBa3I2NGkrZU5raFpibmNYeTE4MEpNVm1seApZNzFzMTdCeksvSUVIc05panBHUkQzUmNDb2dNR0cyQVh3Q0I1QllSb2ZXZlhNeVFpcmFFbk5sMXlxSFJFRFdLCnpTalpXTEpLczVMZnVpU0xweVJaNWszamsyZDhyZHRra2JaL0dadGxEQkhmQzUyeENCRmpzMmZCdjdUVDNHNloKY0ErUE9Uam51WXpJZXZLSWlJL0pMampiSXN5dnNUeG5Kci9VckE1MC94QmViK0JrR01qZ3ljWkZMbXZYUFk3dgpucU00UnplNnQ3WW5ZWm55V0JWSXhSdUVhQmVwL1NJaXRjeXFsaGFuRzVCbDkveW9VMkpFdksvM215QzVaTWxYCklSZi9yVnBhUXMvNnNxVHlsYllLZlU1THFzUT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.45"
+  traefik:
+    enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: prod
+            cluster_org: replicate
+            region: rno2
+          config:
+            lokiAddress: http://100.124.0.45/loki/api/v1/push
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-csi:
+    hasDedicatedTenant: true
+  victoria-metrics:
+    victoria-metrics-agent:
+      remoteWrite: [ ]
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-ngcp
+          namespace: victoria-metrics

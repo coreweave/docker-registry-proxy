@@ -1,0 +1,241 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.10.0/23"
+      public: "192.112.165.0/26"
+      dpu: "10.169.63.0/28"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-rno2-mgmt.k8s.rno2.int.coreweave.com
+applications:
+  cw-node-controller:
+    enabled: true
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: false
+  blastshield-gw:
+    valuesMerge:
+      psp:
+        enabled: true
+  ceph-rbd-csi:
+    enabled: true
+    values:
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.8.11
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.80.8.11
+            - 172.27.80.11
+            - 172.24.0.1
+            - 172.26.68.3
+            - 172.26.68.72
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 3
+      minimum_racks: 1
+  in-cluster-config:
+    enabled: true
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQU1lUW40K3BUcXFFZlJNYmNDZ1Y5Yzh3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU16RXhNamt4T1RBeU1EUmFGdzB6TXpFd01EY3hPVEF5Ck1EUmFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRFhGWjNYR3N3YytvL1FEcHg5dkdkaC9KRUY0KzFSSTJRSi9ZdzJpZXpoaGVnN3RwTmpsVGlhCkVzYWRBY2R1bllpV1MzQ0dCSGZkMzJZdmRrbTlMR1Q1UUc2YmNEcEhtMnUvOXhNeHlROVJXd2FZZDFoZHZUcEQKNEV1TVk3b3dXeWNZdXNuS1YrUDR3UmR5RytHK1dhNXh1cDlhM1pOczBFVWlKdjQzVFAvZ2ErVzUwWVEydjRrNgpNOVJ6S0owMUxFTTdkbjdCMjR2Z2NJa3pvVlJxN24xQjVXa2FqRlMwNms4aWM3L25KYVNmTkppNWZyWGx5bi9hCjF6K1V2MmxHS3UyQjFGUlVYN0Z5TUIrS3NrTXgyQVUzbFZjZzBpOXdPWTZIRVhEKzJSWHNCemh3VHpielRzZnAKVFFVZ0VVVVRRc1RXVjdsWVpYYWdGendrZ1BYZlJWbExBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVUvdHljTzBXay9UUzlyZDJGcmdOZWR6Q2dBMEF3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFIS3plK2dJSkk5Q0lDRzgvb2IvYzY4M2NmZ1hZYUl1R1BFaHBvWjBEeUxPUmlnbExxZVFpZkx5VElFeQpGZ1J6WW5HaGVvbytKUll0eXo0bW9kc1hkQ3Bzdy9lUWp4cnBkR1NvQmJFTVhjUWF2NitudVVSLzYrMXBTRnc3CmFlb2ZOalMvazVtQ1QxeHZGdDRrUy9qTnpZcHJXUHZiUVQ4UXd2ZXl2RnZvWVZuTHI3VjBFYStoYnM0UXRQL2oKVmo2WlhEWmJta3oxenRUUUxjanZ2OGQ4ejY5eVIrNkExRDlWdGdZeTRidm1uKytmMU51Vnl3aDhibHVCbC9WUwpiSnNjcTl4dVZCdmFadHlYQ0kyMUxFT2lUbEV4UjdsdFlXck9CcUVvcGpQV2ZvUVNtVW5zdUNiNmhHQWR6SlM0ClZabnFUaExrcStMTWVyYmdEUGR0OUl6Q3Zycz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  katalyst-proxy:
+    valuesMerge:
+      ncoreProxyPass: http://10.134.98.11  # remove once all nodeProfiles and dpuConfs are updated
+  teleport-rbac:
+    valuesMerge:
+      coreweave:
+        saml:
+          entityDescriptorUrl: https://login.coreweave.com/app/exkdfb44px3Z69AkX5d7/sso/saml/metadata
+      miscManifests:
+      - apiVersion: resources.teleport.dev/v2
+        kind: TeleportProvisionToken
+        metadata:
+          name: slurm-cwsa-dev
+        spec:
+          roles: [node]
+          join_method: kubernetes
+          kubernetes:
+            type: static_jwks
+            static_jwks:
+              jwks: |
+                {"keys":[{"use":"sig","kty":"RSA","kid":"2J-OlCTDpVm-fYpa1pkMdoAJ6smdQZhn9MTpZJyzxJI","alg":"RS256","n":"wfeUqeybqWzKl5dZBR8pDyMa4q2D2sLWYIn4NZvHYfjZSHDgHNSrEfIlXfHk3_-BrO7oVrbGizJAfrTTNjGVRmFAWPO3B3bjrRNMEUawVpiO3SIz5pEXHAt7R7EilWJtQ1JmyHFQmbmcG0VaM4clSkN3u90T_RL9uQ9cqSMFVeX2-_zlxu8taABNV-80uESxk1F4rpOvgn3VL9W5btfVXu_SEB98InHi0C6K9fEXM3Ajma3NdoBbXBjB1Nh7kzn_A36CKXjDK5M-xDGIoy8oNb_GLWWSRh83Uw00WztJjwsvHhxLkaAknx2coSTM-gVBpUBIKC4SuDG6ifvEVpm0Xw","e":"AQAB"}]}
+            allow:
+            - service_account: "tenant-slurm:default"
+  teleport:
+    vastVMSApps:
+      - name: vast-vms
+        uri: "https://vms.vast-csi.svc.cluster.local"
+        insecure_skip_verify: true
+        labels:
+          node.coreweave.cloud/class: storage
+      - name: vast-vms-prod-02
+        uri: "https://vms-prod-02.vast-csi.svc.cluster.local"
+        insecure_skip_verify: true
+        labels:
+          node.coreweave.cloud/class: storage
+    valuesMerge:
+      coreweave:
+        awxTbot:
+          enabled: true
+      postgres:
+        instanceSize: 400Gi
+  redfish-services:
+    valuesMerge:
+      exporter:
+        replicas: 8
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-grpc:
+    enabled: true
+    valueFiles:
+      - values-rno2-mgmt.yaml
+  vast-grpc-staging:
+    enabled: true
+    valueFiles:
+      - values-lga1-staging.yaml
+  vast-grpc-sandbox:
+    enabled: true
+    valueFiles:
+      - values-lga1-sandbox.yaml
+  vast-csi-controller:
+    valuesMerge:
+      serviceMonitor:
+        enabled: true
+        exposeMetricsToTenants:
+          enabled: true
+          rawMetrics:
+            - clusterOrg: 189d5b
+              metrics:
+                - name: vast_user_write_bw
+                  expr: 'sum (vast_user_write_bw{more_info="189d5b-prod"}) by (uid)'
+                - name: vast_user_write_iops
+                  expr: 'sum (vast_user_write_iops{more_info="189d5b-prod"}) by (uid)'
+                - name: vast_user_read_bw
+                  expr: 'sum (vast_user_read_bw{more_info="189d5b-prod"}) by (uid)'
+                - name: vast_user_read_iops
+                  expr: 'sum (vast_user_read_iops{more_info="189d5b-prod"}) by (uid)'
+  chproxy:
+    repoURL: https://github.com/coreweave/storage.git
+    targetRevision: main
+    enabled: true
+    path: apps/chproxy
+    project: storage
+    namespace: object-storage
+    values:
+      environment: test
+  metrics:
+    valuesMerge:
+      portkey:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.169.0.43
+                - 10.169.0.44
+                - 10.169.0.45
+                - 10.169.0.46
+              name: RNO2
+              honorTimestamps: false
+      ufm:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.169.0.87
+                - 10.169.0.88
+              name: RNO2-FAB7
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                  - /cw1
+                  - /cw2
+                  port: ufm
+                  honorTimestamps: false
+            - ip:
+                - 10.169.4.204
+                - 10.169.4.205
+              name: RNO2-FAB13
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  interval: 300s
+                  port: ufm
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                  - /cw1
+                  - /cw2
+                  - /cw3
+                  - /cw4
+                  port: ufm
+                  honorTimestamps: false
+  vector:
+    enabled: false
+    valuesMerge:
+      coreweave:
+        cluster: rno2-mgmt
+      vector_ingester:
+        haproxy:
+          service:
+            annotations:
+              external-dns.alpha.kubernetes.io/hostname: vector-rno2.int.coreweave.com
+  sortinghat-api:
+    valuesMerge:
+      config:
+        garbageCollectorConfig:
+          zone: RNO2A
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  shat-resource-availability:
+    valuesMerge:
+      siteID: rno2a
+      zone: RNO2A
+  shat-reservation:
+    valuesMerge:
+      config:
+        zone: RNO2A
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  shat-gatekeeper:
+    valuesMerge:
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-internal
+          namespace: victoria-metrics

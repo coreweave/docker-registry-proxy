@@ -1,0 +1,23 @@
+---
+# NetBox Site: https://coreweave.cloud.netboxapp.com/dcim/sites/25/
+clusterSpec:
+  geoRegion: na
+  region: us-west-01
+  zonesEnabled: true
+  useZoneFiles: true
+  objStorageRegion: lga1
+  networkAllocations:
+    asNumber: "4294841000"
+
+applications:
+  coredns:
+    valuesMerge:
+      upstreamDNS: 1.1.1.1 8.8.8.8 1.0.0.1 8.8.4.4 9.9.9.10 149.112.112.10
+  cw-node-controller:
+    valuesMergeTpl: |
+      features:
+        DEVICESLOT_ENABLED: true
+      nodeLifeCycle:
+        zapDpu: true
+  node-local-dns:
+    enabled: true

@@ -1,0 +1,243 @@
+applications:
+  in-cluster-config:
+    valuesMerge:
+      psp:
+        enroot: false
+        hpc: false
+        privileged: false
+        regproxy: false
+        restricted: false
+        trusted: false
+        netAdmin: false
+      kubeadmConfig:
+        clusterConfiguration: |
+          apiVersion: kubeadm.k8s.io/v1beta4
+          kind: ClusterConfiguration
+          kubernetesVersion: v1.30.0
+  cert-manager:
+    valuesMerge:
+      global:
+        podSecurityPolicy:
+          enabled: false
+  control-plane:
+    valuesMerge:
+      batchApiVersion: v1
+      kubeception:
+        scheduler:
+          deployment:
+            image: registry.k8s.io/kube-scheduler:v1.30.2
+            featureGates: []
+          config: |
+            apiVersion: kubescheduler.config.k8s.io/v1
+            clientConnection:
+              acceptContentTypes: ""
+              burst: 250
+              contentType: application/vnd.kubernetes.protobuf
+              kubeconfig: /var/run/kubeconfig-in-cluster/kubeconfig
+              qps: 200
+            kind: KubeSchedulerConfiguration
+            enableContentionProfiling: false
+            enableProfiling: false
+            extenders: null
+            leaderElection:
+              leaderElect: true
+              leaseDuration: 15s
+              renewDeadline: 10s
+              resourceLock: leases
+              resourceName: kube-scheduler
+              resourceNamespace: kube-system
+              retryPeriod: 2s
+            percentageOfNodesToScore: 0
+            podInitialBackoffSeconds: 3
+            podMaxBackoffSeconds: 90
+            profiles:
+              - schedulerName: default-scheduler
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: NodeResourcesFit
+                        weight: 100
+                      - name: ImageLocality
+                        weight: 5
+              - schedulerName: best-spread-scheduler
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: NodeResourcesBalancedAllocation
+                        weight: 10
+              - schedulerName: least-allocated-scheduler
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: NodeResourcesFit
+                        weight: 100
+              - schedulerName: binpack-scheduler
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: NodeResourcesFit
+                        weight: 100
+                      - name: ImageLocality
+                        weight: 5
+              - schedulerName: proritize-image-locality
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: ImageLocality
+                        weight: 100
+                      - name: NodeResourcesFit
+                        weight: 50
+              - schedulerName: prioritize-image-locality
+                plugins:
+                  preScore:
+                    disabled:
+                    - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                      - name: PodTopologySpread
+                      - name: InterPodAffinity
+                  score:
+                    disabled:
+                      - name: '*'
+                    enabled:
+                      - name: TaintToleration
+                        weight: 100000
+                      - name: PodTopologySpread
+                        weight: 10000
+                      - name: NodeAffinity
+                        weight: 1000
+                      - name: InterPodAffinity
+                        weight: 1000
+                      - name: ImageLocality
+                        weight: 100
+                      - name: NodeResourcesFit
+                        weight: 50
+        controllerManager:
+          deployment:
+            image: registry.k8s.io/kube-controller-manager:v1.30.2
+            featureGates: []
+            tuningParams:
+              podEvictionTimeout: null
+        apiserver:
+          psp:
+            enabled: false
+          deployment:
+            image: registry.k8s.io/kube-apiserver:v1.30.2
+            admissionPlugins:
+              - NodeRestriction
+              - PodNodeSelector
+            featureGates:
+              - InPlacePodVerticalScaling=true
+        konnectivity:
+          deployment:
+            image: registry.k8s.io/kas-network-proxy/proxy-server:v0.30.3
+  coredns:
+    valuesMerge:
+      image: registry.k8s.io/coredns/coredns:v1.11.1
+  konnectivity-agent:
+    valuesMerge:
+      deployment:
+        image: registry.k8s.io/kas-network-proxy/proxy-agent:v0.30.3
+  local-storage-provisioner:
+    valuesMerge:
+      common:
+        rbac:
+          pspEnabled: false
+  metallb:
+    valuesMerge:
+      rbac:
+        pspEnabled: false
+  vector:
+    valuesMerge:
+      vector_agent:
+        psp:
+          create: false
+  promtail:
+    valuesMerge:
+      psp:
+        enabled: false

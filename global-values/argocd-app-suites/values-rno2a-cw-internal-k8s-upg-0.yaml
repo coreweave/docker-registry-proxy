@@ -1,0 +1,145 @@
+clusterSpec:
+  region: rno2
+  scope: k8s-upg-0
+  clusterOrg: cw-internal
+  cni: cilium
+  networkAllocations:
+    externalLbCIDRs:
+
+argocd:
+  targetClusterURL: https://172.20.5.44
+
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        # controlPlaneNodes: ""
+      nodeLifeCycle:
+        applyTaints: false
+  konnectivity-agent:
+    values:
+      serverAddress: konn-tss.cw-internal-k8s-upg-0.k8s.rno2.coreweave.com
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.18.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.18.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  calico:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: false
+  coredns:
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.0.67"
+      kubeconfig:
+        cluster: cw-internal-k8s-upg-0
+        path: /etc/kubernetes/admin-config
+      secretName: internal-admin-kubeconfig
+      monitoring:
+        enabled: false
+      extraServiceAnnotations:
+        metallb.universe.tf/address-pool: tss
+  control-plane:
+    valuesMerge:
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: 100.124.0.68
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.cw-internal-k8s-upg-0.k8s.rno2.coreweave.com
+      kubeception:
+        apiserver:
+          serviceMonitor:
+            enabled: true
+            tlsConfig:
+              ca:
+                secret:
+                  name: cert-admin-client
+                  key: ca.crt
+              cert:
+                secret:
+                  name: cert-admin-client
+                  key: tls.crt
+              keySecret:
+                name: cert-admin-client
+                key: tls.key
+              insecureSkipVerify: true
+            scheme: https
+          deployment:
+            advertiseAddress: ""
+          service:
+            loadBalancerIP: 10.80.0.15
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: 100.124.0.69
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.16.0.1
+            - 100.124.0.69
+            - 10.80.0.15
+            - 172.20.5.44
+            - 172.20.42.83
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQUlRZmJ0V3BjSXQ4bnM5Zi9rSVdMcWN3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5UQXhNVEF4TnpVNE1qaGFGdzB6TkRFeE1Ua3hOelU0Ck1qaGFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRFJ6TmJ5eC91bVFHNGpWazEyUVhCbzZrcmVwSmdKMlRjVGt0STdHZjV1Z0tSN1FjbGpmcFVxCjNqdHIzNkM1cnNlOUdUWW5oak45SlpWSC91NmpKUnRkNXAwdmZBNlFZTWlmWU5ldldIN1FrbmVtczFBVmpCOG4Ka3pJNjBNSnI1VzBKNGVhVFRBdjFaeTc1bFUwOWRkaVkrcXRnRUQ1Y21kNTVpMXE2T1ZjZmRFaUV3Y0ZES1VESwo2eUJHV2xOeGxGcWJuUnRTVUpuVXhxbjBXL1VTeEg3R1VSQmRjWGd0V3dGNTRjMWRUWmE4RmxzYXFSbHc1OG0wCmhEL2pqZGltUG55L1FGRkhuSkJkR081YkFZUmlVcGZpbmxyVlZ0UnZEcnVwU0lTTVpxQ094b2JSdzZrQnFHU2EKcU0wY2Jvd2JUR24yNzIxRWg0ZFlNMGt6TllXRTJ1TFZBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVVtTzhmZHhzaXpPaVVMc2dmUEZKTnJ0Z2pCOWN3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFJMVhCNVJFdFl2MWsvL29nS3ZkL2NIVllLTjRhR1dHYjRGbzB3Zlkrd3NoTVZ0bzZHSXNrR2l6MHBJawo4VDhHbmw2NEpEQ3N5blhjMzgrS0xRTDIyczNhM0V2RjVWenVvK29CTFk0aWRlS3V2bjZzVS92WkdLS29maVlhClZpS3hmbFJ4OHZhODI1THdIQlFzbitDWFgxVXFxbm1TU3dWQkxjL0ZUaksrallBNHZmTHVhZU8xMU42Y2JMWWsKYy82WlFlN0JhOUJQNUgyVExxWmlqeG5hWUw4ajhQZnduYUh2cWZzNi9tOXhxenlBQXZnTFZvZU9LU1FwbGFVKwpsWGJET09OblpGMG14ZjdWNVN4THhZRzJpMUkyaG5DcXlDSTRTNnllZ2lzWGM5NHFYcTRqTisyYlV1bFJOVU01ClhpU1hkVEZodGZIWUhGWG82OWRRcTJGT0wzcz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.0.67"
+      nldClusterIP: "10.16.0.30"
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.66"
+  external-secrets:
+    enabled: true
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  traefik:
+    enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: k8s-upg-0
+            cluster_org: cw-internal
+            region: rno2
+          config:
+            lokiAddress: http://100.124.0.66/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  vector:
+    enabled: false
+  node-problem-detector:
+    valuesMerge:
+      extraEnvVars:
+        - name: NPD_NO_PUBTEST
+          value: "1"

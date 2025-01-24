@@ -1,0 +1,200 @@
+clusterSpec:
+  cni: cilium
+  region: us-east-04
+  scope: sta-o11y-dev
+  clusterOrg: saf0d1
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 166.19.16.0/23
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-sta-saf0d1-o11y-dev.svc.cluster.local
+
+applications:
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+      cilium:
+        hubble:
+          enabled: false
+          metrics:
+            enabled: null
+          tls:
+            enabled: false
+          ui:
+            enabled: false
+          relay:
+            enabled: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  calico:
+    enabled: false
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    namespace: tenant-sta-saf0d1-o11y-dev
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: true
+  grafana:
+    enabled: true
+    valueFiles:
+      - values-us-east-04-saf0d1-o11y-dev.yaml
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    namespace: tenant-sta-saf0d1-o11y-dev
+    targetRevision: hl/kafka-proxy
+    path: apps/monitoring/katalyst-proxy
+    repoURL: https://github.com/coreweave/k8s-services.git
+    automated: true
+    valuesMerge:
+      loadBalancerIP: "100.124.1.17"
+      kafkaTLS:
+        enabled: true
+  konnectivity-agent:
+    enabled: false
+  node-problem-detector:
+    valuesMerge:
+      apiServerOverride: https://api-tss.saf0d1-o11y-dev.k8s.us-east-04.coreweave.com:6443
+      apiCheckAddress: https://api-tss.saf0d1-o11y-dev.k8s.us-east-04.coreweave.com:6443/versions
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+        prometheus:
+          prometheusSpec:
+            remoteWrite:
+              - queueConfig:
+                  capacity: 10000
+                  maxBackoff: 200ms
+                  maxRetries: 3
+                  maxSamplesPerSend: 2000
+                  maxShards: 2500
+                  minBackoff: 50ms
+                  minShards: 50
+                # url: http://100.124.0.176/api/v1/push
+            externalLabels:
+              cluster: o11y-dev
+              cluster_org: saf0d1
+  coredns:
+    namespace: tenant-sta-saf0d1-o11y-dev
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.1.0"
+      kubeconfig:
+        cluster: saf0d1-o11y-dev
+        path: /etc/kubernetes/admin-config
+      secretName: internal-admin-kubeconfig
+      monitoring:
+        enabled: true
+      extraServiceAnnotations:
+        metallb.universe.tf/address-pool: tss
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      vast:
+        enabled: true
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.1.0"
+      nldClusterIP: "10.16.0.30"
+  node-reporter:
+    namespace: tenant-sta-saf0d1-o11y-dev
+    node-reporter:
+    valuesMerge:
+      externalCluster:
+        kubeconfigSecretName: internal-admin-kubeconfig
+  npo:
+    namespace: tenant-sta-saf0d1-o11y-dev
+  ipam:
+    namespace: tenant-sta-saf0d1-o11y-dev
+  flcc-helper:
+    namespace: tenant-sta-saf0d1-o11y-dev
+  epimetheus:
+    namespace: tenant-sta-saf0d1-o11y-dev
+  jspolicy:
+    namespace: tenant-sta-saf0d1-o11y-dev
+  remote-dns:
+    namespace: tenant-sta-saf0d1-o11y-dev
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 3
+          instanceType: cd-hc-a384-genoa
+  promtail:
+    enabled: false
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: o11y-dev
+            cluster_org: saf0d1
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.1.17/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: saf0d1-o11y-dev
+          viewPolicy: nosquash-saf0d1-o11y-dev
+  vast-csi-controller:
+    namespace: tenant-sta-saf0d1-o11y-dev
+  vector:
+    enabled: false
+  victoria-metrics:
+    valueFiles:
+      - values-us-east-04-saf0d1-o11y-dev.yaml
+  telecaster:
+    enabled: true
+    valuesMerge:
+      log-agent:
+        enabled: true
+      o11y-log-forwarder:
+        enabled: true
+  pvmo:
+    namespace: tenant-sta-saf0d1-o11y-dev
+    valuesMerge:
+      oob:
+        enabled: true
+        kubeConfigSecretName: internal-admin-kubeconfig
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics
+  unicaster:
+    enabled: true
+    targetRevision: hl/unicaster
+    valuesMerge:
+      unicaster:
+        enabled: true

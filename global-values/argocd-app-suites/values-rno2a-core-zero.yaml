@@ -1,0 +1,98 @@
+# ALlowed CW-MGMT space 10.80.224.0/20
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.225.0/24"
+    customPodCIDRConfigs:
+      10.80.224.0/24:
+        name: cw-mgmt-crdb-pod-ips
+        blockSize: 30
+        natOutgoing: false
+        # keeps k8s from allocating these to pods as its for specific pods
+        # We will allocate this ourselves via annotations
+        nodeSelector: "!all()"
+  apiserver:
+    addtlUrl: api.coreweave-core-zero.k8s.rno2.int.coreweave.com
+applications:
+  cw-node-controller:
+    enabled: true
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: false
+  calico:
+    enabled: true
+    targetRevision: 1.36.0
+    valuesMerge:
+      networkConfig:
+        cwMgmtCIDRs:
+          - 10.80.224.0/23 #site specific changes for core-zero
+      typha:
+        enabled: false
+  ceph-rbd-csi:
+    enabled: false
+    values:
+  cockroachdb-operator:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-operator
+    project: data-platforms
+    namespace: cockroach-operator-system
+  cockroachdb-dev-global-test:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-dev-global-test
+    valueFiles:
+      - values-rno2a-core-zero-dev-global-test.yaml
+  ca-certs:
+    enabled: true
+    path: apps/common/ca-certs
+    project: common
+    namespace: ca-certs
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          deployment:
+            resources:
+              requests:
+                cpu: "3"
+                memory: 10Gi
+              limits:
+                cpu: "5"
+                memory: 10Gi
+          psp:
+            enabled: true
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.8.14
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.80.8.14
+            - 172.27.80.14
+            - 172.24.0.1
+            - 172.26.65.207
+            - 172.26.65.48
+            - 192.168.16.1
+  windmill:
+    enabled: true
+    valueFiles:
+      - values-rno2.yaml
+  in-cluster-config:
+    enabled: true
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQUt2dkZJaWZpeGxLa0tGT1JBbXZSTXd3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5EQTJNRFV4TkRNM01qQmFGdzB6TkRBME1UUXhORE0zCk1qQmFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRQ3FSMTRDNHJVemE4K2d1YUJCY1pycjZ2ZUpOZlJjU1c5YWVLR3JBcHpSUG1lN0UveitVZ1RwCmZhN1M0RVhnWlN2Y1JPemxCTXhuLzVjOFVoUGtHWitFc2JNRWRiK29BV01NRDczSFJoTHFoaEVHd0gyVUZnajUKRWloaE9KU2l1SHZqcjBXT2E4b3pGNjNXcTVGUWpURHl6TGtvcE9kdmpBaDNteERDaE9maEliNjFmS0xncHF2VQpQVUJyZGZSQURiV2MvTzNjcHhTSEZWUkpvckkrLzVpLzZ4M1dFYkx0eFJZUnozUWYxbElzbmxjclg3VHpBNk1NCnZoTm1qRjhlRVVqbTVKV21mNi9tTzhSU2g2b01uNzViZytuQ0duQmx5U08yS1NuamI1ZTFTc0JnKzc0R2Q5SnoKVlB5SEEvUGZYZGYrNGFpdFBQb01va0p1T3BEeXdWNFRBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVVRTThFNlJZZDNFNytaMDljcnR1VmpXNE9jdmt3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFCVWkyc2lMeURNYUdUa01HRWozRzdLUmJPUjNlWHBibm5wcDd1R0MzUmsrZ0NoU25DdkNvYlpQL1p4Rwp4YU5teWhUN1Npa3lMWUxCL2xpaFg5MlIvTEorVVRVV3BTMHo4RFJrd1hBMnVRQ0pKYkN4VGR5VnN3QkZXa055CkRwZmRQRjRJR2xWR3psZHovSVBUMjgvNXoxZTdSUFpUNjRsYlN2emVGQndwOXM3RTVyUnNlOWpSVVBYWkludVoKS1NsMWxIRk14REVXVkRyNVYwL2Z0ckJCUmJKNnp0NjFld0NRZW84U25wS1c2ZkFkbkppcU1LbENxUDlWOVNraQozNFAwKzFuWkVqL2R5VlZ1RnRpN0cxMWdkV1BRUFlrNk5qeWJ3a3djbG1LRjh6RUxmZUx0RGZYb0ZLcjBoL3pRCnpBK3lIbENyRjR4cVZuNEpnUzNVY0tFMmV6bz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  topolvm-csi:
+    enabled: true
+    valueFiles:
+      - values-rno2-core-zero.yaml
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-internal
+          namespace: victoria-metrics

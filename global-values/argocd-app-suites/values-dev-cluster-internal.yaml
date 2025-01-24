@@ -1,0 +1,118 @@
+clusterSpec:
+  region: dev-cluster
+  scope: internal
+  clusterOrg: coreweave
+  apiserver:
+    url: 10.100.1.1
+    addtlUrl: k8s.dev.int.coreweave.com
+    port: 6443
+  networkAllocations:
+    asNumber: "64321"
+    podCIDRs: ["10.230.64.0/18"]
+    serviceCIDRs: ["10.230.0.0/18"]
+    internalLbCIDRs:
+      default: "10.230.128.0/18"
+  coreDnsIp: 10.230.0.3
+
+applications:
+  argocd-ngcp:
+    enabled: false
+
+  argocd-service-monitors:
+    enabled: false
+
+  box-office:
+    enabled: false
+
+  calico:
+    enabled: false
+
+  calico-cleanup-controller:
+    enabled: false
+
+  cert-manager:
+    enabled: true
+
+  coredns:
+    enabled: false
+
+  control-plane:
+    enabled: false
+
+  crowdstrike:
+    enabled: false
+
+  cw-node-controller:
+    enabled: false
+
+  deviceslot-operator:
+    enabled: false
+
+  epimetheus:
+    enabled: false
+
+  eventrouter:
+    enabled: false
+
+  external-dns:
+    enabled: false
+
+  goldpinger:
+    enabled: false
+
+  internal-control-plane:
+    enabled: false
+
+  jspolicy:
+    enabled: false
+
+  jwks-auth-push-internal:
+    enabled: false
+
+  k8s-internal-svc:
+    enabled: false
+
+  local-storage-provisioner:
+    enabled: true
+
+  metallb:
+    enabled: true
+
+  metrics:
+    enabled: false
+
+  metrics-server:
+    enabled: false
+
+  nfd:
+    enabled: false
+
+  node-problem-detector:
+    enabled: false
+
+  promtail:
+    enabled: false
+
+  vector:
+    enabled: false
+
+  teleport:
+    enabled: false
+
+  traefik:
+    enabled: false
+
+  regproxy:
+    enabled: false
+
+  sealed-secrets:
+    enabled: false
+
+  victoria-metrics:
+    enabled: false
+
+  cert-exporter:
+    enabled: false
+
+  infra-canary:
+    enabled: false

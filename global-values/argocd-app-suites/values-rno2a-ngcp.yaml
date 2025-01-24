@@ -1,0 +1,115 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      public: "192.112.165.64/26"
+      cw-mgmt: "10.80.0.0/21"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-rno2-ngcp.k8s.rno2.int.coreweave.com
+applications:
+  appenheimer-extras-stag:
+    enabled: true
+  appenheimer-extras-prod:
+    enabled: true
+  appenheimer-stag:
+    enabled: true
+  appenheimer-prod:
+    enabled: true
+  argocd-ngcp:
+    enabled: true
+    valuesMerge:
+      argo-cd:
+        enabled: false
+      cmpPlugin:
+        disable: true
+      coreweave:
+        signedCertDisable: true
+  argocd-projects:
+    enabled: false
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.8.12
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 172.27.80.12
+            - 10.80.8.12
+            - 172.20.0.1
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRTW0rdFB5QVlrRFRuYlczbnpFa2F3akFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJek1URXlPVEU1TURFMU5Wb1hEVE16TVRBd056RTVNREUxCk5Wb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFNdEZ2N3RzNEcza3lkM2lNckxBK2hJQ3IrVnRwVWNOSjRTckFZZkszWks0c3B3VGw5bkZNelZrCkhzc200aWhKSjJJZWxvQ2VtZUM1SUtVc3l2bE5mVmZNUjhnbmd0OURCYW13blhXT1o1SXdRTmUxYTBhSjBBY2gKZm00alV6MVp0eGRVU0JHNVFxME44S0JoVS8wV0dYdElIWFBGYmxFNDhsVGJYNUx2anRONVB0dEIvYzlTR2hZRQpTY3l1Tkh0TXU3elpLSDBKSHFOTXdFQWZoYmVBY3hMNDM5T1I1bnlTUm5UeDlqTUkyS3JDei9MMWFnR1hmN3NrCmFRSFdNTW1DMU9qZklMNis0NGVzMkZhRERPY3dkMkRjVTJxY1dudUJiQnY4MUsrYTBxcGt0eHE2cVhHcFJiNi8KSnJjYTE2dzlMMGxrSk5CRzlWUkRnQlloRE5hd0l5RUNBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCUzBIYUVhaGp3bkREV05TVjlERm05TDVYWlJmekFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQVhwWWdJRjRPdzZCWGJOV081ZU55TEhlK29KajlpbTRpZUpNU09YTGVWSEk5YVRWMTk3OEQ5UFBOL0g5SwppQWcrL1N0L3dIS1d5UHo1N084YTFrY2prVUV3RkRlOXpFOWt6Nzc0dXpwYy9wVDZNcGE5d1NNNDF0Y2pyWjF0CmozZndXa1N6YlYrcHlpclBSdUdVZS9JYTFEazhXeWZ2em1YVG93cE4wRWF0RkVpcVlDVk9hbHhHTkFNYnFmOU0KSit6Q0ZyM29mTFBOSmw3d0twbzkzaCs3bng5MW1Dc2ZmTElaRFQvcWVnZ2FwWjhXb25ycGkxMXRINTdDWWQrLwpIcG55QWdsUHhmYWdRV2hQeko4NmhaVXNtaVR0S1JIRVUxb0haUmZjTm9mSk42VjA3U2trSVVXbElsWTFoSHF2CmprTFhxcWRWNjN3aHNBYzh5TDZQeUpSdnNBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubelet:
+          serviceMonitor:
+            cAdvisorMetricRelabelings:
+              # Match current behavior since helm cannot merge lists
+              - sourceLabels: [ "__name__" ]
+                regex: 'container_memory_cache|container_memory_working_set_bytes|container_memory_usage_bytes|container_cpu_usage_seconds_total|container_memory_rss|container_network_receive_packets_total|container_network_transmit_packets_total|container_memory_working_set_bytes|container_memory_usage_bytes|container_memory_rss|container_network_receive_packets_total|container_network_transmit_packets_total|container_network_transmit_bytes_total|container_network_receive_bytes_total|container_fs_writes_bytes_total|container_fs_reads_bytes_total|container_cpu_cfs_throttled_seconds_total|container_accelerator_memory_used_bytes|container_accelerator_duty_cycle|container_accelerator_memory_total_bytes|machine_memory_bytes|machine_cpu_cores'
+                action: keep
+              # Correct cluster and cluster_org for controlplane components in tenant namespaces
+              - sourceLabels: [ "namespace", "pod" ]
+                action: replace
+                separator: /
+                regex: 'tenant-(?:sta-)?(ex7|replicate|[a-f0-9]+)-(.+)/(kube-apiserver.*|kube-controller-manager.*|kube-scheduler.*|konnectivity-server.*|etcd-.*)'
+                targetLabel: cluster_org
+                replacement: "$1"
+              - sourceLabels: [ "namespace", "pod" ]
+                separator: /
+                action: replace
+                regex: 'tenant-(?:sta-)?(ex7|replicate|[a-f0-9]+)-(.+)/(kube-apiserver.*|kube-controller-manager.*|kube-scheduler.*|konnectivity-server.*|etcd-.*)'
+                targetLabel: cluster
+                replacement: "$2"
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  katalyst-operator:
+    enabled: true
+    valuesMerge:
+      appenheimerEnabled: true
+  traefik:
+    enabled: true
+    releaseName: traefik
+    valuesMerge:
+      traefik:
+        ingressClass:
+          name: traefik
+        ingressRoute:
+          dashboard:
+            annotations:
+              kubernetes.io/ingress.class: traefik
+            enabled: false
+        providers:
+          kubernetesCRD:
+            ingressClass: traefik
+          kubernetesIngress:
+            ingressClass: traefik
+            publishedService:
+              enabled: true
+        service:
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: '*.rno2-ngcp.ingress.coreweave.com'
+      wildcardTLS:
+        domain: '*.rno2-ngcp.ingress.coreweave.com'
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-internal
+          namespace: victoria-metrics

@@ -1,0 +1,144 @@
+clusterSpec:
+  region: us-east-04
+  scope: poc
+  clusterOrg: f0f011
+  cni: cilium
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 166.19.16.0/23
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-f0f011-poc.svc.cluster.local
+
+applications:
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+      cilium:
+        hubble:
+          enabled: false
+          metrics:
+            enabled: null
+          tls:
+            enabled: false
+          ui:
+            enabled: false
+          relay:
+            enabled: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  calico:
+    enabled: false
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.1.30"
+  konnectivity-agent:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+        prometheus:
+          prometheusSpec:
+            remoteWrite:
+              - queueConfig:
+                  capacity: 10000
+                  maxBackoff: 200ms
+                  maxRetries: 3
+                  maxSamplesPerSend: 2000
+                  maxShards: 2500
+                  minBackoff: 50ms
+                  minShards: 50
+                url: http://100.124.1.30/api/v1/push
+            externalLabels:
+              cluster: poc
+              cluster_org: f0f011
+  coredns:
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.1.31"
+      kubeconfig:
+        cluster: f0f011-poc
+        path: /etc/kubernetes/admin-config
+      secretName: internal-admin-kubeconfig
+      monitoring:
+        enabled: true
+      extraServiceAnnotations:
+        metallb.universe.tf/address-pool: tss
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      vast:
+        enabled: true
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.1.31"
+      nldClusterIP: "10.16.0.30"
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+          instanceType: cd-hp-a96-genoa
+        cpu:
+          targetNodes: 10
+          instanceType: cd-hc-a384-genoa
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: poc
+            cluster_org: f0f011
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.1.30/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vector:
+    enabled: false
+  vast-csi-controller:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          vast-f0f011-poc:
+            project: vast
+            config: prod_us-east-04a-automation
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

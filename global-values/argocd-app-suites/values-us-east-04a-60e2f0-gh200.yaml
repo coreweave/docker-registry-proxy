@@ -1,0 +1,122 @@
+clusterSpec:
+  region: us-east-04
+  scope: gh200
+  clusterOrg: 60e2f0
+  cni: cilium
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 166.19.16.0/23
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-60e2f0-gh200.svc.cluster.local
+
+applications:
+  calico:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: false
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.15.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.15.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.227"
+  konnectivity-agent:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  multus-cni:
+    valuesMerge:
+      daemonset:
+        image:
+          repository: ghcr.io/coreweave/nascd/multus-cni/multus-cni
+          tag: multi-arch-3.9
+  nfd:
+    valuesMerge:
+      worker:
+        image: ghcr.io/coreweave/nascd/nfd/node-feature-discovery:multi-arch-0.9.0
+  node-local-dns:
+    valuesMerge:
+      vast:
+        enabled: true
+  node-pci-exporter:
+    valuesMerge:
+      image: ghcr.io/coreweave/nascd/node-pci-exporter/node-pci-exporter:arm64
+      env:
+      - name: PCI_TARGETS
+        value: "10de:2330,15b3:1021,15b3:a2d6,8086:352a,15b3:101d,1000:c030,10de:22a3,10de:20b2,15b3:101b,8086:347a,1000:c010,10de:1af1,10de:26b5,10de:26b9,10de:2342,15b3:a2dc"
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 2
+        gpu:
+          targetNodes: 2
+          instanceType: gd-1xgh200
+  nvidia-device-plugin:
+    valuesMerge:
+      image: ghcr.io/coreweave/nascd/k8s-device-plugin:multi-arch-0
+      initContainerImage: ubuntu:20.04
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          image:
+            tag: 3.2.0
+          coreweaveLabels:
+            cluster: gh200
+            cluster_org: 60e2f0
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.227/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: 60e2f0-761b1aad5e8d
+          viewPolicy: nosquash-60e2f0-761b1aad5e8d
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

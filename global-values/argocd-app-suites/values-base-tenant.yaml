@@ -1,0 +1,35 @@
+clusterSpec:
+  scope: tenant
+
+argocd:
+  targetClusterURL: https://k8s.tenant.dev.coreweave.com
+
+applications:
+  calico:
+    enabled: true
+  cert-manager:
+    enabled: true
+  coredns:
+    enabled: true
+  eventrouter:
+    enabled: true
+  external-dns:
+    enabled: true
+  external-secrets:
+    enabled: true
+  local-storage-provisioner:
+    enabled: true
+  metallb:
+    enabled: true
+  metrics:
+    enabled: true
+  metrics-server:
+    enabled: true
+  oidc:
+    enabled: true
+  promtail:
+    enabled: true
+  vector:
+    enabled: false
+  traefik:
+    enabled: true

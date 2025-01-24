@@ -1,0 +1,61 @@
+---
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.81.28.0/27"
+      public: "166.19.31.128/26"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-storage.k8s.us-west-01a.int.coreweave.com
+
+applications:
+  calico:
+    valuesMerge:
+      typha:
+        enabled: false # Disable typha since these clusters are small and don't need the extra overhead
+  control-plane:
+    valuesMerge:
+      etcd-events:
+        replicaCount: 5
+      etcd-local:
+        replicaCount: 5
+      kubeception:
+        apiserver:
+          service:
+            loadBalancerIP: 172.27.80.13
+            addtlLocalService:
+              loadBalancerIP: 10.81.24.13
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 172.27.80.13
+            - 10.81.24.13
+            - 172.30.0.1
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: false
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRVnArUm95M3ZXK1hGa1N1OXNPR3FRVEFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1URXdOekl3TkRrd01Wb1hEVE0wTURreE5qSXdORGt3Ck1Wb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFMK2N1TE1XSHY0NmtEL2ZLUkxybFVESzdCRG5lRWErNDA5L3BCTGE1bm8rVzVMMWE5ZUYrbndTCnNaY2RqSnNwVVFKa0xaeHFVdnVkQjBNZE5KZmtjTE5qQ2RpMU5LR2ZraURyajBaYmhYeGZzRmxoM2NFbXcxMEYKVzc5OTVkQUhPdmluOUlhZFFtV21yMDZSM2hnYkxKRFloQUhRT0dadVo1MDd1elJ0cEdTMHRxRFc0V2lqL21yRApvTEtLZWV6UmhHMXQxZ0lIMmQzZWZTb2ltaXljcFkrY3dSVnk0U3p1UkxWWS9ZM1Y4Mk5CRGJCKzhVL1diNEJ4Cnc4NkkzVXY0T013U1hlcmZXanZzaXU4V1ZxdkZYbXZVb2UwZzdEZnlOZFNNc1NsMG95czlIMHZENEVzeHNoWXgKbFhTNHdtWnM1Y0psY3FTNkZ1Q2xSdmZlRHIvR1RjOENBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCVFRraXlvWS9IeTI3NjJkeG8vdFRiUXlPeStzREFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQVcrUE9tUERGYkJBVnF3R1dqQVZWNE5OYXFnRTJLSlJxeTFuMS9uN2hOM1BOZFA3MmZwNFhjazRqZ2NjMQpHclpOTlprRzZwTDhRQXpFSjlWd0FLdUZoYnpoNHVKSzZEeGcvaVpSSlBQRm1UTVVSRG9rdnNyaDQvUXNZWit0ClRlRFNFeVI4WHM1ZFRsUnUvOUhzeEdNRW5GbktFMXovWUR3Uy9INUN0SkVwWWdTYTRmTCtuN0pCUjlLak1RbFoKaVFrcGtnWmhsN0R5N2h5Y2JKQVplWDd3RGZNRE1hVWcrRVNsaGR4MEg4eG9pZ21FVzRFMnB6b2NLU0JhNWZiVwpnZzdXYkJyNFdPM0pObW1ZNUU1eWxXMWI1Vm9uTFdWOGMyMzZBMmJCSmF0cjk4QVp0K3JjVk9jT0Q1bHVIZmhJCjdveWZPdVpxQ2VQbHRMeWUyaGVTZGVRZVhRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+      kubeletConfigOverrides:
+        maxPods: 256
+  jwks-auth-push:
+    enabled: true
+  regproxy:
+    enabled: false  # Is this really needed in a storage cluster?
+    valuesMerge:
+      regproxy:
+        dev: true
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-west-01-coreweave-us-west-01a-internal
+          namespace: victoria-metrics

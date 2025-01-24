@@ -1,0 +1,97 @@
+clusterSpec:
+  region: us-east-02
+  scope: dpu-test
+  clusterOrg: a74af4
+  networkAllocations:
+    externalLbCIDRs:
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-a74af4-dpu-test.svc.cluster.local
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  # control-plane & etcd are managed by the Katalyst operator
+  control-plane:
+    enabled: false
+  # katalyst operator manages the konnectivity-agent deployment
+  konnectivity-agent:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: true
+  calico:
+    enabled: true
+  in-cluster-config:
+    enabled: false
+  nvidia-device-plugin:
+    valuesMerge:
+      runtimeConfig: |
+        disable-require = false
+        #swarm-resource = "DOCKER_RESOURCE_GPU"
+        accept-nvidia-visible-devices-envvar-when-unprivileged = true
+        accept-nvidia-visible-devices-as-volume-mounts = true
+
+        [nvidia-container-cli]
+        #root = "/run/nvidia/driver"
+        #path = "/usr/bin/nvidia-container-cli"
+        environment = []
+        #debug = "/var/log/nvidia-container-toolkit.log"
+        #ldcache = "/etc/ld.so.cache"
+        load-kmods = true
+        #no-cgroups = false
+        #user = "root:video"
+        ldconfig = "@/sbin/ldconfig.real"
+
+        [nvidia-container-runtime]
+        #debug = "/var/log/nvidia-container-runtime.log"
+        log-level = "info"
+
+        # Specify the runtimes to consider. This list is processed in order and the PATH
+        # searched for matching executables unless the entry is an absolute path.
+        runtimes = [
+            "docker-runc",
+            "runc",
+        ]
+
+        mode = "auto"
+
+            [nvidia-container-runtime.modes.csv]
+
+            mount-spec-path = "/etc/nvidia-container-runtime/host-files-for-container.d"
+  node-local-dns:
+    enabled: true
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: 100.124.0.21
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: dpu-test
+            cluster_org: a74af4
+            region: us-east-02
+          config:
+            lokiAddress: http://100.124.0.21/loki/api/v1/push
+  # Teleport is managed by the katalyst-operator
+  teleport:
+    enabled: false
+  vast-csi:
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: a74af4-ace3f2d8d103
+          viewPolicy: nosquash-a74af4-ace3f2d8d103
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-02-coreweave-us-east-02-ngcp
+          namespace: victoria-metrics

@@ -1,0 +1,49 @@
+clusterSpec:
+  apiserver:
+    ip: 10.239.128.10
+applications:
+  grafana:
+    enabled: true
+    valuesMerge:
+      grafana:
+        admin:
+          existingSecret: ~
+        adminPassword: "admin"
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: Prometheus
+                type: prometheus
+                editable: true
+                url: http://metrics-prometheus-operato-prometheus.metrics.svc.cluster.local:9090
+                isDefault: false
+                version: 1
+        ingress:
+          enabled: false
+        persistence:
+          storageClassName: local-ssd
+        service:
+          type: LoadBalancer
+        sidecar:
+          dashboards:
+            enabled: true
+            label: grafana_dashboard
+            labelValue: "1"
+        tolerations:
+          - key: is_cpu_compute
+            effect: NoSchedule
+            value: "true"
+          - key: node.coreweave.cloud/reserved
+            operator: Equal
+            value: a23e6272a875746a522968abe77c4ff953358e92  # control-plane
+          - key: node.coreweave.cloud/reserved
+            operator: Equal
+            value: c9f1021c4c06b6eb061d428cc53041f541efd369  # coreweave
+  cilium:
+    enabled: false
+  node-local-dns:
+    valuesMerge:
+      service:
+        type: LoadBalancer
+        loadBalancerIP: "10.239.128.51"  # Required for vRouter DNS access

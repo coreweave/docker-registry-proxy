@@ -1,0 +1,256 @@
+clusterSpec:
+  zone: dev1a
+  apiserver:
+    ip: 10.232.128.10
+    url: &url k8s.dev1a.int.coreweave.com
+    addtlUrl: *url
+  networkAllocations:
+    podCIDRs: ["10.232.64.0/18"]
+    serviceCIDRs: ["10.232.0.0/18"]
+    internalLbCIDRs:
+      default: "10.232.160.0/19"
+      reserved: "10.232.128.0/19"
+  coreDnsIp: 10.232.0.3
+
+applications:
+  calico:
+    valuesMerge:
+      networkConfig:
+        peerASN: 65432
+        hostCIDRs:
+          - 10.100.1.0/24
+      calicoNode:
+        calico-node-ebpf:
+          overrideServicesEndpoint:
+            host: 127.0.0.1
+            port: 6444
+  cilium:
+    valuesMerge:
+      cilium:
+        cluster:
+          id: 1
+          name: dev1a-internal
+        clustermesh:
+          useAPIServer: true
+          apiserver:
+            service:
+              externalTrafficPolicy: Local
+              type: LoadBalancer
+              loadBalancerIP: 10.232.128.11  ## Need a different IP for this
+            tls:
+              auto:
+                method: certmanager
+                certManagerIssuerRef:
+                  group: cert-manager.io
+                  kind: Issuer
+                  name: cilium-issuer
+              server:
+                extraIpAddresses:
+                  - 10.232.128.11
+          config:
+            enabled: true
+            clusters:
+            - name: dev2
+              port: 2379
+              ips:
+                - 10.239.128.11
+            - name: dev3
+              port: 2379
+              ips:
+                - 10.241.128.11
+  control-plane:
+    enabled: false
+  coredns:
+    valuesMerge:
+      apiServerURL: k8s.dev1a.int.coreweave.com:6443
+      config: |
+        .:53 {
+            errors
+            health {
+                lameduck 5s
+            }
+            ready
+            kubernetes cluster.local dev.internal.k8s in-addr.arpa ip6.arpa {
+              pods insecure
+              fallthrough in-addr.arpa ip6.arpa
+            }
+            k8s_external dev1a.internal.k8s {
+              headless
+            }
+            prometheus :9153
+            forward . /etc/resolv.conf {
+              prefer_udp
+            }
+            cache 30
+            loop
+            reload
+            loadbalance
+        }
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "m01,m02,m03"
+      nodeLifeCycle:
+        deliveredReservation: coreweave
+        applyTaints: false
+  grafana:
+    enabled: true
+    valuesMerge:
+      grafana:
+        image:
+          tag: 10.4.0
+        admin:
+          existingSecret: ~
+        adminPassword: "admin"
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: Prometheus
+                type: prometheus
+                editable: true
+                url: http://metrics-prometheus-operato-prometheus.metrics.svc.cluster.local:9090
+                isDefault: false
+                version: 1
+              - name: VrouterPrometheus
+                type: prometheus
+                editable: true
+                url: http://10.100.1.1:30900
+                isDefault: false
+                version: 1
+        ingress:
+          enabled: false
+        persistence:
+          storageClassName: local-ssd
+        service:
+          type: LoadBalancer
+        sidecar:
+          dashboards:
+            enabled: true
+            label: grafana_dashboard
+            labelValue: "1"
+        tolerations:
+          - key: is_cpu_compute
+            effect: NoSchedule
+            value: "true"
+          - key: node.coreweave.cloud/reserved
+            operator: Equal
+            value: a23e6272a875746a522968abe77c4ff953358e92  # control-plane
+          - key: node.coreweave.cloud/reserved
+            operator: Equal
+            value: c9f1021c4c06b6eb061d428cc53041f541efd369  # coreweave
+  internal-control-plane:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          control-plane-internal-cluster:
+            config: dev
+          etcd-backups-internal:
+            config: dev_int_region
+          generic-pull-secrets-internal-cluster:
+            config: dev
+      etcdBackup:
+        enabled: false
+      etcdMaintenance:
+        enabled: false
+  jwks-auth-push-internal:
+    enabled: false
+  k8s-internal-svc:
+    enabled: true
+    appName: k8s-internal-svc
+    rawYaml: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        annotations:
+          metallb.universe.tf/address-pool: default
+          external-dns.alpha.kubernetes.io/hostname: {{ include "common.apiserver.addtlUrl" . }}
+        name: k8s-apiserver-custom
+      spec:
+        externalTrafficPolicy: Local
+        loadBalancerIP: {{ include "common.apiserver.internalLb.serviceIP" . }}
+        ports:
+        - port: 6443
+          protocol: TCP
+          targetPort: 6443
+        selector:
+          component: kube-apiserver
+        type: LoadBalancer
+  node-local-dns:
+    valuesMerge:
+      service:
+        type: LoadBalancer
+        loadBalancerIP: "10.232.128.51"  # Required for vRouter DNS access
+  regproxy:
+    enabled: true
+    values:
+      coreweave:
+        clusterSecretStores:
+          regproxy:
+            config: dev
+      regproxy:
+        env:
+          - name: WORKER_PROCESSES
+            valueFrom:
+              resourceFieldRef:
+                containerName: proxy
+                resource: limits.cpu
+          - name: SLOW_TIER_ENABLED
+            value: "false"
+          - name: SLOW_TIER_URIS
+            value: "~^/v2/replicate-production/(.*);~^/v2/fastertransformer_fudge/(.*);~^/v2/simplertransformer/(.*)"
+          - name: SLOW_CACHE_DIRECTORY
+            value: /slow_docker_mirror_cache
+          - name: CURL_TIMEOUT
+            value: "5"
+          - name: CACHE_MIN_FREE
+            value: "1g"
+          - name: REGISTRIES
+            value: "gcr.io quay.io registry.gitlab.com registry.crowdstrike.com nvcr.io cvedia.azurecr.io inflacr.azurecr.io inf5acr.azurecr.io ghcr.io us-docker.pkg.dev"
+          - name: CACHE_MAX_SIZE
+            value: "1g"
+          - name: ENABLE_MANIFEST_CACHE
+            value: "true"
+          - name: AUTH_REGISTRIES
+            valueFrom:
+              secretKeyRef:
+                key: registries
+                name: auth-registries
+          - name: ALLOW_OWN_AUTH
+            value: "true"
+          - name: ALLOW_PUSH_WITH_OWN_AUTH
+            value: "true"
+          - name: LIVELINESS_REPOS
+            value: "https://registry.gitlab.com"
+        service:
+          loadBalancerIP: 10.232.128.25
+        replicas: 1
+        resources:
+          requests:
+            cpu: 50m
+            memory: 100Mi
+            ephemeral-storage: null
+          limits:
+            cpu: 200m
+            memory: 1500Mi
+            ephemeral-storage: null
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: k8s-app
+                  operator: In
+                  values:
+                  - regproxy
+              topologyKey: kubernetes.io/hostname
+          nodeAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                preference:
+                  matchExpressions:
+                    - key: node.coreweave.cloud/class
+                      operator: In
+                      values:
+                        - cpu

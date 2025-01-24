@@ -1,0 +1,40 @@
+clusterSpec:
+  apiserver:
+    url: &url k8s.us-east-04.int.coreweave.com
+    addtlUrl: *url
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.104.0/23"
+applications:
+  argocd-ngcp:
+    valuesMerge:
+      argo-cd:
+        enabled:
+          false
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "g49d5b6,gb96b40,gb96bf0"
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  internal-control-plane:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          etcd-backups-internal:
+            config: prod_int_us-east-04
+      etcdBackup:
+        backblaze:
+          bucket: us-east-04-int-etcd-backups
+      etcdMaintenance:
+        cluster: us-east-04-internal
+        prometheus:
+          cluster: us-east-04-internal
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false

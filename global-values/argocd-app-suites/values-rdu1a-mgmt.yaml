@@ -1,0 +1,376 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.26.0/23"
+      public: "192.112.172.0/26"
+      dpu: "10.173.63.0/28"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-rdu1-mgmt.k8s.rdu1.int.coreweave.com
+applications:
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.24.11
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.80.24.11
+            - 172.27.80.11
+            - 172.24.0.1
+            - 172.26.68.3
+            - 172.26.68.72
+  blastshield-gw:
+    valuesMerge:
+      psp:
+        enabled: true
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "gb97140,gb97260,gb97910"
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRU0lkSUVLaVNYVVV1UDJWbHZrQXJTREFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJek1USXlOREF3TVRjd01sb1hEVE16TVRFd01UQXdNVGN3Ck1sb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFMbW9uc3o3NUJ2L0x3YVZuZllzOGpmbmZHWlRmQTNocGtBWU5aWTRweSs2MUJGYzBRbzZqY09pCm15Y01DaWIrT3hQZkVGTWZsanAydlg2aGFlSko4b0UzbHF5ZEdWbnc1UzU2SkNzc2M4azBvS0FlRVlkaDg3ZGcKYWp6RjlZeFhiNWtZMzdYWEx6azNwQU9uTVBGSUdiODZ0aTVaODBUbFZNVjA3NzBEaGEzdTBHV1RRMmtVaS9zVgpjazhnZFA5bDZrYXVNajR0Y2JFSDBWMmFxT3pPdTFBM3AxZHo1aDYzajV4TVJ6RWNNcHk5dmdmUG83emJzQTR6Cm1tQm1wYTA2Yi9zRDVDOWdnMjJuNGYzbEVSUDQ0S1Q1RTdSQktWcE1QV2hJbkR0VThIeitiMERNOG45dWFaTysKMHlPNzIwN1cyeWtUQS85RmpWWC85YnNWeUNZckJHRUNBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCVGd1bS9wemlXVUUzU1BhKzdUcGhneGNzWDhpREFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQWVMN0REaTRHSjU2Uitkbko5ZUxvZFp1NXNiWVBoK21oMXJpR0F2TW1xVm5xckt1dnpHS3RRNlVFMUpJSApQclhtOUE3K1NwaUl1UzBJWWZzV2preXVMVmtlZWtsbE5Nc00vbzhObVkyWXgwQnNNQTUyRjZ1U2Y5TzBZR3ZKCkJPQ2xFQWR2WktieW1xWmNQZXB3dWFBeC9UZXh2SXlnU3FzdURlQU02MldsMlVsdjZ1Z2JRVVY1Z2dmaGVlWU4KeHBxYTJhSnZFQi9VaWFUSUdZbTNVd3l3dDlpeUppenBwQ0pJbGQ3KzN2dWtqK21kL3FlSHZURGllT2FzNGtKRgpIdXRIbElkV0phK2lTR1hRWWF4OEZCcGJGbkFTMGdXcUdrWDcvWUFyZlgvNTdiVitjY0R1SDlDVXE0bHVUY2E5CjI4dDA3Uk0xc29lTGNmMW92dDg1RjFLWVlBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  katalyst-proxy:
+    valuesMerge:
+      ncoreProxyPass: http://10.134.98.11  # remove once all nodeProfiles and dpuConfs are updated
+  teleport-rbac:
+    valuesMerge:
+      coreweave:
+        saml:
+          entityDescriptorUrl: https://login.coreweave.com/app/exke1u1xi3FYVkMA45d7/sso/saml/metadata
+      miscManifests:
+      - apiVersion: resources.teleport.dev/v2
+        kind: TeleportProvisionToken
+        metadata:
+          name: slurm-60e2f0-condor2
+        spec:
+          roles: [node]
+          join_method: kubernetes
+          kubernetes:
+            type: static_jwks
+            static_jwks:
+              jwks: |
+                {"keys":[{"use":"sig","kty":"RSA","kid":"2i58L7Z5CgrloQ0yYEBGwgfLGQyzR_IKq2_MoHB2EZE","alg":"RS256","n":"ve0YUFhmQnfm1O74dzkvmyiIT4V-xSHF97piBxd4QiNz8p5syZpIM13MOFgCpBZciGwM-Mpl5dpHRyDsOkCEdqyaeiOad5ZYARQQNsZ9mzlRaL-lOo1_aUxtCOevpz72OXdmt_BJiiSCLYWb0zZGwXQmIqo7yoEINiMMlti0zui1eCA2aoeZoOc5NPvJC9OO-xvbssXYjfsplE5u6w0H9bi_dXU3v1NeNXTw_RFQ4mw7tt0pleJmp_8NuOTOJR_bpT31PKIn_gn136mWCNVu2OJ_mbpO8LBMKWLDsFFiPkkxdmLWgUvPhqqmYwHKVE-_UHfk7m4mxKR66AbTCQWkiQ","e":"AQAB"}]}
+            allow:
+            - service_account: "tenant-slurm:slurm-tl-login-sa"
+            - service_account: "tenant-slurm-staging:slurm-tl-login-sa"
+  teleport:
+    valuesMerge:
+      coreweave:
+        awxTbot:
+          enabled: true
+  redfish-services:
+    valuesMerge:
+      exporter:
+        replicas: 10
+      harvester:
+        image:
+          repository: docker.artifacts.coreweave.com/metaldev-dev/harvester
+          tag: v1.110.3
+        imagePullSecret: redfish-cloudsmith-registry
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-grpc:
+    enabled: true
+    valueFiles:
+      - values-rdu1-mgmt.yaml
+  vast-csi-controller:
+    valuesMerge:
+      serviceMonitor:
+        enabled: true
+        endpoints:
+          - path: /api/prometheusmetrics/devices
+            interval: 30s
+            scrapeTimeout: 30s
+          - path: /api/prometheusmetrics/all
+            interval: 90s
+            scrapeTimeout: 90s
+        exposeMetricsToTenants:
+          enabled: true
+          metrics:
+            - vast_cluster_physical_space_in_use
+            - vast_cluster_logical_space_in_use
+          clusterOrgs:
+            - 60e2f0
+          rawMetrics:
+            - clusterOrg: 60e2f0
+              metrics:
+                - name: vast_user_write_bw
+                  expr: 'sum (vast_user_write_bw{more_info="default"}) by (uid)'
+                - name: vast_user_write_iops
+                  expr: 'sum (vast_user_write_iops{more_info="default"}) by (uid)'
+                - name: vast_user_read_bw
+                  expr: 'sum (vast_user_read_bw{more_info="default"}) by (uid)'
+                - name: vast_user_read_iops
+                  expr: 'sum (vast_user_read_iops{more_info="default"}) by (uid)'
+                - name: vast_user_write_md_iops
+                  expr: 'sum (vast_user_write_md_iops{more_info="default"}) by (uid)'
+                - name: vast_user_read_md_iops
+                  expr: 'sum (vast_user_read_md_iops{more_info="default"}) by (uid)'
+  tailscale-operator:
+    enabled: true
+    values:
+      privlegedPSP:
+        enabled: true
+      coreweave:
+        clusterSecretStores:
+          condor:
+            project: condor
+            config: prod
+        externalSecrets:
+          operator-oauth:
+            secretStoreName: condor
+            dataFrom:
+              - find:
+                  decodingStrategy: Auto
+                  name:
+                    regexp: (.*)
+                rewrite:
+                  - regexp:
+                      source: CLIENT_ID
+                      target: client_id
+                  - regexp:
+                      source: CLIENT_SECRET
+                      target: client_secret
+      tailscale-operator:
+        enabled: true
+        proxyConfig:
+          defaultTags: "tag:mai"
+        apiServerProxyConfig:
+          mode: "false"
+        operatorConfig:
+          tolerations:
+            - key: is_cpu_compute
+              operator: Exists
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node.coreweave.cloud/class
+                        operator: In
+                        values:
+                          - cpu
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 8Gi
+      networkPolicy:
+        - name: block-egress-internal
+          egress:
+            - action: Allow
+              destination:
+                namespaceSelector: projectcalico.org/name == 'kube-system'
+                selector: k8s-app == 'coredns' || component == 'apiserver'
+            - action: Allow
+              destination:
+                services:
+                  name: kubernetes
+                  namespace: default
+            - action: Allow
+              destination:
+                services:
+                  name: vms
+                  namespace: vast-csi
+            - action: Deny
+              destination:
+                namespaceSelector: projectcalico.org/name != 'tailscale'
+                nets:
+                  - 10.0.0.0/8
+                  - 172.23.0.0/16
+                  - 172.24.0.0/18
+            - action: Deny
+              destination:
+                nets:
+                  - 10.0.0.0/8
+                  - 172.23.0.0/16
+                  - 172.24.0.0/18
+            - action: Allow
+              destination:
+                nets:
+                  - 0.0.0.0/0
+          order: 500
+          selector: all()
+      services:
+        - name: vast-ui
+          annotations:
+            tailscale.com/expose: "true"
+            tailscale.com/hostname: "vast-ui"
+          spec:
+            type: ClusterIP
+            internalTrafficPolicy: Cluster
+            ipFamilies:
+              - IPv4
+            ipFamilyPolicy: SingleStack
+            ports:
+              - name: https
+                port: 443
+                targetPort: 443
+        - name: ufm-monitor-rdu1-fab8-0
+          annotations:
+            tailscale.com/expose: "true"
+            tailscale.com/hostname: "ufm01-rdu1"
+          spec:
+            type: ClusterIP
+            internalTrafficPolicy: Cluster
+            ipFamilies:
+              - IPv4
+            ipFamilyPolicy: SingleStack
+            ports:
+              - name: https
+                port: 443
+                targetPort: 443
+        - name: ufm-monitor-rdu1-fab8-1
+          annotations:
+            tailscale.com/expose: "true"
+            tailscale.com/hostname: "ufm02-rdu1"
+          spec:
+            type: ClusterIP
+            internalTrafficPolicy: Cluster
+            ipFamilies:
+              - IPv4
+            ipFamilyPolicy: SingleStack
+            ports:
+              - name: https
+                port: 443
+                targetPort: 443
+      endpoints:
+        - name: vast-ui
+          subsets:
+            - addresses:
+                - ip: 10.173.128.60
+              ports:
+                - name: https
+                  port: 443
+                  protocol: TCP
+        - name: ufm-monitor-rdu1-fab8-0
+          subsets:
+            - addresses:
+                - ip: 10.173.1.246
+              ports:
+                - name: https
+                  port: 443
+                  protocol: TCP
+        - name: ufm-monitor-rdu1-fab8-1
+          subsets:
+            - addresses:
+                - ip: 10.173.1.247
+              ports:
+                - name: https
+                  port: 443
+                  protocol: TCP
+
+  metrics:
+    valuesMerge:
+      portkey:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.173.1.241
+                - 10.173.1.242
+                - 10.173.1.243
+                - 10.173.1.244
+              name: RDU1
+              honorTimestamps: false
+      ufm:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.173.1.246
+                - 10.173.1.247
+              name: RDU1-FAB8
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                    - /cw1
+                    - /cw2
+                    - /cw3
+                    - /cw4
+                    - /cw5
+                    - /cw6
+                    - /cw7
+                    - /cw8
+                    - /cw9
+                    - /cw10
+                    - /cw11
+                    - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+  storm-trooper:
+    enabled: true
+    namespace: hpcnet
+    project: networkhpc
+    path: apps/networkhpc/storm-trooper
+    valuesMerge:
+      service:
+        type: LoadBalancer
+        externalTrafficPolicy: Local
+      config:
+        ufmAddress: ufm-proxy-fab8.hpcnet.svc.cluster.local
+      coreweave:
+        externalSecrets:
+          ufm-token:
+            secretStoreName: hpcnet
+            data:
+              - remoteRef:
+                  key: STORM_TROOPER_UFM_FAB8_TOKEN
+                secretKey: UFM_TOKEN
+  ufm-proxy:
+    enabled: true
+    valuesMerge:
+      config:
+        fabrics:
+          - name: fab8
+            ufms:
+              - address: 10.173.1.246
+                port: 443
+              - address: 10.173.1.247
+                port: 443
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rdu1-coreweave-rdu1-internal
+          namespace: victoria-metrics
+#  vector:
+#    enabled: false
+#    valuesMerge:
+#      coreweave:
+#        cluster: rdu1-mgmt
+#      forwarders:
+#        - name: 60e2f0-condor2
+#          type: syslogs
+#          condition: all
+#      vector_ingester:
+#        enabled: false
+#        haproxy:
+#          service:
+#            annotations:
+#              external-dns.alpha.kubernetes.io/hostname: vector-rdu1.int.coreweave.com

@@ -1,0 +1,98 @@
+clusterSpec:
+  region: us-east-04
+  scope: ric1
+  clusterOrg: a64a15
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 166.19.16.0/23
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-a64a15-ric1.svc.cluster.local
+
+applications:
+  calico:
+    enabled: true
+    valuesMerge:
+      typha:
+        replicas: 1
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.111"
+  konnectivity-agent:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  node-local-dns:
+    valuesMerge:
+      vast:
+        enabled: true
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 2
+        cpu-a384:
+          targetNodes: 2
+          instanceType: cd-hc-a384-genoa
+        gpu-a100:
+          targetNodes: 16
+          instanceType: gd-8xa100-i128
+        gpu-a100-buffer:
+          targetNodes: 2
+          instanceType: gd-8xa100-i128
+        gpu-h100:
+          targetNodes: 60
+          instanceType: gd-8xh100ib-i128
+        gpu-h100-buffer:
+          targetNodes: 4
+          instanceType: gd-8xh100ib-i128
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: ric1
+            cluster_org: a64a15
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.111/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: a64a15-def5ea94f73d
+          viewPolicy: nosquash-a64a15-def5ea94f73d
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

@@ -1,0 +1,90 @@
+clusterSpec:
+  region: us-east-04
+  scope: poc
+  clusterOrg: 68ab39
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 166.19.16.0/23
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-68ab39-poc.svc.cluster.local
+
+applications:
+  calico:
+    enabled: true
+    valuesMerge:
+      typha:
+        replicas: 1
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.158"
+  konnectivity-agent:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  node-local-dns:
+    valuesMerge:
+      vast:
+        enabled: true
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 2
+          instanceType: cd-hc-a384-genoa
+        gpu-h200:
+          targetNodes: 16
+          instanceType: gd-8xh200ib-i128
+        gpu-h200-buffer:
+          targetNodes: 2
+          instanceType: gd-8xh200ib-i128
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: poc
+            cluster_org: 68ab39
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.158/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: 68ab39-144faf455fba
+          viewPolicy: nosquash-68ab39-144faf455fba
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

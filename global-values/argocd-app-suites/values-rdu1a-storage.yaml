@@ -1,0 +1,46 @@
+clusterSpec: {}
+  # networkAllocations:
+  #   podCIDRs: [ "FILL_ME_IN" ]
+  #   serviceCIDRs: [ "FILL_ME_IN" ]
+  #   internalLbCIDRs:
+  #     default: "FILL_ME_IN"
+  #   externalLbCIDRs:
+  #     public: "FILL_ME_IN"
+
+# This cluster is starting with 3 hot, 3 cold, and 3 compute
+# The equation is (osd_count * 100) / pool_size -> then round to nearest power of 2
+# Pool size in this case is the replication factor, so 3x replicated is a pool size of 3
+# 10 drives a node (ignoring compute) -> (60 * 100) / 3 = 2000 -> 2048
+defaultParameters: &defaultParams
+  pgNum: 2048
+  pgpNum: 2048
+
+# We only have a single rack, so failure domain needs to be smaller.
+applications:
+  cw-ceph-rbd:
+    valuesMerge:
+      defaultFailureDomain: host
+      <<: *defaultParams
+  cw-ceph-cephfs:
+    valuesMerge:
+      defaultFailureDomain: host
+      <<: *defaultParams
+  cw-ceph-object:
+    valuesMerge:
+      defaultFailureDomain: host
+      <<: *defaultParams
+  vector:
+    enabled: false
+  node-local-dns:
+    enabled: false # TODO: enable once a maintenance window is set
+  calico:
+    valuesMerge:  # TODO: remove and upgrade calico once a maintenance window is set 
+      images:
+        node: ghcr.io/coreweave/calico/node:v3.26.4-patched
+        cni: docker.io/calico/cni:v3.26.1
+      calicoController:
+        image: docker.io/calico/kube-controllers:v3.26.1
+      typha:
+        image: docker.io/calico/typha:v3.26.1
+      felix:
+        excludeCoreDnsFromNat: false

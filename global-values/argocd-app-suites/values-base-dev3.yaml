@@ -1,0 +1,400 @@
+clusterSpec:
+  region: dev3
+  zone: dev3a
+  zonesEnabled: true
+  apiserver:
+    url: &url k8s.dev3.int.coreweave.com
+    addtlUrl: *url
+  networkAllocations:
+    asNumber: "64361"
+    podCIDRs: ["10.241.64.0/18"]
+    serviceCIDRs: ["10.241.0.0/18"]
+    internalLbCIDRs:
+      default: "10.241.128.0/18"
+  coreDnsIp: 10.241.0.3
+
+applications:
+  argocd-ngcp:
+    enabled: false
+  argocd-service-monitors:
+    enabled: true
+  box-office:
+    enabled: false
+  calico:
+    valuesMerge:
+      resources:
+        requests:
+          memory: 512Mi
+        limits:
+          cpu: 2
+          memory: 1Gi
+      calicoController:
+        replicas: 1
+        resources:
+          requests:
+            memory: 256Mi
+          limits:
+            memory: 1Gi
+      networkConfig:
+        peerASN: 65452
+        hostCIDRs:
+          - 10.100.3.0/24
+        vrfs:
+          k8s:
+            enabled: true
+            filter:
+              enabled: true
+            peerIP: 10.100.3.1
+          tss:
+            enabled: false
+          ipmi:
+            enabled: false
+          net:
+            enabled: false
+          dpu:
+            enabled: false
+          cw_mgmt:
+            enabled: false
+      calicoNode:
+        calico-node-ebpf:
+          overrideServicesEndpoint:
+            host: 127.0.0.1
+            port: 6444
+  calico-cleanup-controller:
+    enabled: false
+  cilium:
+    valuesMerge:
+      cilium:
+        cluster:
+          id: 3
+          name: dev3
+        clustermesh:
+          useAPIServer: true
+          apiserver:
+            service:
+              externalTrafficPolicy: Local
+              type: LoadBalancer
+              loadBalancerIP: 10.241.128.11
+            tls:
+              auto:
+                method: certmanager
+                certManagerIssuerRef:
+                  group: cert-manager.io
+                  kind: Issuer
+                  name: cilium-issuer
+              server:
+                extraIpAddresses:
+                  - 10.241.128.11
+          config:
+            enabled: true
+            clusters:
+            - name: dev1
+              port: 2379
+              ips:
+                - 10.232.128.11
+            - name: dev2
+              port: 2379
+              ips:
+                - 10.239.128.11
+        hubble:
+          relay:
+            replicas: 1
+      networkConfig:
+        vrfs:
+          k8s:
+            enabled: false
+        bgpPolicy:
+          peerIP: 10.100.3.1
+          gracefulRestart:
+            enabled: false
+        peerASN: 65452
+  control-plane:
+    appName: tenant-cluster
+    enabled: false
+    ignoreDifferences:
+      - group: apps
+        jqPathExpressions:
+          - .spec.template.spec.containers[]?.env[]? | select(.name == "ETCD_INITIAL_CLUSTER_STATE")
+        kind: StatefulSet
+    path: apps/core/control-plane
+    valueFiles:
+      - values-dev.yaml
+  cert-exporter:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          generic-pull-secrets:
+            config: dev
+  cert-manager:
+    enabled: true
+    valuesMerge:
+      letsencrypt:
+        prod:
+          enabled: false
+        staging:
+          enabled: false
+      cloudflare:
+        enabled: false
+  coredns:
+    valuesMerge:
+      apiServerURL: k8s.dev3.int.coreweave.com:6443
+      config: |
+        .:53 {
+            errors
+            health {
+                lameduck 5s
+            }
+            ready
+            rewrite name regex (.*).dev.internal.ingress\. traefik.traefik.svc.dev.internal.k8s answer auto
+            kubernetes cluster.local dev.internal.k8s in-addr.arpa ip6.arpa {
+              pods insecure
+              fallthrough in-addr.arpa ip6.arpa
+            }
+            prometheus :9153
+            forward . /etc/resolv.conf {
+              prefer_udp
+            }
+            cache 30
+            loop
+            reload
+            loadbalance
+        }
+        dev.tenant.k8s:53 {
+            forward . 10.235.192.10:53
+        }
+        dev.tenant.ingress:53 {
+            forward . 10.235.192.10:53
+        }
+        dev.coreweave.com:53 {
+            forward . 10.235.192.10:53
+        }
+        coreweave.test:53 {
+            forward . 10.235.192.10:53
+        }
+        knative.dev.cloud:53 {
+            forward . 10.235.192.10:53
+        }
+      replicas: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 50Mi
+  crowdstrike:
+    enabled: false
+  cw-node-controller:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          cwnc:
+            config: dev
+          cwnc-generic-pull-secrets:
+            config: dev
+      proxy:
+        resources:
+          limits:
+            cpu: 300m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      manager:
+        resources:
+          limits:
+            cpu: 300m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      nodeLifeCycle:
+        applyTaints: false  # the decision has been made to leave auto tainting off until cwnc has been adjusted to not apply the default taint
+
+  deviceslot-operator:
+    enabled: false
+  epimetheus:
+    enabled: false
+  eventrouter:
+    enabled: true
+  external-dns:
+    enabled: false
+  goldpinger:
+    valuesMerge:
+      metallbAddressPool: default
+  jwks-auth-push-internal:
+    enabled: false
+  internal-control-plane:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          control-plane-internal-cluster:
+            config: dev
+          etcd-backups-internal:
+            config: dev_int_region
+          generic-pull-secrets-internal-cluster:
+            config: dev
+      etcdBackup:
+        enabled: false
+      etcdMaintenance:
+        enabled: false
+  metallb:
+    valuesMerge:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 100Mi
+      speaker: false
+  metrics-server:
+    enabled: true
+    values:
+      metrics-server:
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+  ipmi-exporter:
+    enabled: false
+  metrics:
+    values:
+      prometheus-operator:
+        alertmanager:
+          enabled: false
+        defaultRules:
+          create: true
+        kube-state-metrics:
+          affinity: null
+          resources: null
+        prometheus-node-exporter:
+          resources: null
+        prometheusOperator:
+          prometheusConfigReloader:
+            resources: null
+  nfd:
+    enabled: true
+  node-problem-detector:
+    enabled: true
+    valuesMerge:
+      canaryCheckAddress: "10.100.3.1"
+      coreweave:
+        clusterSecretStores:
+          npd-image:
+            config: dev
+  node-reporter:
+    enabled: false
+  promtail:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+    values:
+      traefik:
+        additionalArguments:
+          - '--serverstransport.insecureskipverify=true'
+        autoscaling:
+          enabled: false
+      resources: null
+      service:
+        annotations:
+          metallb.universe.tf/address-pool: default
+        enabled: true
+        spec:
+          externalTrafficPolicy: Local
+  k8s-internal-svc:
+    enabled: true
+    appName: k8s-internal-svc
+    rawYaml: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        annotations:
+          metallb.universe.tf/address-pool: default
+          external-dns.alpha.kubernetes.io/hostname: {{ include "common.apiserver.addtlUrl" . }}
+        name: k8s-apiserver-custom
+      spec:
+        externalTrafficPolicy: Local
+        loadBalancerIP: {{ include "common.apiserver.internalLb.serviceIP" . }}
+        ports:
+        - port: 6443
+          protocol: TCP
+          targetPort: 6443
+        selector:
+          component: kube-apiserver
+        type: LoadBalancer
+  regproxy:
+    enabled: true
+    values:
+      coreweave:
+        clusterSecretStores:
+          regproxy:
+            config: dev
+      regproxy:
+        env:
+          - name: WORKER_PROCESSES
+            valueFrom:
+              resourceFieldRef:
+                containerName: proxy
+                resource: limits.cpu
+          - name: SLOW_TIER_ENABLED
+            value: "false"
+          - name: SLOW_TIER_URIS
+            value: "~^/v2/replicate-production/(.*);~^/v2/fastertransformer_fudge/(.*);~^/v2/simplertransformer/(.*)"
+          - name: SLOW_CACHE_DIRECTORY
+            value: /slow_docker_mirror_cache
+          - name: CURL_TIMEOUT
+            value: "5"
+          - name: CACHE_MIN_FREE
+            value: "1g"
+          - name: REGISTRIES
+            value: "gcr.io quay.io registry.gitlab.com registry.crowdstrike.com nvcr.io cvedia.azurecr.io inflacr.azurecr.io inf5acr.azurecr.io ghcr.io us-docker.pkg.dev"
+          - name: CACHE_MAX_SIZE
+            value: "1g"
+          - name: ENABLE_MANIFEST_CACHE
+            value: "true"
+          - name: AUTH_REGISTRIES
+            valueFrom:
+              secretKeyRef:
+                key: registries
+                name: auth-registries
+          - name: ALLOW_OWN_AUTH
+            value: "true"
+          - name: ALLOW_PUSH_WITH_OWN_AUTH
+            value: "true"
+          - name: LIVELINESS_REPOS
+            value: "https://registry.gitlab.com"
+        service:
+          loadBalancerIP: 10.241.128.25
+        replicas: 1
+        resources:
+          requests:
+            cpu: 50m
+            memory: 100Mi
+            ephemeral-storage: null
+          limits:
+            cpu: 200m
+            memory: 1500Mi
+            ephemeral-storage: null
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: k8s-app
+                  operator: In
+                  values:
+                  - regproxy
+              topologyKey: kubernetes.io/hostname
+          nodeAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                preference:
+                  matchExpressions:
+                    - key: node.coreweave.cloud/class
+                      operator: In
+                      values:
+                        - cpu
+  reloader:
+    enabled: false

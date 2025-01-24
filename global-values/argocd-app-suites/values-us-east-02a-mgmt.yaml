@@ -1,0 +1,323 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.90.0/23"
+      public: "166.19.8.0/26"
+      dpu: "10.185.63.0/28"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-mgmt.k8s.us-east-02.int.coreweave.com
+applications:
+  box-office:
+    destination:
+      server: ""
+    namespace: box-office
+    valuesMerge:
+      box-office:
+        registerWithParent: true
+      ingress:
+        ingressClassName: "traefik-internal"
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.88.11
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.80.88.11
+            - 172.27.80.11
+            - 172.24.0.1
+            - 172.26.64.10
+            - 172.26.64.238
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "g3784f6,gb959d0,gb96720"
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRWkFLOFpJTU9PMXNIb0l2ckdObS9kakFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1EWXdOVEUxTkRVME5Gb1hEVE0wTURReE5ERTFORFUwCk5Gb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFMYVpZczh0dGdJVG5nYXluSmlyQlF2ZE5PSzJvWmVnNGdWMCtuVUlNY3lIQURYdmFueWordXEvCnNyOE1vQmJBSVZJUUkrcWdROVVhYnQ2VWpHZ0ZrK1VzS1ozTUR1S29nbHFxVkN2S09vWC9zMVdSZ0NkSWhDUDcKSldBbHJnNFdCeitFdWJoaG8xNitBaUpFWVVnUDA1WnR2YjZrZUFwVzhNdnA3OHBCUFpJM0E3S2M5SE03MzErVQpoN2MyU201aFhWRTF6MldkS2RJL0tTMFR3OWVhMjdNdXQ1VWdzWm82eFNzRmRJTlVtQmhuTzRlNXRmRWN4b0Z6CkR6MGpFVjR1d0hBaUp6V0UxSWJUNkg5YnpobFg3VkNMeE9yM29EUXl6aG80OExaaGZtaTZCd0FHaTk4VXRsN1UKZC83amVmZjVmVERnU2pWRnlxeXpwSk1ZMEtqVi9JY0NBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCUU01Vk93cFhjc1JlZzBaUWYzdGJpN3J0REp6REFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQUVuS1VGVWZvVEpoUm9CVnhXcGp2NUtGWGlrUnlod2ltSFZteEpmajVrb3cwNWVPWldrWXhZK0U4ZVA2VApKRFp3aFZuRWljVFduZFFRTVZQMmhlRUZJc1h3WWxTVjFKdDc4elpnUDBrOWVSaWJUM2ZJbEdCR1hnUFI2OTkyCm9KZGs2SVV1SGg1UCtaRUk2a3RQMGtCS3ZveVNEV2NXdmFoSitVb2hKL0hRUG52UHFFQ1RoQjBKWDQ3WVVjM08KcEUzb0pGWTVveHE0SmllNHZyVnlGQWlqN3hFODZma0ZXREhaSGFFNmlzSlBKT0VHTE0vaStpYUNXV1FXSFhZYwo3cndRZXBpcXNXNVNFVVVBM3MwWVhpa2EvWUZHZjRUdzltNVo1SGY3d3RScHFPRnY4bVZyR2FUTDhILzYwUVgzCkFRTCt4dklNOVkrMWQ2bUc4VzJyZUFRbzd3PT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  # pure-storage-exporter:
+  #   enabled: true
+  #   values:
+  #     arrays:
+  #       - name: cluster-gg2-c-r032-phl1-xfm1
+  #       - name: cluster-gg2-c-r033-phl1-xfm1
+  #       - name: cluster-gg2-c-r034-phl1-xfm1
+  #       - name: cluster-gg2-c-r035-phl1-xfm1
+  katalyst-proxy:
+    valuesMerge:
+      ncoreProxyPass: http://10.134.98.11  # remove once all nodeProfiles and dpuConfs are updated
+  teleport-rbac:
+    valuesMerge:
+      coreweave:
+        saml:
+          entityDescriptorUrl: https://login.coreweave.com/app/exkhjbbremiJKQKS55d7/sso/saml/metadata
+  teleport:
+    valuesMerge:
+      coreweave:
+        awxTbot:
+          enabled: true
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-grpc:
+    enabled: true
+    valueFiles:
+      - values-us-east-02-mgmt.yaml
+  vast-csi-controller:
+    valuesMerge:
+      serviceMonitor:
+        enabled: true
+  tailscale-operator:
+    enabled: false
+  metrics:
+    valuesMerge:
+      portkey:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.185.1.241
+                - 10.185.1.242
+                - 10.185.1.243
+                - 10.185.1.244
+              name: US-EAST-02
+              honorTimestamps: false
+      ufm:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.185.1.246
+                - 10.185.1.247
+              name: US-EAST-02-FAB14
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                  - /cw1
+                  - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+            - ip:
+                - 10.185.0.157
+                - 10.185.0.156
+              name: US-EAST-02-FAB18
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                  - /cw1
+                  - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+
+  o11y-custom:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          ea8e69-prod:
+            project: ea8e69-prod
+            config: prod
+        externalSecrets:
+          ea8e69-prod:
+            secretStoreName: ea8e69-prod
+            dataFrom:
+              - find:
+                  name:
+                    regexp: .*
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "$1"
+      vector:
+        enabled: true
+        envFrom:
+          - secretRef:
+              name: ea8e69-prod
+        customSources:
+          vector_nfs_source:
+            type: file
+            include:
+              - /var/vast_audit_dir/**/*
+            glob_minimum_cooldown_ms: 5000
+        customTransforms:
+          vector_remapping:
+            type: remap
+            inputs:
+              - vector_nfs_source
+            source: |
+              . |= object!(parse_json!(.message))
+              del(.message)
+              del(.source_type)
+          vector_route_customer:
+            type: route
+            inputs:
+              - vector_remapping
+            route:
+              ea8e69_prod: .Tenant == "ea8e69-prod"
+        customSinks:
+          vector_external_ea8e69_prod:
+            type: aws_s3
+            region: us-west-02
+            bucket: "${EA8E69_S3_BUCKET}"
+            timezone: UTC
+            #compression: none
+            healthcheck:
+              enabled: false
+            endpoint: "${EA8E69_S3_ENDPOINT}"
+            batch:
+              max_bytes: 134217728
+            buffer:
+              max_events: 30000
+            filename_append_uuid: false
+            key_prefix: "audit_log_"
+            filename_time_format: "%Y-%m-%d-%k-%M"
+            auth:
+              access_key_id: "${EA8E69_S3_ACCESS}"
+              secret_access_key: "${EA8E69_S3_SECRET}"
+            encoding:
+              codec: json
+            inputs:
+              - vector_route_customer.ea8e69_prod
+        # required if kube version is <= 1.24
+        #        psp:
+        #          enabled: true
+        #        rbac:
+        #          enabled: true
+        extraVolumes:
+          - name: vast-audit-logs
+            persistentVolumeClaim:
+              claimName: vast-audit-logs
+        extraVolumeMounts:
+          - name: vast-audit-logs
+            mountPath: "/var/vast_audit_dir/"
+            readOnly: true
+        extraManifests:
+          - apiVersion: v1
+            kind: PersistentVolume
+            metadata:
+              name: vast-audit-logs
+            spec:
+              accessModes:
+                - ReadWriteMany
+              capacity:
+                storage: 10Ti
+              volumeMode: Filesystem
+              persistentVolumeReclaimPolicy: Retain
+              mountOptions:
+                - vers=3
+                - nconnect=16
+                - lookupcache=pos
+                - noacl
+                - noatime
+              nfs:
+                path: /.vast_audit_dir
+                server: 100.121.1.41
+          - apiVersion: v1
+            kind: PersistentVolumeClaim
+            metadata:
+              name: vast-audit-logs
+            spec:
+              accessModes:
+                - ReadWriteMany
+              resources:
+                requests:
+                  storage: 10Ti
+              storageClassName: ""
+              volumeMode: Filesystem
+              volumeName: vast-audit-logs
+  sortinghat-api:
+    valuesMerge:
+      config:
+        garbageCollectorConfig:
+          zone: US-EAST-02A
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  node-assigner:
+    enabled: true
+    valuesMerge:
+      instanceTypes:
+        cd-gp-a192-genoa:
+          enabled: true
+        gd-8xh100ib-i128:
+          enabled: true
+        gd-8xh200ib-i128:
+          enabled: true
+        gd-8xl40-i128:
+          enabled: true
+      bareMetalNodeClientConfig:
+        unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+        unassignedBMNLabelValues:
+          - 'cw-internal'
+  shat-resource-availability:
+    valuesMerge:
+      siteID: us-east-02a
+      zone: US-EAST-02A
+  shat-reservation:
+    valuesMerge:
+      config:
+        zone: US-EAST-02A
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  shat-gatekeeper:
+    valuesMerge:
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  upd:
+    enabled: true
+    valuesMerge:
+      upd:
+        refreshInterval: 10
+        dryRunBundle: false
+        disableUpdater: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-02-coreweave-us-east-02-internal
+          namespace: victoria-metrics
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false

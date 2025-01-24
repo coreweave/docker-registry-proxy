@@ -1,0 +1,11 @@
+apiVersion: vendir.k14s.io/v1alpha1
+directories:
+- contents:
+  - git:
+      commitTitle: 'chore(infra-canary): Bump target revision (#18762)...'
+      sha: c7f6d2d02da774cdacd7c74bd81aa08c21cef342
+      tags:
+      - jspolicy-v1.56.0-5-gc7f6d2d02d
+    path: .
+  path: global-values
+kind: LockConfig

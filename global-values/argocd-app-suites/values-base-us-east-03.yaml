@@ -1,0 +1,374 @@
+clusterSpec:
+  geoRegion: na
+  region: us-east-03
+  objStorageRegion: lga1
+  networkAllocations:
+    asNumber: "4294841000"
+argocd:
+  customerClusters:
+    be1096-fleetops:
+      releaseName: argocd-app-suites-be1096-fleetops
+      valueFiles:
+        - values-base-k8s-1-31.yaml
+        - values-base-fleetops.yaml
+    54952e-dm1:
+      valueFiles: []
+    54952e-rc1:
+      valueFiles: []
+    core-services:
+      valueFiles:
+        - values-base-k8s-1-29.yaml
+
+applications:
+  calico:
+    valuesMerge:
+      networkConfig:
+        peerASN: "4210746000"
+        hostCIDRs:
+          - 10.182.192.0/18 # Site specific CIDR for all hosts (DPU-TO-NODE)
+        networkMgmtCIDRs:
+          - 10.183.0.0/19 # Site specific CIDR for network management
+          - 10.250.30.0/23 # Site specific CIDR for backbone network
+        dpuCIDRs:
+          - 10.182.128.0/18 # Site specific CIDR for DPU OOB
+          - 10.182.64.0/18 # Site specific CIDR for DPU BMC
+        dpuLBCIDRs:
+          - 10.183.63.0/24 # Site specific CIDR for DPU LB
+        cwMgmtCIDRs:
+          - 10.80.48.0/20 # Site specific CIDR for cw-mgmt
+          - 10.80.64.0/22 # Site specific CIDR for core-services on cw-mgmt
+        ipmiCIDRs:
+          - 10.182.0.0/18 # Site specific CIDR for host IPMI
+          - 10.183.128.0/22 # Vast MGMT IP range
+          - 10.183.144.0/20 # Pure MGMT IP range
+  cilium:
+    valuesMerge:
+      networkConfig:
+        peerASN: "4210746000"
+  cilium-crs:
+    valuesMerge:
+      networkConfig:
+        peerASN: "4210746000"
+  cw-node-controller:
+    valuesMergeTpl: |
+      features:
+        DEVICESLOT_ENABLED: true
+      nodeLifeCycle:
+        zapDpu: true
+  epimetheus:
+    valuesMerge:
+      slackChannelID: "C06SXG9K2Q0" #epimetheus-us-east-03
+  katalyst-operator:
+    valuesMerge:
+      dualDnsSupport: true
+      teleportNamingOverride: us-east-03
+      networkConfig:
+        peerASN: "4210746000"
+  node-local-dns:
+    enabled: true
+  nimbus-vpc-controller:
+    valuesMerge:
+      cwHostPrefix: 10.182.192.0/18
+      clusterSpec:
+        zone: us-east-03a
+        zonesEnabled: true
+  vast-csi: &vast_csi
+    hasDedicatedTenant: true
+    valuesMerge:
+      vmsService:
+        services:
+          - name: vms
+            endpoints:
+              - ip: 10.183.32.60
+          - name: vms-prod-02
+            endpoints:
+              - ip: 10.183.34.60
+          - name: vms-prod-03
+            endpoints:
+              - ip: 10.183.36.60
+          - name: vms-prod-04
+            endpoints:
+              - ip: 10.183.38.60
+  vast-csi-controller:
+    <<: *vast_csi
+  promtail:
+    enabled: false
+  npo:
+    enabled: true
+    valuesMerge:
+      enableInstanceTypeAndTypeLabelSetting: true
+      image:
+        repository: docker.cloudsmith.io/coreweave/nodepool-operator/nodepool-operator
+        tag: v1.22.0
+      imagePullSecrets: []
+  npo-cfg:
+    enabled: true
+  node-stitcher:
+    valuesMerge:
+      clusterSpec:
+        zone: us-east-03a
+        zonesEnabled: true
+  sortinghat-api:
+    valuesMerge:
+      service:
+        hostname: "shat.us-east-03a.int.coreweave.com,shat.us-east-03.int.coreweave.com"
+  sortinghat-api-stg:
+    valuesMerge:
+      service:
+        hostname: "shat-stg.us-east-03a.int.coreweave.com,shat-stg.us-east-03.int.coreweave.com"
+  cks-worker:
+    valuesMerge:
+      env:
+        - name: REGION
+          value: us-east-03
+        - name: ZONE
+          value: us-east-03a
+        - name: TELEPORT_OVERRIDE_ADDR
+          value: teleport.us-east-03.int.coreweave.com:443
+        - name: TEMPORAL_NAMESPACE
+          value: cks-production.kzw3l
+        - name: TEMPORAL_TARGET_HOST
+          value: cks-production.kzw3l.tmprl.cloud:7233
+        - name: TEMPORAL_CLIENT_CERT
+          value: /var/run/ssl/certs/tls.crt
+        - name: TEMPORAL_CLIENT_KEY
+          value: /var/run/ssl/certs/tls.key
+        - name: VAULT_ADDR
+          value: https://secvault.int.coreweave.com
+        - name: BUCKET_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: backblaze
+              key: B2_KEY_ID
+        - name: BUCKET_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: backblaze
+              key: B2_KEY
+        - name: BUCKET_REGION
+          value: us-west-004
+        - name: BUCKET_PROVIDER
+          value: backblaze
+        - name: ENVIRONMENT
+          value: prod
+        - name: REGPROXY_IP
+          value: 100.122.0.6
+        - name: VAST_SERVICE_URL
+          value: http://vrpc.us-east-03.int.coreweave.com:10540
+  cks-worker-staging:
+    valuesMerge:
+      env:
+        - name: REGION
+          value: us-east-03
+        - name: ZONE
+          value: us-east-03a
+        - name: TELEPORT_OVERRIDE_ADDR
+          value: teleport.us-east-03.int.coreweave.com:443
+        - name: TEMPORAL_NAMESPACE
+          value: cks-test-platforms.kzw3l
+        - name: TEMPORAL_TARGET_HOST
+          value: cks-test-platforms.kzw3l.tmprl.cloud:7233
+        - name: TEMPORAL_CLIENT_CERT
+          value: /var/run/ssl/certs/tls.crt
+        - name: TEMPORAL_CLIENT_KEY
+          value: /var/run/ssl/certs/tls.key
+        - name: VAULT_ADDR
+          value: https://secvault.int.coreweave.com
+        - name: BUCKET_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: B2_KEY_ID
+              name: backblaze
+        - name: BUCKET_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: B2_KEY
+              name: backblaze
+        - name: BUCKET_REGION
+          value: us-west-002
+        - name: BUCKET_PROVIDER
+          value: backblaze
+        - name: BUCKET_ENDPOINT
+          value: https://s3.us-west-002.backblazeb2.com
+        - name: ENVIRONMENT
+          value: staging
+        - name: REGPROXY_IP
+          value: 100.122.0.6
+  nimbus-worker:
+    valuesMerge:
+      env:
+        - name: REGION
+          value: us-east-03a
+        - name: TEMPORAL_NAMESPACE
+          value: cks-production.kzw3l
+        - name: TEMPORAL_TARGET_HOST
+          value: cks-production.kzw3l.tmprl.cloud:7233
+        - name: TEMPORAL_CLIENT_CERT
+          value: /var/run/ssl/certs/tls.crt
+        - name: TEMPORAL_CLIENT_KEY
+          value: /var/run/ssl/certs/tls.key
+        - name: VAULT_ADDR
+          value: https://secvault.int.coreweave.com
+        - name: ENVIRONMENT
+          value: prod
+  nimbus-worker-staging:
+    valuesMerge:
+      env:
+        - name: REGION
+          value: us-east-03a
+        - name: TEMPORAL_NAMESPACE
+          value: cks-test-platforms.kzw3l
+        - name: TEMPORAL_TARGET_HOST
+          value: cks-test-platforms.kzw3l.tmprl.cloud:7233
+        - name: TEMPORAL_CLIENT_CERT
+          value: /var/run/ssl/certs/tls.crt
+        - name: TEMPORAL_CLIENT_KEY
+          value: /var/run/ssl/certs/tls.key
+        - name: VAULT_ADDR
+          value: https://secvault.int.coreweave.com
+        - name: ENVIRONMENT
+          value: staging
+  cks-api-worker-prod:
+    valuesMerge:
+      env:
+        - name: ZONE
+          value: us-east-03a
+        - name: BUCKET_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: B2_KEY_ID
+              name: backblaze
+        - name: BUCKET_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: B2_KEY
+              name: backblaze
+        - name: BUCKET_REGION
+          value: us-west-004
+        - name: BUCKET_PROVIDER
+          value: backblaze
+        - name: BUCKET_ENDPOINT
+          value: https://s3.us-west-004.backblazeb2.com
+        - name: ENVIRONMENT
+          value: production
+        - name: REGPROXY_IP
+          value: 100.122.0.6
+        - name: PREFIX_SERVICE_ADDR
+          value: http://prefix-api-server.int.coreweave.com
+        - name: TELEPORT_OVERRIDE_ADDR
+          value: teleport.us-east-03.int.coreweave.com:443
+  cks-api-worker-stag:
+    valuesMerge:
+      env:
+        - name: ZONE
+          value: us-east-03a
+        - name: BUCKET_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: B2_KEY_ID
+              name: backblaze
+        - name: BUCKET_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: B2_KEY
+              name: backblaze
+        - name: BUCKET_REGION
+          value: us-west-002
+        - name: BUCKET_PROVIDER
+          value: backblaze
+        - name: BUCKET_ENDPOINT
+          value: https://s3.us-west-002.backblazeb2.com
+        - name: ENVIRONMENT
+          value: staging
+        - name: REGPROXY_IP
+          value: 100.122.0.6
+        - name: PREFIX_SERVICE_ADDR
+          value: http://prefix-api-server-staging.int.coreweave.com
+        - name: TELEPORT_OVERRIDE_ADDR
+          value: teleport.us-east-03.int.coreweave.com:443
+  vpc-api-worker-prod:
+    valuesMerge:
+      env:
+        - name: ENVIRONMENT
+          value: production
+        - name: ZONE
+          value: us-east-03a
+        - name: VAULT_CLIENT_URL
+          value: https://secvault.int.coreweave.com
+        - name: VAULT_CLIENT_JWT_PATH
+          value: /var/run/secrets/kubernetes.io/serviceaccount/token
+        - name: VAULT_CLIENT_SECRETS_ROLE
+          value: vpc-api
+        - name: DATABASE_ENDPOINT
+          value: crdb-public.vpc-api.core-zero.us-east-03.int.coreweave.com
+        - name: DATABASE_USER
+          value: vpcapiadmin
+        - name: DATABASE_INSECURE
+          value: "false"
+        - name: DATABASE_DATABASENAME
+          value: vpcapi
+        - name: DATABASE_SEARCHPATH
+          value: public
+        - name: DATABASE_CERT_SERVERNAME
+          value: crdb-public.vpc-api.core-zero.us-east-03.int.coreweave.com
+        - name: DATABASE_CERT_PKI
+          value: pki/rsa/cw-gacrdbvpcapi
+        - name: DATABASE_CERT_NAME
+          value: vpc-api-crdb-tls
+        - name: DATABASE_CERT_ROLE
+          value: user
+        - name: DATABASE_CERT_TTL
+          value: 7d
+        - name: DATABASE_CERT_COMMONNAME
+          value: vpcapiadmin
+        - name: TEMPORAL_NAMESPACE
+          value: cks-platforms.kzw3l
+        - name: TEMPORAL_HOST
+          value: cks-platforms.kzw3l.tmprl.cloud:7233
+        - name: TEMPORAL_CLIENT_CERT
+          value: /var/run/ssl/certs/tls.crt
+        - name: TEMPORAL_CLIENT_KEY
+          value: /var/run/ssl/certs/tls.key
+  vpc-api-worker-stag:
+    valuesMerge:
+      env:
+        - name: ENVIRONMENT
+          value: staging
+        - name: ZONE
+          value: us-east-03a
+        - name: VAULT_CLIENT_URL
+          value: https://secvault.int.coreweave.com
+        - name: VAULT_CLIENT_JWT_PATH
+          value: /var/run/secrets/kubernetes.io/serviceaccount/token
+        - name: VAULT_CLIENT_SECRETS_ROLE
+          value: vpc-api-staging
+        - name: DATABASE_ENDPOINT
+          value: crdb-public.vpc-api-stg.core-zero.us-east-03.int.coreweave.com
+        - name: DATABASE_USER
+          value: vpcapiadmin
+        - name: DATABASE_INSECURE
+          value: "false"
+        - name: DATABASE_DATABASENAME
+          value: vpcapi
+        - name: DATABASE_SEARCHPATH
+          value: public
+        - name: DATABASE_CERT_SERVERNAME
+          value: crdb-public.vpc-api-stg.core-zero.us-east-03.int.coreweave.com
+        - name: DATABASE_CERT_PKI
+          value: pki/rsa/cw-gacrdbvpcapistg
+        - name: DATABASE_CERT_NAME
+          value: vpc-api-crdb-tls
+        - name: DATABASE_CERT_ROLE
+          value: user
+        - name: DATABASE_CERT_TTL
+          value: 7d
+        - name: DATABASE_CERT_COMMONNAME
+          value: vpcapiadmin
+        - name: TEMPORAL_NAMESPACE
+          value: cks-test-platforms.kzw3l
+        - name: TEMPORAL_HOST
+          value: cks-test-platforms.kzw3l.tmprl.cloud:7233
+        - name: TEMPORAL_CLIENT_CERT
+          value: /var/run/ssl/certs/tls.crt
+        - name: TEMPORAL_CLIENT_KEY
+          value: /var/run/ssl/certs/tls.key

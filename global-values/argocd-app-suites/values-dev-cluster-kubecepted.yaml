@@ -1,0 +1,165 @@
+clusterSpec:
+  apiserver:
+    addtlUrl: k8s.kubecepted.dev.int.coreweave.com
+
+applications:
+  calico:
+    enabled: true
+    repoURL: https://github.com/coreweave/k8s-services.git
+    path: apps/core/calico
+    targetRevision: master
+    valuesMergeTpl: |
+      kube:
+        api-server:
+          cleanupNATRule:
+            enabled: false
+
+  control-plane:
+    enabled: true
+
+  coredns:
+    enabled: true
+    valuesMerge:
+      apiServerURL: 10.100.1.1:32443
+      config: |
+        .:53 {
+          errors
+          health
+          ready
+          rewrite name regex (.*).dev.kubecepted.ingress\. traefik.traefik.svc.dev.kubecepted.k8s answer auto
+          rewrite name exact stats.cloud.coreweave.test cloud-app-kubernetes-ingress-metrics.cloud.svc.dev.kubecepted.k8s answer auto
+          rewrite name exact grafana.int.coreweave.test grafana-internal.grafana-internal.svc.dev.kubecepted.k8s answer auto
+          rewrite name regex console.coreweave.test\. cloud-console-kubernetes-ingress.cloud-console.svc.dev.kubecepted.k8s answer auto
+          rewrite name regex stats.console.coreweave.test\. cloud-console-kubernetes-ingress-metrics.cloud-console.svc.dev.kubecepted.k8s answer auto
+          rewrite name regex (.*).coreweave.test\. cloud-app-kubernetes-ingress.cloud.svc.dev.kubecepted.k8s answer auto
+          rewrite name regex (.*).knative.dev.cloud\. istio-ingressgateway.istio-system.svc.dev.kubecepted.k8s answer auto
+          kubernetes {{ .Values.searchDomains }} in-addr.arpa {
+            pods insecure
+            kubeconfig /etc/kubernetes/kubeconfig local
+            fallthrough in-addr.arpa
+          }
+          prometheus :9153
+          forward . {{ .Values.upstreamDNS }} {
+            force_tcp
+          }
+          cache 3600 {
+            success 39936
+            denial 39936
+          }
+          loop
+          reload
+          loadbalance
+        }
+        dev.internal.k8s:53 {
+            forward . 10.230.0.3:53
+        }
+        dev.internal.ingress:53 {
+            forward . 10.230.0.3:53
+        }
+
+  cw-node-controller:
+    enabled: false
+
+  epimetheus:
+    enabled: false
+
+  external-secrets:
+    enabled: true
+
+  eventrouter:
+    enabled: false
+
+  internal-control-plane:
+    enabled: false
+
+  in-cluster-config:
+    enabled: true
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUV0ekNDQTUrZ0F3SUJBZ0lVUC96LzVQVEZ6WE1ycExJbFN0U3VZMjNaWjZFd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2dZd3hDekFKQmdOVkJBWVRBbFZUTVFzd0NRWURWUVFJREFKT1dURVJNQThHQTFVRUJ3d0lUbVYzSUZsdgpjbXN4RWpBUUJnTlZCQW9NQ1VOdmNtVlhaV0YyWlRFU01CQUdBMVVFQ3d3SlpHVjJNUzF0WjIxME1STXdFUVlEClZRUUREQXBMZFdKbGNtNWxkR1Z6TVNBd0hnWUpLb1pJaHZjTkFRa0JGaEZ2Y0hOQVkyOXlaWGRsWVhabExtTnYKYlRBZUZ3MHlOREEzTWpZeE9ETTVOREphRncwek5EQTNNalF4T0RNNU5ESmFNSUdNTVFzd0NRWURWUVFHRXdKVgpVekVMTUFrR0ExVUVDQXdDVGxreEVUQVBCZ05WQkFjTUNFNWxkeUJaYjNKck1SSXdFQVlEVlFRS0RBbERiM0psClYyVmhkbVV4RWpBUUJnTlZCQXNNQ1dSbGRqRXRiV2R0ZERFVE1CRUdBMVVFQXd3S1MzVmlaWEp1WlhSbGN6RWcKTUI0R0NTcUdTSWIzRFFFSkFSWVJiM0J6UUdOdmNtVjNaV0YyWlM1amIyMHdnZ0VpTUEwR0NTcUdTSWIzRFFFQgpBUVVBQTRJQkR3QXdnZ0VLQW9JQkFRREtUNVR1Zys4c2F2em5FcDNJbzc2aVdxbG14WnJES1hJd3pyWmhySDRnClBmcFBFeVgyQnk1VUExODEyYmxaT2VLMjBGYVZncHp6aXRXYjJRRzlCRmFpTzBDV01iSVZNN2doVVBnd3hUVU0KbXZWWkNLczQ1ZnRXYWdMeVVnaE0zTlpIQlR1U3VZc0RTTjVTSFZsSmdsbkxnYk1vSFBvdkhTY2NqMlRhNlIyYQptQlBOclBtYmQvR2x5UTJ1QXByQ2xjY29xYndLZGhmanVZaVh5dXVRUXhVZ2w5ampGOFc2b0locWZMc1N2RW1VCnpsWmdJWCtOalRyTkw3OHJyWldqSVM4SmtjYUV3b2xEZXQ5ZVBwaDVQdmwvakFVcG9lVW5HaU9GNmJKU1NLeFMKK0VFbUI4RmYxekRISUx1Rm12VzhxSTVwWVJ6N2lXR0lnQWlnM2tRZmE5dFhBZ01CQUFHamdnRU5NSUlCQ1RBTQpCZ05WSFJNRUJUQURBUUgvTUFzR0ExVWREd1FFQXdJQnBqQWRCZ05WSFE0RUZnUVVvbTYzOENNQm11U2kvS2pjCllaOGdsek55L2pBd2djd0dBMVVkSXdTQnhEQ0J3WUFVb202MzhDTUJtdVNpL0tqY1laOGdsek55L2pDaGdaS2sKZ1k4d2dZd3hDekFKQmdOVkJBWVRBbFZUTVFzd0NRWURWUVFJREFKT1dURVJNQThHQTFVRUJ3d0lUbVYzSUZsdgpjbXN4RWpBUUJnTlZCQW9NQ1VOdmNtVlhaV0YyWlRFU01CQUdBMVVFQ3d3SlpHVjJNUzF0WjIxME1STXdFUVlEClZRUUREQXBMZFdKbGNtNWxkR1Z6TVNBd0hnWUpLb1pJaHZjTkFRa0JGaEZ2Y0hOQVkyOXlaWGRsWVhabExtTnYKYllJVVAvei81UFRGelhNcnBMSWxTdFN1WTIzWlo2RXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBTG1COXEydApxT0tuQis3UnlJNzFvYS91S0FLekIrSkJCNUw4dGtXb3ROQmtpNFNhd2JUODBqVHlRTWtXT29lOUVHUDdTT1FNClJtekVXWHJ4anl0RENhbXVyR0lFSHdGNVg5cHg4VVN3clpEaFhiL3hQL1lhbVdsL3lObmhkdUFKYTAyNmt4VTAKTXhNVmp0SFY4K0tPT2IrcGtQTjM5M3crREFablZGMGtPWFRpRWFCN1F4SHFTblJaR3VhcVgvZHdFSGhwOVY5MgpuQ0J0RENNTGZkTnVuaGlEYS9PMk0ySDBQZE1HdXpjN2ZJR3NmQit2Skl2OEZRaFdiL3JYU1o3WVJoTHhUVkx2CkxLZEF5YXU1c0NvSllIRDArMWVhRmZkRUM1K0h4MzJMWkxGeWpiL25qdFhsMkZVdWFRM3lJRjdBWllpN1RhNEIKcUt2REhlTHBLNmRnUk1vPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+        server: 10.100.1.1:32443
+
+  k8s-internal-svc:
+    enabled: false
+
+  local-storage-provisioner:
+    enabled: true
+    valuesMerge:
+      daemonset:
+        tolerations:
+          - operator: Exists
+      classes:
+        - name: local-ssd
+          hostDir: /mnt/local/k8s-local-storage
+          volumeMode: Filesystem
+          namePattern: "*"
+          storageClass:
+            reclaimPolicy: Retain
+            isDefaultClass: true
+
+  metallb:
+    enabled: true
+    valuesMerge:
+      affinity: null
+
+  metrics:
+    enabled: true
+    ignoreDifferences:
+    - group: "monitoring.coreos.com"
+      kind: PodMonitor
+      jsonPointers:
+        - /spec/podMetricsEndpoints
+
+  metrics-server:
+    enabled: false
+
+  nfd:
+    enabled: false
+
+  node-problem-detector:
+    enabled: false
+
+  promtail:
+    enabled: false
+
+  rook-operator:
+    enabled: true
+
+  rook-cluster:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        externalSecrets:
+          cloudsmith-registry:
+            null
+      mon:
+        endpointsConfig:
+          endpoints:
+            rook-ceph-dev-0: rook-cluster-kubecepted.rook-cluster-kubecepted.svc.cluster.local:3300
+
+  testkube-control-plane:
+    enabled: false
+    targetRevision: 1.2.1
+    valueFiles:
+      - values-dev-test.yaml
+
+  testkube-core-agent-kinf:
+    enabled: false
+    targetRevision: 1.7.1
+    valueFiles:
+      - values-dev1-tkca-kinf.yaml
+
+  testkube-core-agent-kplat:
+    enabled: false
+    targetRevision: 1.7.1
+    valueFiles:
+      - values-dev1-tkca-plat.yaml
+
+  testkube-core-agent-clops:
+    enabled: false
+    targetRevision: 1.7.1
+    valueFiles:
+      - values-dev1-tkca-clops.yaml
+
+  victoria-metrics:
+    enabled: false

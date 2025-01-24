@@ -1,0 +1,11 @@
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: global-values
+  contents:
+  - path: .
+    git:
+      url: https://github.com/coreweave/k8s-services
+      ref: master
+    includePaths:
+    - argocd-app-suites/values*.yaml

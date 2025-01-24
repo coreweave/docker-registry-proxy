@@ -1,0 +1,80 @@
+---
+clusterSpec:
+  cni: cilium
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: 10.80.204.0/27
+      public: 166.19.12.0/28
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-us-east-08a-storage.k8s.us-east-08.int.coreweave.com
+
+argocd:
+  targetClusterURL: https://172.27.80.13
+
+applications:
+  calico:
+    valuesMerge:
+      typha:
+        replicas: 2
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+
+  control-plane:
+    valuesMerge:
+      etcd-events:
+        replicaCount: 5
+      etcd-local:
+        replicaCount: 5
+      kubeception:
+        apiserver:
+          service:
+            loadBalancerIP: 172.27.80.13
+            addtlLocalService:
+              loadBalancerIP: 10.80.200.13
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 172.27.80.13
+            - 10.80.200.13
+            - 172.30.0.1
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: false
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRY1VQNFhKdlhod3hSby81Z0E5WG45ekFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1UQXhOVEUwTWpVeU4xb1hEVE0wTURneU5ERTBNalV5Ck4xb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFOeERsUGxiNE1EU0xtcm1xWWlENEhTQmoyUGttSm5hSjVyd3lFaHdYNURrMHRmQmZQL29MK1NzClRTeHVac0sxc3JMUkcyOHlQelNtOVlNVFZ3RmFkT1RrMEloa1EyM2RrVG1KcnNVTWYwZlYyNCs3YUtXU2hRWUcKZno3NW4xWU9NZGZFY0JPSHFONlA0dXo0M3cvUHBCaU55dGV5SU83bkFrVGNUTkl1Z0lzS0U2RERiQ21aRE5pNQo2QXRQMDZOWmRqcjVlbGwyby9GN1RZUmgzSTFsdmtBWEdGSWM4UW1yTmhzbjdiMGJUd2xqczlmTmhBMm9mZysrCkpzRWl4QlE2b0dZWldLWVNvYUUvbUExZ0R1bncyUUdIL1NwaFdURmhNTkhGYUtqdGhOS0pYMUFGWnhLMUFWQ3gKNUdPbXk4eDBYTUV0YWR6amNuNmFXUHpNUGk4dUpmMENBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCU0ZJZVFCaWJQS283a1lKR3dyRUkwMzV3Vlk1ekFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQVZwRDgya05qd1lhN0IyQzI2clh3OXdkMm9KUnNOUnBwcTliaHQydW04SjZDK2NlbEcxSnRQWXVoTHVEOQpCRHJoNlRjdXpyaHRmbEd1RFErRVF0T3JaVVVmdmpVcjlnRUZyVEtpcGowdklkRE9aaksvYkZHTXdGMnVjZHg2CnlSQkJ0a09UVXhTREExTTJUV20xVVUvTS8wZ1EzNE9YdHg4dHhIVHhsalgwM2lvUjEzMmVqek9XTWJ4aVhXeDkKVUZxZmllRlJFV1VyclYxSjZ4ckpTeUFFSWpKdmphYTAxamtwV0FodG9CSm9FWWNGSWNFWUxvZHpZNG5xM0kyaApUZERoOTFGS1AycnBIRlVvY0hWa0tWMWdZV2RHNTRMa2Z6WlBZdExZeG1sRElQM0Vra2tHR0lFWE9DVmdhaG4wCm9XWFBHKzZ3cFh1OFNXeHNUT3dnOUxtRXdnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+      kubeletConfigOverrides:
+        maxPods: 256
+  jwks-auth-push:
+    enabled: true
+  regproxy:
+    enabled: true
+    valuesMerge:
+      regproxy:
+        dev: true
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-08-coreweave-us-east-08a-internal
+          namespace: victoria-metrics

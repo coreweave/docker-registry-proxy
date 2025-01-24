@@ -1,0 +1,31 @@
+clusterSpec:
+  apiserver:
+    url: &url k8s.rno2.int.coreweave.com
+    addtlUrl: *url
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.8.0/23"
+applications:
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "g31cd1e,g31cd6a,g323176"
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  internal-control-plane:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          etcd-backups-internal:
+            config: prod_int_rno2
+      etcdBackup:
+        backblaze:
+          bucket: rno2-int-etcd-backups
+      etcdMaintenance:
+        cluster: rno2-internal
+        prometheus:
+          cluster: rno2-internal

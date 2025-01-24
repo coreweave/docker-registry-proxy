@@ -1,0 +1,978 @@
+clusterSpec:
+  scope: mgmt
+  clusterOrg: coreweave
+  monitoring:
+    mimirEnabled: true #direct to mimir
+  networkAllocations:
+    podCIDRs: ["172.23.0.0/16"]
+    serviceCIDRs: ["172.24.0.0/18"]
+    internalLbCIDRs:
+      default: "172.25.0.0/21"
+    externalLbCIDRs:
+      tss: "100.123.0.0/21"
+      tss-static: "100.122.0.0/21"
+      public-anycast: "207.53.232.0/26"
+      internal-anycast: "10.95.255.0/24"
+argocd:
+  targetClusterURL: https://172.27.80.11
+applications:
+  awx-operator:
+    enabled: true
+  box-office:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.206.0
+    valuesMerge:
+      box-office:
+        enableController: true
+        enableAutomatedRMA: true
+        enableTicketCreation: true
+  mcp-exporter:
+    enabled: true
+  calico:
+    enabled: true
+    targetRevision: 1.36.0
+    valuesMerge:
+      felix:
+        featureDetectionOverride: "MASQFullyRandom=false,SNATFullyRandom=false"
+      networkConfig:
+        vrfs:
+          k8s:
+            enabled: true
+            filter:
+              enabled: true
+          tss:
+            enabled: true
+          ipmi:
+            enabled: true
+          net:
+            enabled: true
+          dpu:
+            enabled: true
+          cw_mgmt:
+            enabled: true
+      typha:
+        enabled: false # Disable typha since these clusters are small and don't need the extra overhead
+  calico-cleanup-controller:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.12.0
+  cert-exporter:
+    enabled: true
+    valueFiles:
+      - values-kubecepted.yaml
+  cert-manager:
+    enabled: true
+    targetRevision: cert-manager-v1.8.0
+  control-plane:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.80.0
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          control-plane-mgmt-cluster:
+            project: control-plane
+            config: prod
+          generic-pull-secrets-mgmt-cluster:
+            project: generic-pull-secrets
+            config: prod
+        externalSecrets:
+          mimir-credentials:
+            secretStoreName: control-plane-mgmt-cluster
+            type: Opaque
+            dataFrom:
+              - find:
+                  conversionStrategy: Default
+                  decodingStrategy: None
+                  name:
+                    regexp: (.*)
+                rewrite:
+                  - regexp:
+                      source: MIMIR_USERNAME
+                      target: USERNAME
+                  - regexp:
+                      source: MIMIR_PASSWORD
+                      target: PASSWORD
+          gitlab-registry:
+            secretStoreName: generic-pull-secrets-mgmt-cluster
+            type: kubernetes.io/dockerconfigjson
+            dataFrom:
+              - find:
+                  conversionStrategy: Default
+                  decodingStrategy: None
+                  name:
+                    regexp: GITLAB_IMAGE_PULL_SECRET
+                rewrite:
+                  - regexp:
+                      source: (.*)
+                      target: .dockerconfigjson
+            target:
+              creationPolicy: Owner
+              deletionPolicy: Retain
+              template:
+                engineVersion: v2
+                mergePolicy: Replace
+                type: kubernetes.io/dockerconfigjson
+      kubeception:
+        apiserver:
+          service:
+            loadBalancerIP: 172.27.80.11
+            addtlLocalService:
+              enabled: true
+        controllerManager:
+          deployment:
+            replicas: 3
+            strategy:
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 1
+              type: RollingUpdate
+            tuningParams:
+              nodeMonitorGracePeriod: 20s
+              nodeMonitorPeriod: 3s
+              terminatedPodGCThreshold: 500
+        scheduler:
+          deployment:
+            replicas: 3
+            strategy:
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 1
+              type: RollingUpdate
+        extraSchedulers:
+          enabled: false
+          schedulers: []
+  coredns:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.13.0
+  crowdstrike:
+    enabled: true
+    valuesMerge:
+      falconSensor:
+        tags: "control-plane"
+  cw-node-controller:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.158.0
+    valuesMerge:
+      nodeLifeCycle:
+        deliveredReservation: coreweave
+        boxoffice:
+          createTickets: true
+      conditionBehaviors:
+        enableAlertBehaviors: false
+  deviceslot-operator:
+    enabled: true
+    values:
+      teleport_bot:
+        enabled: true
+    # will reinstate once the pipeline is fixed or we migrate out of this repo
+    # repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    # targetRevision: 1.41.0
+  dso-netracker:
+    enabled: true
+    # it seems that k8s-services hasn't been able to produce a
+    # tagged version since March, creating a dangerous situation that would
+    # wipe out most of our deploy. We are moving this helm chart out under
+    # https://coreweave.atlassian.net/browse/NPA-174
+    # repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    # targetRevision: 1.3.0
+  eventrouter:
+    enabled: true
+  epimetheus:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.43.0
+  external-dns:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.7.0
+  external-secrets:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.5.0
+  fleet-lifecycle-controller:
+    enabled: true
+  goldpinger:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.0.0
+  harmonizer:
+    enabled: true
+    # repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    # targetRevision: 1.25.0
+    # will revisit when the pipelines start working more than 1 out of 3 times
+    # https://gitlab.com/coreweave/k8s-services/-/jobs/7176343422
+    values:
+      processes:
+        netboxcollector:
+          enabled: true
+        redfishdiscoverycollector:
+          enabled: true
+        deviceslotcollector:
+          enabled: true
+        rfd2bmn:
+          enabled: true
+        bmnstatuscontroller:
+          enabled: true
+        rfd2netbox:
+          enabled: true
+      clusterRoles:
+        harmonizer-manager:
+          name: harmonizer-manager
+          createClusterRole: true
+          createClusterRoleBinding: true
+  in-cluster-config:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.35.0
+    chart: tenant-cluster-config
+    valuesMerge:
+      kubeletConfigOverrides:
+        nodeStatusUpdateFrequency: 5s
+  infra-canary:
+    enabled: true
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 3
+  ipam-operator-mgmt:
+    enabled: true
+    app-name: ipam-operator-mgmt
+  jwks-auth-push:
+    enabled: true
+  jspolicy:
+    enabled: true
+    targetRevision: jspolicy-v1.36.0
+    valuesMerge:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - '{{ template "jspolicy.fullname" . }}'
+              topologyKey: node.coreweave.cloud/rack
+  jspolicy-policies:
+    enabled: true
+    values:
+      policies:
+        mutateControlPlaneAffinity: false
+  local-storage-provisioner:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.1.0
+    valuesMerge:
+      daemonset:
+        tolerations:
+          - operator: Exists
+  katalyst-proxy:
+    enabled: true
+    valuesMerge:
+      ncoreProxyPass: "" #Turn this off on all sites.
+      loadBalancerIP: 100.122.0.5 #Static IP Per site for the Ncore Proxy
+      addressPool: tss-static
+      secondaryService:
+        addressPool: cw-mgmt
+  kubemod:
+    enabled: false
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.1.0
+  metallb:
+    enabled: true
+    targetRevision: metallb-v1.10.0
+  metrics:
+    enabled: true
+    targetRevision: metrics-v1.518.0
+    valuesMerge:
+      sli:
+        monitor:
+          enabled: true
+      prometheus-blackbox-exporter:
+        enabled: true
+        podSecurityContext:
+          sysctls:
+          - name: net.ipv4.ping_group_range
+            value: "0 65536"
+        config:
+          modules:
+            http_2xx:
+              http:
+                no_follow_redirects: false
+                preferred_ip_protocol: ip4
+                tls_config:
+                  insecure_skip_verify: true
+                valid_http_versions:
+                  - HTTP/1.1
+                  - HTTP/2.0
+              prober: http
+              timeout: 5s
+            http_authed:
+              http:
+                headers:
+                  Authorization: Bearer 42drr4G66VFKMVZDYuAUAxec5kjZvbroSQ25H6Vy
+                no_follow_redirects: true
+                preferred_ip_protocol: ip4
+                tls_config:
+                  insecure_skip_verify: false
+                valid_http_versions:
+                  - HTTP/1.1
+                  - HTTP/2.0
+              prober: http
+              timeout: 5s
+            icmp:
+              icmp:
+                preferred_ip_protocol: ip4
+              prober: icmp
+              timeout: 5s
+            tcp:
+              prober: tcp
+              timeout: 5s
+            grpc:
+              prober: grpc
+              grpc:
+                tls: false
+              timeout: 5s
+        resources:
+          limits:
+            cpu: 2
+            memory: 128Mi
+          requests:
+            cpu: 2
+            memory: 128Mi
+      blackboxPodMonitor:
+        enabled: true # Metrics about blackbox itself
+      blackboxServiceMonitor:
+        enabled: true # Blackbox probing targets
+        defaults:
+          labels:
+            interval: 30s
+            module: http_2xx
+            release: prometheus
+            scrapeTimeout: 10s
+        targets: # Keep in sync between apps/monitoring/metrics/values-ord1-tenant.yaml and argocd-app-suites/values-base-mgmt.yaml - consider if the target is meaningful to check from MGMT & classic
+          - interval: 30s
+            team: network
+            module: http_2xx
+            name: coreweave-site
+            # SRE Editorial: coreweave-site conflates reachability and
+            # service-available; plus it's to the cloudflare proxy IPs, so
+            # have to distinguish CDN fault vs origin fault.
+            scrapeTimeout: 5s
+            url: https://coreweave.com
+
+          # External DNS resolvers
+          - interval: 15s
+            team: network
+            module: icmp
+            name: internal-cloudflare-dns
+            scrapeTimeout: 5s
+            url: 1.1.1.1
+          - interval: 15s
+            team: network
+            module: icmp
+            name: internal-cloudflare-dns-alt
+            scrapeTimeout: 5s
+            url: 1.0.0.1
+            severity: info
+          - interval: 15s
+            team: network
+            module: icmp
+            name: internal-google-dns
+            scrapeTimeout: 5s
+            url: 8.8.8.8
+          - interval: 15s
+            team: network
+            module: icmp
+            name: internal-google-dns-alt
+            scrapeTimeout: 5s
+            url: 8.8.4.4
+            severity: info
+          - interval: 15s
+            team: network
+            module: icmp
+            name: internal-quad9-dns
+            scrapeTimeout: 5s
+            url: 9.9.9.10 # .10 is the unfiltered, 9.9.9.9 is filtered.
+            severity: info
+          - interval: 15s
+            team: network
+            module: icmp
+            name: internal-quad9-dns-alt
+            scrapeTimeout: 5s
+            url: 149.112.112.10 # .10 is unfiltered, 9.9.9.9 is filtered
+            severity: info
+
+          # Replacement for BMJB checks: blackbox to speedtest pods
+          - &blackbox-speedtest
+            internal: 15s
+            module: icmp
+            scrapeTimeout: 5s
+            url: ping.speedtest.rdu1.coreweave.com
+            name: ping.speedtest.rdu1.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.las1.coreweave.com
+            name: ping.speedtest.las1.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.lga1.coreweave.com
+            name: ping.speedtest.lga1.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.rno2.coreweave.com
+            name: ping.speedtest.rno2.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.ord1.coreweave.com
+            name: ping.speedtest.ord1.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.us-east-02.coreweave.com
+            name: ping.speedtest.us-east-02.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.us-east-03.coreweave.com
+            name: ping.speedtest.us-east-03.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.us-east-04.coreweave.com
+            name: ping.speedtest.us-east-04.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.us-east-06.coreweave.com
+            name: ping.speedtest.us-east-06.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.us-east-08.coreweave.com
+            name: ping.speedtest.us-east-08.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.us-west-01.coreweave.com
+            name: ping.speedtest.us-west-01.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.us-west-03.coreweave.com
+            name: ping.speedtest.us-west-03.coreweave.com
+          - <<: *blackbox-speedtest
+            url: ping.speedtest.us-west-04.coreweave.com
+            name: ping.speedtest.us-west-04.coreweave.com
+
+
+
+          # Storage-object, https
+          - interval: 15s
+            team: storage
+            module: http_2xx
+            name: coreweave-object-https-las1
+            scrapeTimeout: 10s
+            url: https://object.las1.coreweave.com/
+          - interval: 15s
+            team: storage
+            module: http_2xx
+            name: coreweave-object-https-lga1
+            scrapeTimeout: 10s
+            url: https://object.lga1.coreweave.com/
+          - interval: 15s
+            team: storage
+            module: http_2xx
+            name: coreweave-object-https-ord1
+            scrapeTimeout: 10s
+            url: https://object.ord1.coreweave.com/
+
+          # Storage-accel-object, http
+          - interval: 15s
+            team: storage
+            module: http_2xx
+            name: coreweave-accel-object-http-las1
+            scrapeTimeout: 10s
+            url: http://accel-object.las1.coreweave.com/
+          - interval: 15s
+            team: storage
+            module: http_2xx
+            name: coreweave-accel-object-http-lga1
+            scrapeTimeout: 10s
+            url: http://accel-object.lga1.coreweave.com/
+          - interval: 15s
+            team: storage
+            module: http_2xx
+            name: coreweave-accel-object-http-ord1
+            scrapeTimeout: 10s
+            url: http://accel-object.ord1.coreweave.com/
+
+          # Storage-accel-object, https
+          - interval: 15s
+            team: storage
+            module: http_2xx
+            name: coreweave-accel-object-https-las1
+            scrapeTimeout: 10s
+            url: https://accel-object.las1.coreweave.com/
+          - interval: 15s
+            team: storage
+            module: http_2xx
+            name: coreweave-accel-object-https-lga1
+            scrapeTimeout: 10s
+            url: https://accel-object.lga1.coreweave.com/
+          - interval: 15s
+            team: storage
+            module: http_2xx
+            name: coreweave-accel-object-https-ord1
+            scrapeTimeout: 10s
+            url: https://accel-object.ord1.coreweave.com/
+
+          - interval: 30s
+            module: http_authed
+            name: cloudapp-promforward
+            scrapeTimeout: 5s
+            url: https://prometheus.ord1.coreweave.com/api/v1/status/buildinfo
+          - interval: 1m
+            module: http_2xx
+            name: cloudapp-site
+            scrapeTimeout: 5s
+            url: https://cloud.coreweave.com/login
+          - interval: 30s
+            module: http_authed
+            name: cloudapp-kubeapps
+            scrapeTimeout: 5s
+            url: https://apps.coreweave.com/api/v1/clusters/default/namespaces
+          - interval: 60s
+            module: http_2xx
+            name: coreweave-kube-api
+            scrapeTimeout: 5s
+            url: https://www.coreweave.com/cloud/api/v1/metadata/regions
+          - interval: 30s
+            module: http_authed
+            name: cloudapp-grafana-tenant
+            scrapeTimeout: 5s
+            url: https://grafana.coreweave.com/healthz
+          - interval: 60s
+            module: tcp
+            name: regproxy
+            team: k8s-platforms
+            scrapeTimeout: 10s
+            url: "100.122.0.6:3128"
+
+          # Internal K8s Clusters
+          - interval: 30s
+            team: k8s-infrastructure
+            module: http_2xx
+            name: ord1-internal
+            scrapeTimeout: 5s
+            url: https://10.134.10.14:6443/healthz
+          - interval: 30s
+            team: k8s-infrastructure
+            module: http_2xx
+            name: las1-internal
+            scrapeTimeout: 5s
+            url: https://k8s.las1.int.coreweave.com:6443/healthz
+          - interval: 30s
+            team: k8s-infrastructure
+            module: http_2xx
+            name: lga1-internal
+            scrapeTimeout: 5s
+            url: https://k8s.lga1.int.coreweave.com:6443/healthz
+          - interval: 30s
+            team: k8s-infrastructure
+            module: http_2xx
+            name: rno2-internal
+            scrapeTimeout: 5s
+            url: https://k8s-mgmt.rno2.int.coreweave.com:6443/healthz
+          - interval: 30s
+            team: k8s-infrastructure
+            module: http_2xx
+            name: rdu1-internal
+            scrapeTimeout: 5s
+            url: https://k8s-mgmt.rdu1.int.coreweave.com:6443/healthz
+          - interval: 30s
+            team: k8s-infrastructure
+            module: http_2xx
+            name: us-east-02-internal
+            scrapeTimeout: 5s
+            url: https://k8s-mgmt.us-east-02.int.coreweave.com:6443/healthz
+          - interval: 30s
+            team: k8s-infrastructure
+            module: http_2xx
+            name: us-east-03-internal
+            scrapeTimeout: 5s
+            url: https://k8s-mgmt.us-east-03.int.coreweave.com:6443/healthz
+          - interval: 30s
+            team: k8s-infrastructure
+            module: http_2xx
+            name: us-west-03-internal
+            scrapeTimeout: 5s
+            url: https://k8s-mgmt.us-west-03.int.coreweave.com:6443/healthz
+
+  metrics-server:
+    enabled: true
+    targetRevision: metrics-server-v1.6.1
+  fleetops-state-metrics:
+    project: fleet-operations
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.0.0
+    namespace: fleetops-state-metrics
+    syncPolicy:
+      automated: {}
+    enabled: true
+    valuesMerge:
+      kube-state-metrics:
+        customResourceState:
+          enabled: true
+          config:
+            spec:
+              resources:
+              - groupVersionKind:
+                  group: flcc.coreweave.com
+                  kind: NodeProfile
+                  version: v1alpha1
+                metricNamePrefix: "nodeprofile"
+                labelsFromPath:
+                  node_profile_name: [metadata, name]
+                metrics:
+                - name: info
+                  help: nodeprofile info
+                  each:
+                    type: Info
+                    info:
+                      labelsFromPath:
+                        cw_sku: [metadata, labels, "flcc.coreweave.com/node-profile-cwsku"]
+                        org: [spec, org]
+                        boot_definition: [spec, bootDefinition]
+                        clout_init_ref: [spec, cloudInitRef]
+                - name: interface
+                  help: nodeprofile interface
+                  each:
+                    type: Info
+                    info:
+                      path: [spec, interfaces]
+                      labelFromKey: "interface_name"
+                      labelsFromPath:
+                        host_peering: [hostPeering]
+                        network_ref: [networkRef]
+                        steering_pub: [steering, pub]
+                        steering_tss: [steering, tss]
+              - groupVersionKind:
+                  group: flcc.coreweave.com
+                  kind: BareMetalNode
+                  version: v1alpha1
+                metricNamePrefix: "baremetal_node"
+                labelsFromPath:
+                  name: [metadata, name]
+                metrics:
+                - name: flcc_messages
+                  help: baremetalnode flcc messages
+                  each:
+                    type: Gauge
+                    gauge:
+                      path: [status, flcc, messages]
+                      labelFromKey: "type"
+                      valueFrom: [timestamp]
+                      labelsFromPath:
+                        contents: [contents]
+                - name: lifecycle_labels
+                  help: baremetalnode lifecycle labels
+                  each:
+                    type: Info
+                    info:
+                      path: [metadata, labels]
+                      labelsFromPath:
+                        state: [flcc.coreweave.com/state]
+                        state_previous: [flcc.coreweave.com/previous-state]
+                        state_next: [flcc.coreweave.com/next-state]
+                        state_pending: [flcc.coreweave.com/pending-state]
+                        workflow_previou: [flcc.coreweave.com/pending-workflow]
+                        workflow_step_pending: [flcc.coreweave.com/pending-workflow-step]
+                        workflow_step: [flcc.coreweave.com/workflow-step]
+                        workflow: [flcc.coreweave.com/workflow]
+                        workflow_pending: [flcc.coreweave.com/pending-workflow]
+                        workflow_step_previous: [flcc.coreweave.com/previous-workflow-step]
+                        workflow_step_next: [flcc.coreweave.com/next-workflow-step]
+                - name: info
+                  help: baremetalnode info
+                  each:
+                    type: Info
+                    info:
+                      labelsFromPath:
+                        node_profile_name: [spec, nodeProfile]
+                        node: [status, reportedNodeInfo, nodeName]
+                        serial: [status, serial]
+                        deviceslot: [status, deviceSlot]
+                        dpu_mgmt_ip: [status, devices, dpu, managementIP]
+                        dpu_serial: [status, devices, dpu, serial]
+                        internal_ip: [status, reportedNodeInfo, status, addresses, "[type=InternalIP]", address]
+                        manufacturer: [status, manufacturer]
+                        model: [status, model]
+                        cw_sku: [status, sku, cwSku]
+                        spec_node_bundle: [spec, firmware, nodeBundle]
+                        status_node_bundle: [status, firmware, nodeBundle]
+                        cks_enabled: [metadata, labels, "flcc.coreweave.com/cks-enabled"]
+              - groupVersionKind:
+                  group: dso.coreweave.com
+                  kind: DeviceSlot
+                  version: v1alpha1
+                metricNamePrefix: "device_slot"
+                labelsFromPath:
+                  name: [ metadata, name ]
+                  baremetalnode: [status, bareMetalNode]
+                  cw_sku: [spec,sku,cwSku]
+                metrics:
+                - name: info
+                  help: deviceslot info
+                  each:
+                    type: Info
+                    info:
+                      labelsFromPath:
+                        dpu_bmc_ip: [spec, dpu, ip, bmc]
+                        dpu_ip: [spec, dpu, ip, mgmt]
+                        node_ip: [spec, node, ip, mgmt]
+                        bmc_ip: [spec, node, ip, bmc]
+                        manufacturer: [spec,sku,manufacturer]
+                        model: [spec,sku,model]
+                        baremetalserial: [status, bareMetalSerial]
+                        nvlink_domain: [spec, nvlink, domain]
+                - name: instance_types
+                  help: deviceslot instance type info
+                  each:
+                    type: Info
+                    info:
+                      path: [spec, sku, instanceTypes]
+                      labelsFromPath:
+                        instance_type: []
+  mgmt-ntp:
+    enabled: true
+    valuesMerge:
+      dryRun: false
+  ncore:
+    enabled: true
+    valuesMerge:
+      dryRun: false
+  netbox-dns:
+    enabled: true
+    valueFiles:
+      - values-image.yaml
+  nfd:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.5.0
+  nimbus-core-crs:
+    enabled: true
+  nimbus-crds:
+    enabled: true
+  nimbus-bmn-controller:
+    enabled: true
+    valuesMerge:
+      dryRun: false
+  nimbus-vpc-controller:
+    enabled: true
+    valuesMerge:
+      dryRun: false
+  nimbus-worker:
+    enabled: true
+  nimbus-worker-staging:
+    enabled: true
+  agi-crds:
+    enabled: true
+  agi-backend:
+    enabled: true
+    valuesMerge:
+      dryRun: false
+  node-stitcher:
+    enabled: true
+  node-problem-detector:
+    enabled: true
+    valuesMerge:
+      image:
+        pullSecretsRequired: true
+      canaryCheckAddress: "172.31.255.1"
+  oidc:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    chart: oidc-permissions
+    targetRevision: 1.3.0
+  overlay-utils:
+    enabled: true
+  promtail:
+    enabled: true
+  prometheus-smartctl-exporter:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.3.0
+    valuesMerge:
+      prometheus-smartctl-exporter:
+        serviceMonitor:
+          enabled: true
+        prometheusRules:
+          enabled: true
+  postgres-operator:
+    enabled: true #enabled here for teleport db use
+  provisionator:
+    enabled: true
+  pvmo:
+    enabled: true
+    namespace: ""
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      ESO:
+        create: true
+      oob:
+        enabled: true
+        kubeConfigSecretName: admin-kubeconfig
+      service:
+        type: LoadBalancer
+  redfish-services:
+    enabled: true
+    # This is not working as expected
+    # repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    # targetRevision: 1.39.0
+    valuesMerge:
+      exporter:
+        enabled: true
+      controller:
+        enabled: true
+        service:
+          type: LoadBalancer
+          externalTrafficPolicy: Local
+      discovery:
+        enabled: true
+      harvester:
+        enabled: true
+      aurora:
+        enabled: true
+  reloader:
+    enabled: true
+  regproxy-cache-warmer:
+    enabled: true
+  regproxy:
+    enabled: true
+    valuesMerge:
+      regproxy:
+        service:
+          loadBalancerIP: "100.122.0.6"
+          mgmtLoadBalancerIP: "10.95.255.6" # https://coreweave.cloud.netboxapp.com/ipam/ip-addresses/208121/
+  blastshield-gw:
+    enabled: true
+    automated: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.1.1
+  teleport-oob:
+    enabled: true
+    destination:
+      server: https://kubernetes.default.svc
+    namespace: mgmt-cluster
+    valuesMerge:
+      dopplerScope: internal
+      teleport-kube-oob-agent:
+        enabled: true
+        proxyAddr: teleport.na.int.coreweave.com:443
+  teleport-rbac:
+    enabled: true
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+  teleport:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.30.1
+    apps:
+    - name: redfish-controller
+      uri: tcp://redfish-controller.metaldev.svc.cluster.local:9200
+      labels:
+        coreweave.cloud/team: hardware-compute
+    - name: redfish-exporter
+      uri: tcp://redfish-exporter.metaldev.svc.cluster.local:9091
+      labels:
+        coreweave.cloud/team: hardware-compute
+    vastVMSApps:
+      - name: vast-vms
+        uri: "https://vms.vast-csi.svc.cluster.local"
+        insecure_skip_verify: true
+        labels:
+          node.coreweave.cloud/class: storage
+    valuesMerge:
+      coreweave:
+        fleetopsBmcApp:
+          enabled: true
+      scope: mgmt
+      dopplerScope: mgmt
+      teleport-cluster:
+        enabled: true #enabled here
+        annotations:
+          service:
+            metallb.universe.tf/address-pool: cw-mgmt #cw-mgmt pool which grants access outbound from each site
+      teleport-kube-agent:
+        enabled: false
+      teleport-app-agent:
+        enabled: true
+        teleportConfig:
+          teleport:
+            join_params:
+              method: "kubernetes"
+              token_name: teleport-incluster-app-agent
+      teleport-token-cron:
+        enabled: true
+        version: v1.0.0-9-gdfd174e
+        tokens:
+          node-join-token:
+            schedule: "0 0 */30 * *" # create a new token every 30 days
+            ttl: "43800h" # valid for 5 years
+            type: "node"
+          kube-join-token:
+            schedule: "0 0 */10 * *" # create a new token every 10 days
+            ttl: "1000h"
+            type: "kube"
+          # this doesn't work - use tbot instead with proper roles and naming
+          # bot-join-token:
+          #   schedule: "0 0 */10 * *" # create a new token every 5 days
+          #   ttl: "1000h"
+          #   type: "bot"
+  traefik:
+    enabled: true
+    valuesMerge:
+      traefik:
+        service:
+          annotations:
+            metallb.universe.tf/address-pool: cw-mgmt
+
+  vast-csi:
+    enabled: true
+  vast-csi-controller:
+    enabled: true
+  object-cache:
+    enabled: true
+    repoURL: https://github.com/coreweave/k8s-services.git
+    targetRevision: master
+  speedtest:
+    enabled: true
+    # chart: speedtest-new
+    # repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    # targetRevision: 1.1.0
+  tailscale-derp:
+    enabled: true
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        remoteWrite: []
+        resources:
+          requests:
+            cpu: "15"
+            memory: 50Gi
+          limits:
+            cpu: "15"
+            memory: 50Gi
+  sortinghat-common:
+    enabled: true
+  sortinghat-api:
+    enabled: true
+  shat-gatekeeper:
+    enabled: true
+  shat-reservation:
+    enabled: true
+  shat-resource-availability:
+    enabled: true
+  windmill-workers:
+    enabled: true
+  dice-proxy:
+    enabled: true
+    valuesMerge:
+      service:
+        spec:
+          loadBalancerIP: "100.122.0.7"
+  vpc-api-worker-stag:
+    enabled: true
+  vpc-api-worker-prod:
+    enabled: true

@@ -1,0 +1,166 @@
+clusterSpec:
+  region: us-west-01
+  scope: fleetops-us-west-01a
+  clusterOrg: be1096
+  cni: cilium
+  networkAllocations:
+    externalLbCIDRs:
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-be1096-fleetops-us-west-01a.svc.cluster.local
+
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  konnectivity-agent:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: false
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  calico:
+    enabled: false
+  control-plane:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  coredns:
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.0.5"
+      kubeconfig:
+        cluster: be1096-fleetops-us-west-01a
+        path: /etc/kubernetes/admin-config
+      secretName: internal-admin-kubeconfig
+      monitoring:
+        enabled: true
+      extraServiceAnnotations:
+        metallb.universe.tf/address-pool: tss
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.0.5"
+      nldClusterIP: "10.16.0.30"
+  hpc-verification:
+    targetRevision: fmt/hpc-verification-development
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.6"
+  metrics:
+    valuesMerge:
+      dcgm-exporter:
+        image:
+          repository: registry.gitlab.com/coreweave/utility-images-customer-private/dcgm-exporter
+          tag: v1.3.0
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+        prometheus:
+          prometheusSpec:
+            remoteWrite:
+              - queueConfig:
+                  capacity: 10000
+                  maxBackoff: 200ms
+                  maxRetries: 3
+                  maxSamplesPerSend: 2000
+                  maxShards: 2500
+                  minBackoff: 50ms
+                  minShards: 50
+                url: http://100.124.0.6/api/v1/push
+            externalLabels:
+              cluster: fleetops-us-west-01a
+              cluster_org: be1096
+  nfd:
+    valuesMerge:
+      worker:
+        image: ghcr.io/coreweave/nascd/nfd/node-feature-discovery:multi-arch-0.9.0
+  node-pci-exporter:
+    valuesMerge:
+      image: ghcr.io/coreweave/nascd/node-pci-exporter:v1.5.0-multi-arch
+      env:
+      - name: PCI_TARGETS
+        value: "10de:2330,15b3:1021,15b3:a2d6,8086:352a,15b3:101d,1000:c030,10de:22a3,10de:20b2,15b3:101b,8086:347a,1000:c010,10de:1af1,10de:26b5,10de:26b9,10de:2342,15b3:a2dc"
+  nvidia-device-plugin:
+    valuesMerge:
+      image: ghcr.io/coreweave/nascd/k8s-device-plugin:multi-arch-0
+      initContainerImage: ubuntu:20.04
+  multus-cni:
+    valuesMerge:
+      daemonset:
+        image:
+          repository: ghcr.io/coreweave/nascd/multus-cni/multus-cni
+          tag: multi-arch-3.9
+  teleport:
+    enabled: false
+  demonsrun:
+    repoURL: https://github.com/coreweave/k8s-services.git
+    targetRevision: master
+    path: apps/security/demonsrun
+    project: security
+    enabled: true
+  traefik:
+    enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          image:
+            tag: 3.2.0
+          coreweaveLabels:
+            cluster: fleetops-us-west-01a
+            cluster_org: be1096
+            region: us-west-01
+          config:
+            lokiAddress: http://100.124.0.6/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  # vast-csi:
+  #   hasDedicatedTenant: true
+  vector:
+    enabled: false
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        agent:
+          resources:
+            requests:
+              cpu: "20"
+              memory: 45Gi
+            limits:
+              cpu: "20"
+              memory: 45Gi
+  npo:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-west-01-coreweave-us-west-01a-ngcp
+          namespace: victoria-metrics

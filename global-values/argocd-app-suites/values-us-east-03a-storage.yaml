@@ -1,0 +1,135 @@
+---
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: 10.80.60.0/27
+      public: 166.19.4.64/28
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-us-east-03-storage.k8s.us-east-03.int.coreweave.com
+    ip: 172.27.80.24
+
+argocd:
+  targetClusterURL: https://172.27.80.24
+
+applications:
+  calico:
+    valuesMerge:
+      typha:
+        replicas: 2
+  cockroachdb-operator:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-operator
+    project: data-platforms
+    namespace: cockroach-operator-system
+    valueFiles:
+      - values-us-east-03-storage.yaml
+  cockroachdb-object-index:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-object-index
+    valueFiles:
+      - values-us-east-03-storage-object-index.yaml
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            loadBalancerIP: 172.27.80.24
+            addtlLocalService:
+              loadBalancerIP: 10.80.56.13
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 172.27.80.24
+            - 10.80.56.13
+            - 172.30.0.1
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: false
+      labelBundle:
+        config:
+          sku_types:
+            SYS-111C-NR:
+              fw_bundle:
+                firmware: "smc-111CNR-storage-20250114.01.00.00"
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQU5Xdi9jTk5wY1JVbHBmNjZUUzN3Y1F3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5ERXdNVEF5TURVMU16SmFGdzB6TkRBNE1Ua3lNRFUxCk16SmFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRE1pVFRJUGpUbXBSU0RXQjE5bXBQQW5xRmZmbXNhaVRVa1BzS1ZNUzJPdHFXYWc0eHJNdXlPCmY1RThJNytEU3d2WWJ2SXRzTVNwTUdIRC9qZFVIb2V6Q25aNnBJYnNoS2ZpTDRLeFpiKzhBNzRSVHR5Z01hREkKR2lSY0dWcURqbTFWelFvVXlXUGdtY0Y0UGZ4SE54WTBGN3ZIc3p1MFVPZ21QYXdRYWJMMHdaZ0pYSnNpbGludwpZQjQ2bGNCQzV1bm16anM2OGtRVjYxZnVqUFN6MVZCVWo5cXdaK1BvMlZkWll6aFBmTk5kbkpzUEVjekFVOUZZCjFOenNhV2JkVzBzVmZyR0p1RnFoSlYrSllRVit3eWhOMnF0VGZqZkNTcUg3QlhnV1NjNktydStHNlFhVTA3VEUKMk56d2d2NFl1WTJXMVpTNlk2M004Q1lsbzFMNU9DWnZBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVV1S0dETGtqdTN4SzJweWY3Wm9ER0RkVEZmRGt3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFNaEV6SWNvT2dmZy8yTmhoSnNkZjFjamxhRXRrdlhtTWJGZXFiTkE0OE1aZGZndGE2QkFNRlRydnJGQQpRN0ltZWFDSHJJU3lwYVBUZUVtQmN5b3ZROEZaNGFDRWZCbWhGSkIzOVlrVStaQitBTVBIbGR4ZllNQmRpL3ltClBhR0Q0ck1EU2p3NHplRTMzVERrb0xHMS9DRGpHVmlRZFoyb1hWT2lkWjljS0lXS3gyd3Q4K25JbTd6L1RsMEYKWnpuQ015VkdtYjlLalRwblNGa3RxMmVmbGh6QUlkNWhCYVVLSGFvZVJ5aEp0dVNheTErYys5TkRwWDdYV1Z4Uwo4eFhkRnYvZE0wYkF5MTdGSGExYmtsTFhwUGdXVmo5Y3pDcFFjQjZHa0U1bmJHWHVHWTM4Yi9tTUs4ZmxEa04vCjVDekdaMlRvenJrUUluQm5XUmY2bUcvSnZkQT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+      kubeletConfigOverrides:
+        maxPods: 256
+  jwks-auth-push:
+    enabled: true
+  kafka-operator:
+    enabled: true
+    path: apps/data-platforms/kafka-operator
+    class: data-kafka-object-storage
+    project: data-platforms
+    namespace: data-kafka-operator
+    valueFiles:
+      - values/us-east-03/storage.yaml
+  kafka-object-storage:
+    enabled: true
+    path: apps/data-platforms/kafka-cluster
+    class: data-kafka-object-storage
+    project: data-platforms
+    namespace: data-kafka-object-storage
+    valueFiles:
+      - values/us-east-03/storage/data-kafka-object-storage.yaml
+  regproxy:
+    enabled: true
+    valuesMerge:
+      regproxy:
+        dev: true
+  topolvm-csi:
+    enabled: true
+    valueFiles:
+      - values-us-east-03-storage.yaml
+  vector:
+    enabled: true
+    project: monitoring
+    path: apps/monitoring/vector
+    plugin: kustomized-helm
+    namespace: vector
+    releaseName: vector
+    ignoreDifferences:
+      - group: apps
+        kind: Deployment
+        jsonPointers:
+          - /spec/replicas
+    valuesMerge:
+      coreweave:
+        vectorIngester: "vector-us-east-03.int.coreweave.com"
+      vector_gateway:
+        enabled: true
+        replicas: 3
+        securityContext:
+          runAsUser: 1000
+        haproxy:
+          securityContext:
+            runAsUser: 1000
+            enabled: false
+  node-local-dns:
+    valuesMerge:
+      vast:
+        enabled: true
+        backends:
+          - name: storage-backend02
+            ip: 100.121.33.10
+      storeweaveInternal:
+        enabled: true
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-03-coreweave-us-east-03-internal
+          namespace: victoria-metrics

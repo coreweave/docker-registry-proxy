@@ -1,0 +1,131 @@
+clusterSpec:
+  region: rno2
+  scope: prod
+  clusterOrg: ex7
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 192.112.169.0/24
+    externalLbCIDRs:
+      public: "192.112.164.192/26"
+
+argocd:
+  targetClusterURL: https://172.20.46.97
+
+applications:
+  jspolicy:
+    valuesMerge:
+      jspolicy:
+        jspolicy:
+          resources:
+            limits:
+              # Bumping from default of 2Gi as they had occasional OOMs
+              memory: 3Gi
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "g31ce28,g31ce74,g31ccac"
+  ipmi-exporter:
+    valuesMerge:
+      pspEnabled: true
+  konnectivity-agent:
+    values:
+      serverAddress: konn-tss.ex7-prod.k8s.rno2.coreweave.com
+  control-plane:
+    valuesMerge:
+      etcd-local:
+        replicaCount: 0
+        metrics:
+          enabled: false
+      etcd-events:
+        enabled: false
+      etcdBackup:
+        enabled: false
+      etcdMaintenance:
+        enabled: false
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: 100.124.0.21
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.ex7-prod.k8s.rno2.coreweave.com
+      kubeception:
+        apiserver:
+          deployment:
+            etcdServers:
+              overrides: ""
+              address: https://etcd-local-operator:2379
+            oidcParams:
+              caFile: ""
+              groupsClaim: groups
+              groupsPrefix: ""
+              usernamePrefix: ""
+              clientID: "5mF1DrNsI5dMa7niHiL3odQYt7kpqwQoJ58qKtcX"
+              issuerURL: "https://login.andromeda.ai/application/o/oidc-application-oidc-k8s/"
+              usernameClaim: preferred_username
+            advertiseAddress: ""
+          service:
+            loadBalancerIP: 192.112.165.68
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: 100.124.0.20
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 192.112.165.68
+            - 10.16.0.1
+            - 172.20.46.97
+            - 100.124.0.20
+            - 172.21.0.4
+  epimetheus:
+    valuesMerge:
+      slackChannelID: C068W9N98JK #epimetheus-ex7
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQUpqQkM1WktMd1RQd2Fxa0Z3VkJtU2N3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU16RXhNekF5TVRVMk5UaGFGdzB6TXpFd01EZ3lNVFUyCk5UaGFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRQ2xrMkJTM2pRNUdJTFUzckhOUTBhUTZIdm5pd24zeXV5VDAveXNyMmZEV3pkamd6cytYdWpBClIyTnBscGZLa3h5YUREM0R2QWRVYWltTWlCV21sWURldzgwV2gyaTh1QkUxQTRQY3AyZ0VMU05mNjhSZnNRWVMKUnZOQmsyMmRSQnUrRVlHdlltQWJZaUNqd01nWTdaVnQrQStaUHBENE4xMTZ0cGp3b0k4ZzFicG1VNnQ5SzlQTwpORXRWVkV0b1o0VmZJa3dWVTRlRXI1NXQ0Q3BtV0s3UWxxeEZzaDRaRTMxVVVocEk5NHVXN3VOVkgxZlMvenpzCmNpWkplTTRvcjBlNEU0QmtuUlArdjVKSGEvb045dEJvYnhucU02eUNKZksxRnNwT29oZ2o1K3ZNdlRSbUpOckcKR2J4Y0JnRXJ5eE44TFp6YWFLSDJFQnNWVDcvRjZ2b2RBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVV5NUNYMGw2OHc2YnJ4NWYxUkdJb0tqMSsyZ2d3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFBRndTT09iSG1iSXk2SGdxWXNTSld0R2lQb2dDVVRpSVdaUHE3NjNmRDMyelFPWU4raTJiY09xT2Jybgphd0U5Njl6ZjZ4Y1hMQVdLV3FrcWt0b0xVS0VtWEZHWWh1THpZRy9UZVJmRUVlQXRTZE8rTTgweU1ZLzljcWJVCjFjSXRVeXVjeE1qd3NyMXQwUkUwUGlrVzFqV3RKK0VpanpJb0V3QXI1dzc4R281S1lWL2xDeitMZEpFRmJQQmYKTmM4RG90ZVpZZnZmQnFRU1B4enZHTlVueGZYbzlVWFh1MkVzUGpsY2NWR0ZHM2o5K1NzVXlVVUZCUUhsdDNYUApibkcyTXQrUnJ3WUcxL3hxUlpUYzkwM0M3c0MzWGRVY1FVLzM3aE5TT2laQ3B1VmQrRnF3SkpscHovYWswVjB3ClU3OWVYTHpRSjJsS3hBRm5yZWNUeHc5Wi9SWT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.1"
+  metrics-server:
+    valuesMerge:
+      metrics-server:
+        resources:
+          limits:
+            cpu: 4
+          requests:
+            cpu: 2
+  traefik:
+    enabled: false # TODO: enable traefik after fixing templates
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: prod
+            cluster_org: ex7
+            region: rno2
+          config:
+            lokiAddress: http://100.124.0.1/loki/api/v1/push
+        psp:
+          enabled: true
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  teleport:
+    valuesMerge:
+      teleport-kube-agent:
+        storage:
+          storageClassName: local-ssd
+  rook-operator:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-ngcp
+          namespace: victoria-metrics

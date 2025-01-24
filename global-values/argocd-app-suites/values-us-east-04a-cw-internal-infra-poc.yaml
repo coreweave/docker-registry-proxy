@@ -1,0 +1,110 @@
+clusterSpec:
+  region: us-east-04
+  scope: infra-poc
+  clusterOrg: cw-internal
+  cni: cilium
+  networkAllocations:
+    externalLbCIDRs:
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-cw-internal-infra-poc.svc.cluster.local
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  # control-plane & etcd are managed by the Katalyst operator
+  control-plane:
+    enabled: false
+  # katalyst operator manages the konnectivity-agent deployment
+  konnectivity-agent:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: false
+  calico:
+    enabled: false
+  cilium:
+    enabled: true
+    targetRevision: master
+    valuesMerge:
+      createCA: true
+      cilium:
+        cni:
+          exclusive: false
+        hubble:
+          tls:
+            auto:
+              method: certmanager
+              certManagerIssuerRef:
+                group: cert-manager.io
+                kind: ClusterIssuer
+                name: cilium-issuer
+  external-secrets:
+    enabled: true
+  in-cluster-config:
+    enabled: false
+  nvidia-device-plugin:
+    enabled: false
+  nvidia-device-plugin-sunk:
+    enabled: false
+  node-local-dns:
+    enabled: true
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 3
+  multus:
+    enabled: false
+  multus-cni:
+    enabled: true
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: 100.124.0.146
+  kubevirt:
+    enabled: true
+  metallb:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: infra-poc
+            cluster_org: cw-internal
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.146/loki/api/v1/push
+  # Teleport is managed by the katalyst-operator
+  teleport:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: cw-internal-infra-poc
+          viewPolicy: nosquash-cw-internal-infra-poc
+  kube-ovn:
+    enabled: true
+    class: control-plane
+    path: apps/core/kube-ovn
+    namespace: kube-ovn-system
+    valuesMerge:
+      kube-ovn:
+        MASTER_NODES: "10.176.209.19,10.176.207.135"
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

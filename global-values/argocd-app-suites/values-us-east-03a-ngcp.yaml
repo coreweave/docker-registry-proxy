@@ -1,0 +1,119 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      public: "192.112.172.64/26" #TODO: Change
+      cw-mgmt: "10.80.48.0/21"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-ngcp.k8s.us-east-03.int.coreweave.com
+
+applications:
+  argocd-ngcp:
+    enabled: true
+    valuesMerge:
+      argo-cd:
+        enabled: false
+      cmpPlugin:
+        disable: true
+      coreweave:
+        signedCertDisable: true
+  argocd-projects:
+    enabled: false
+  control-plane:
+    valuesMerge:
+      argo-cd:
+        enabled:
+          false
+      cmpPlugin:
+        disable: true
+      coreweave:
+        signedCertDisable: true
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.56.12
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 172.27.80.12
+            - 10.80.56.12
+            - 172.20.0.1
+            - 172.26.64.85
+            - 172.26.65.144
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "g1c7072,g1ca7c2,g1cb8e2"
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQU1GeGgxM2hmSVZCd1dpZ09POUJpNU13RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5EQXpNVEl3TXpFMk1EUmFGdzB6TkRBeE1Ua3dNekUyCk1EUmFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRE5uUkhJVVNyTHBQSlFORmRkSEtZbUswd1FXY0Y5bFdFVXhZNm8wQjQ3TlNmMkRVZHdaUVg4CkZLT3ZucVhIdEtJclZYcHVKWVhuNGFFTFlOTXBraUttNkpyT0xnZjlLeXpPaWJyVFJXTU12b2pYYXRlcFRyZ1oKTTBNR1QrU2VHMEdFd3hDRFB2Lyt0QWdOWHIrcXh0TjZEZVZWa001RHdubDZUcS83emgrcVFHUk9TVWNGY0w0dQpkWkdVUmVSK1VhWWlZa2tTKzZjNU1QNjlYRjhPTllXOVRGVkYwMGZhWlRZOWhhTGVSRXg3LzRGL3ZWVENhWWN0CkZXWnF6SmhyN0U0OUhYdkpDOVI1RUNwZHVzcVg2aXZqaW5vekVQdWhGYklBREt2amJUVWErc2UyLzhGbnVCZ1UKeGZVOWlhR3Uvcm1va0dBRUhqS1F3bUFqVUdGR3djS3JBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVVOYzRFT1NVaHFwZnlIU2xtaTFYZlhCYUlndUF3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFNWVZaeXg4ZEhSMkNSUCtycmhVc2EyeFdEdWllaWx0NllLRTF5Q2QzaXhGaDIzUE1pa2VyVk5TTVBDUApITE5mZWU0WXpNNUZxVmtDcjVuNjMydmtqZko2MGZ5NEhxb0wzb014RGM5dHFCZ1BxZSszM2ZQSG9zTjFXdHY1CkNXa1Z5YVVSNmhzVjVETlh6R3lqanNxeDNLOGU0UHFqTTcrSjZvaDV4dnl1bVl1NjJ2V1VaU0FjV1g2MlU0NFcKM2JGc0l0VEthYVcvL1MwZkVVY3JFeFBOTHpjTzJpd2dOUXpseXRuT0RvZ3VTNTJFTVllWjlTaGF6Zmt4THpQUwpITUwwRjd2WTZVOUw0WmkxTDQycE5wS3pabTAzU0cvLzJEUjdjRmgzRXdLaXc5KzlVU3RFWFdrNmNBc2EzY041Cnc1SElSNy8vc2RXVUh3djB4K2RnYW9OR0Qxaz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  argo-sa:
+    enabled: true
+    values:
+      argo-workflows:
+        server:
+          extraArgs:
+            - --auth-mode=client
+            - --insecure-skip-verify
+          serviceAnnotations:
+            external-dns.alpha.kubernetes.io/hostname: workflows.sa.us-east-03.int.coreweave.com
+  secrets-sa:
+    enabled: true
+  vector:
+    enabled: true
+    project: monitoring
+    path: apps/monitoring/vector
+    plugin: kustomized-helm
+    namespace: vector
+    releaseName: vector
+    ignoreDifferences:
+      - group: apps
+        kind: Deployment
+        jsonPointers:
+          - /spec/replicas
+    valuesMerge:
+      coreweave:
+        vectorIngester: "vector-us-east-03.int.coreweave.com"
+      vector_gateway:
+        enabled: true
+        replicas: 6
+        securityContext:
+          runAsUser: 1000
+        haproxy:
+          securityContext:
+            runAsUser: 1000
+            enabled: false
+      vector_tunnel:
+        enabled: true
+        server:
+          enabled: true
+        client:
+          enabled: false
+        tunnels:
+          - 54952e-dm1
+          - 54952e-rc1
+        metricsToIngester:
+          enabled: true
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-03-coreweave-us-east-03-internal
+          namespace: victoria-metrics

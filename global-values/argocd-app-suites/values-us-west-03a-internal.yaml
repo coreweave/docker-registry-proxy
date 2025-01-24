@@ -1,0 +1,56 @@
+clusterSpec:
+  apiserver:
+    url: &url k8s.us-west-03.int.coreweave.com
+    addtlUrl: *url
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.40.0/23"
+applications:
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "g1c7352,g1cc9f2,g1cccc2"
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  internal-control-plane:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          etcd-backups-internal:
+            config: prod_int_us-west-03
+      etcdBackup:
+        backblaze:
+          bucket: us-west-03-int-etcd-backups
+      etcdMaintenance:
+        cluster: us-west-03-internal
+        prometheus:
+          cluster: us-west-03-internal
+  vector:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        cluster: us-west-03-internal
+      vector_gateway:
+        enabled: true
+        replicas: 3
+        securityContext:
+          runAsUser: 1000
+        haproxy:
+          securityContext:
+            runAsUser: 1000
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: us-west-03-internal
+            cluster_org: coreweave
+            region: us-west-03
+          config:
+            lokiAddress: http://gateway.loki.coreweave.com/loki/api/v1/push
+  testkube-remote-agent:
+    enabled: true

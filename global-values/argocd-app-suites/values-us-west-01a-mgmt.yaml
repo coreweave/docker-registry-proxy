@@ -1,0 +1,166 @@
+---
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: 10.81.26.0/23
+      dpu: 10.189.63.0/24  # Site specific CIDR for DPU LB
+      public: "166.19.31.0/26"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-mgmt.k8s.us-west-01a.int.coreweave.com
+applications:
+  box-office:
+    namespace: box-office
+    valuesMerge:
+      box-office:
+        registerWithParent: true
+      ingress:
+        ingressClassName: "traefik-internal"
+  control-plane:
+    targetRevision: 1.79.1
+    valuesMerge:
+      etcd-events:
+        replicaCount: 5
+      etcd-local:
+        replicaCount: 5
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.81.24.11
+      pki:
+        apiServer:
+          ipSans:
+          - 127.0.0.1
+          - 10.81.24.11
+          - 172.27.80.11
+          - 172.24.0.1
+          - 172.26.64.10
+          - 172.26.64.238
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        topologyLabelsEnabled: true
+      nodeLifeCycle:
+        applyTaints: false
+  fleet-lifecycle-controller:
+    targetRevision: 0.0.0+aallred.fc1b6b3ed03bf1f6907230726e3d330154dc05be
+    valuesMerge:
+      flcc:
+        defaultNodeProfile: "be1096-fleetops-us-west-01a-default"
+        fleetopsCluster:
+          enabled: true
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQUxKRGh4a2dQbW5JVERaUVltRFNsM1V3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5ERXhNRGN5TURRNE1qSmFGdzB6TkRBNU1UWXlNRFE0Ck1qSmFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRFQ5U3lxenpyWGYvSjdnNmpqc3BRYlVhMWFJbngyaGNWUXJoNUZMOG1WdEVxM3RlVGdCWS9QCld3bmtzOEg5cXIzZjZPWG1xTWU1SVhISjV4WmhMZ3FqZzFEeVAwTEE0M2wvNk9lTHI2RTJSRmRmaW9QQnJCUEIKVDhJNFB5Y1RHT05KN2R3ckdUa0xPMjBBQjZJaWs2NnJ5UXREWEdTWHhxek1qK3hyK1FZNlFLRUxXbDc5Y3JZYQo5ZGdkRDB6M2kwMWVudjRaKzFUZW5LWVp4L3ljZlFQV3F4OENIKzQ3ZDlLNHN1djZqMW9veDRDbXhjdTlnM1k2CkFxNlhsT2VwM0ZkUFY5ZzVpSVBKQXhmTmg2ejVHdXRQQjZEdDgvcS80QndiRnhEQ2ZjekE2aGg5dkRTdVV5Y0cKRlp5Q25CYWJSd1N1dkRkWGJZWHMzSmZLeGFGcjByaFZBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVVmRlNmZ3BqcHY5UGhITHE2ZTczWnJEOXN6dGN3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFLbDBrOUM2RVBqOTBBMDVSVGp5WEoyU1d4ZlJJc0d5TGZ2cVZTbTZVR1VMdXJSeEoyZzVmd0grNU9BZQoyMGNwYnNsL1lNR3NjVjMrVG8ydjdlT0c2SzE3OUs0RzhkMlZPMlIzQkpib0w0b3dWZlp2NDU3NWRTeUs1amY1ClVnNVZYRFdaOHVlcjB3UXVIL1ZxZzRBTUF4UmVOM3hUaE01THlncTc3QW9mQWxrNWVWZWp4VlRFUnIwU3JIT3oKWEdyTUVtdWRYWkJRWWpxMFYyaXRVbG5UMlBSYWZ1dVRWVTRQRHhQbG1jRXpSaWN1YUtncHJFV1RPd3FxazJpaQozYmo3NGNYampHZGJ3bk12SUt6VkdqQm9ORW80R3p1eStYRlp1YVRCbXZ4MjBjdytQVE5RSFp6M0hkSTJHVzhqCnZkNWNveVI0Qkh4N09JRzY4WThDc01CbE1Ycz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+      kubeletConfigOverrides:
+        maxPods: 256
+  nimbus-core-crs:
+    enabled: true
+  nimbus-bmn-controller:
+    enabled: true
+    valuesMerge:
+      dryRun: false
+  teleport-rbac:
+    valuesMerge:
+      coreweave:
+        saml:
+          entityDescriptorUrl: https://login.coreweave.com/app/exkkxgq7dzDpBPhrK5d7/sso/saml/metadata
+  teleport:
+    valuesMerge:
+      coreweave:
+        awxTbot:
+          enabled: true
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-grpc:
+    enabled: true
+    valueFiles:
+      - values-us-west-01a-mgmt.yaml
+  vast-csi-controller:
+    valuesMerge:
+      serviceMonitor:
+        enabled: true
+  tailscale-operator:
+    enabled: false
+  metrics:
+    valuesMerge:
+      portkey:
+        monitor:
+          enabled: true
+          endpoints:
+          - ip:
+            - 10.189.1.241
+            - 10.189.1.242
+            - 10.189.1.243
+            - 10.189.1.244
+            name: US-WEST-01A
+            honorTimestamps: false
+      ufm:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.189.11.251
+                - 10.189.11.252
+              name: US-WEST-01A-FAB22
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                  - /cw1
+                  - /cw2
+                  - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+            - ip:
+                - 10.189.11.224
+              name: nvl-mgmt-9-r10-dh00-us-west01a
+              ports:
+                - name: nmx-t
+                  port: 9352
+              paths:
+                - path: /labels/xcset/low_freq_debug
+                  port: nmx-t
+                  interval: 300s
+                  honorTimestamps: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-west-01-coreweave-us-west-01a-internal
+          namespace: victoria-metrics
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false
+  node-assigner:
+    enabled: true
+    valuesMerge:
+      instanceTypes:
+        cd-gp-a192-genoa:
+          enabled: true
+        cd-gp-i64-erapids:
+          enabled: true
+        gd-8xh100ib-i128:
+          enabled: true
+        gb200-4x:
+          enabled: true
+  sortinghat-api:
+    valuesMerge:
+      config:
+        quotaServiceConfig:
+          enforceQuota: false

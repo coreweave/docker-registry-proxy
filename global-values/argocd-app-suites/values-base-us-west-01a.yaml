@@ -1,0 +1,77 @@
+---
+# NetBox Site: https://coreweave.cloud.netboxapp.com/dcim/sites/25/
+clusterSpec:
+  zone: us-west-01a
+argocd:
+  customerClusters:
+    be1096-fleetops-us-west-01a:
+      releaseName: argocd-app-suites-be1096-fleetops-us-west-01a
+      valueFiles:
+        - values-base-k8s-1-31.yaml
+        - values-base-fleetops.yaml
+
+applications:
+  calico:
+    valuesMerge:
+      networkConfig:
+        peerASN: "4212146000"
+        hostCIDRs:
+        - 10.188.192.0/18  # Site specific CIDR for all hosts (DPU-TO-NODE)
+        networkMgmtCIDRs:
+        - 10.189.0.0/19  # Site specific CIDR for network management
+        - 10.250.38.0/23 # Site specific CIDR for backbone network
+        - 10.250.48.0/23 # Site specific CIDR for backbone network
+        dpuCIDRs:
+        - 10.188.64.0/18  # Site specific CIDR for DPU BMC
+        - 10.188.128.0/18  # Site specific CIDR for DPU OOB
+        dpuLBCIDRs:
+          - 10.189.63.0/24  # Site specific CIDR for DPU LB
+        cwMgmtCIDRs:
+        - 10.81.16.0/20  # Site specific CIDR for cw-mgmt
+        ipmiCIDRs:
+        - 10.188.0.0/18  # Site specific CIDR for host IPMI
+  cilium:
+    valuesMerge:
+      networkConfig:
+        peerASN: "4212146000"
+  cilium-crs:
+    valuesMerge:
+      networkConfig:
+        peerASN: "4212146000"
+  epimetheus:
+    valuesMerge:
+      slackChannelID: null # TODO: epimetheus-us-west-01a
+  katalyst-operator:
+    valuesMerge:
+      networkConfig:
+        peerASN: "4212146000"
+  nimbus-vpc-controller:
+    valuesMerge:
+      cwHostPrefix: 10.188.192.0/18
+  npo:
+    enabled: true
+    valuesMerge:
+      enableInstanceTypeAndTypeLabelSetting: true
+  vast-csi: &vast_csi
+    hasDedicatedTenant: true
+    valuesMerge:
+      vmsService:
+        services:
+          - name: vms
+            endpoints:
+              - ip: 10.189.32.60
+      controller:
+        tolerations:
+          - key: is_cpu_compute
+            operator: Exists
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/reserved
+                      operator: In
+                      values:
+                        - control-plane
+  vast-csi-controller:
+    <<: *vast_csi

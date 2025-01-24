@@ -1,0 +1,115 @@
+clusterSpec:
+  region: rno2
+  scope: tl-rno2-prod
+  clusterOrg: 64c69b
+  cni: cilium
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 192.112.169.0/24
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-64c69b-tl-rno2-prod.svc.cluster.local
+
+applications:
+  calico:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: false
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+      cilium:
+        hubble:
+          enabled: false
+          metrics:
+            enabled: null
+          tls:
+            enabled: false
+          ui:
+            enabled: false
+          relay:
+            enabled: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.6"
+  konnectivity-agent:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  node-local-dns:
+    valuesMerge:
+      vast:
+        enabled: true
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: tl-rno2-prod
+            cluster_org: 64c69b
+            region: rno2
+          config:
+            lokiAddress: http://100.124.0.6/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vast-csi: &vast_csi
+    targetRevision: 1.55.0
+    hasDedicatedTenant: true
+    vastClusters:
+      - name: prod-01
+      - name: prod-02
+        isDefault: true
+    valuesMerge:
+      image:
+        csiVastPlugin:
+          tag: v2.4.2-beta-1526814
+      storageClasses:
+        shared-vast:
+          mountOptions:
+            - vers=3
+            - nconnect=16
+            - lookupcache=pos
+            - noacl
+            - noatime
+            - remoteports=100.121.35.1-100.121.35.240
+  vast-csi-controller:
+    <<: *vast_csi
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-ngcp
+          namespace: victoria-metrics

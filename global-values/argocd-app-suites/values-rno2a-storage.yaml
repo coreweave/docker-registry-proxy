@@ -1,0 +1,146 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      public: "192.112.164.0/28"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-rno2-storage.k8s.rno2.int.coreweave.com
+
+applications:
+  calico:
+    enabled: true
+    valuesMerge:
+      networkConfig:
+        vrfs:
+          cw_mgmt:
+            enabled: false
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.8.13
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.80.8.13
+            - 172.27.80.13
+            - 172.30.0.1
+            - 172.26.64.120
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "gb977e0,g4ead44,gb9a890"
+      nodeLifeCycle:
+        applyTaints: false
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRT09lWHpoSGtpUEZrRmpKRDkydlFuakFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1ESXdPVEl4TURjeU1Gb1hEVE16TVRJeE9ESXhNRGN5Ck1Gb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFMZ3JLeklBMnc0bC8xbUYyQWlZeUxzSXIvVnFyaTE0UXJqQzhsV0V6OG1IVmZGWG9MUEw0b2EzCjYxSkx2aWV4bHNxOGpOOWN4NmV6SDNMQ09wMDF2MEN0b3k0YS9iYk5lUEVnLytDMEVZVlZNMCtkLzJLcVg4OVgKa3lDaWptb3NDWWZpVmdtWVN6YmRMWkhwVE01MjNuSDgvSG5QYlV5MkcwMzZnRm5CRVphL2t5SFlKMTcvQVFQRQpnc25HQ2RDV3VGODFJdmVNU3VGaENJRlB6TEJoWldTWHJ5bzhVc1lCQW1WT2twdm9aTGNlMGk0QWw4TGdSdDB1CjkrYkk2WS82VWc5MmJQZGhOampWQXBDb2hJeU9LYUdlR2Uzc0FWM25veXdxSUlEbDE3TUg3WVJhcnM0NjEyb3cKeGhDYnVGamZOckE5RFM2Sk0wM2xhdEtoQjRaL0Q3OENBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCU0s3Y2d6djJOSFJyQi9BUVpTL0RwMU93TkZGREFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQU1MSE9DWEpsNUh0cW1ISmRMbmRVN0ViUzloZ0tyZ0RMTExoVGs1MENJVUJOc0djVm1RTEhpTVdiRzBSRQpySFljTW5aUTFLaWsydXhUSTVZR0xBdDNDNUE2aXMrUnZ4SzhIUXl1Z2F0YkliWWJCNDlmME5JZlhmdC9JeFpRCjRIelNpSGl6WTFTOFczdTl4T01vU2E3TTkzT1NRUnlaSGt3eXZsc2ZOMGIrQ3RRK2MySWFqVDVOMlhRbThydkMKQlBBNm1rZytoS0NWRFp1VFFVVW5GQWxJdGFkS0xBNEtJTFJjZVRBemJOZE82T3pPQXA1c1BNQUtyUU9hMWQrUgpERm93SDZHT2xZZExsbllITkYxQ3dmaEhHSCtKekxwUEVzenZ6dVhzVWNKUGZiWE9PYzI0Yjlxbm0vVWZmTS9FCklSRTBhYWl6MXhFQ3lkU0dJbUViWGNNZjdBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  cw-rook-operator:
+    enabled: true
+  cw-ceph-cluster:
+    enabled: true
+  # We only have a single rack, so failure domain needs to be smaller.
+  cw-ceph-rbd:
+    enabled: true
+    values:
+      defaultFailureDomain: host
+  cw-ceph-object:
+    enabled: true
+    values:
+      defaultFailureDomain: host
+      publicIP: "192.112.164.1"
+  storage-hardware-operator:
+    enabled: true
+  cw-ceph-cephfs:
+    enabled: true
+    values:
+      defaultFailureDomain: host
+  node-local-dns:
+    valuesMerge:
+      lota:
+        enabled: true
+        storeweave: true
+        dns:
+          enabled: true
+          ip: "172.30.1.35"
+      storeweaveInternal:
+        enabled: true
+  jwks-auth-push:
+    enabled: true
+  topolvm-csi:
+    enabled: true
+    valueFiles:
+      - values-rno2-storage.yaml
+  # Thoth is specifically added here for testing. Normally its in Core Zero clusters.
+  thoth:
+    repoURL: https://github.com/coreweave/storage.git
+    targetRevision: main
+    enabled: true
+    path: apps/thoth
+    project: storage
+    namespace: object-storage
+    valueFiles:
+      - values-rno2-lab.yaml
+  # LOTA is only here for testing. This is normally deployed to customer clusters.
+  lota:
+    repoURL: https://github.com/coreweave/storage.git
+    targetRevision: main
+    enabled: true
+    path: apps/lota
+    project: storage
+    namespace: object-storage
+    valueFiles:
+      - values-rno2-lab.yaml
+  # CoreDNS is only here for testing. This is normally deployed to customer clusters.
+  object-dns:
+    repoURL: https://github.com/coreweave/storage.git
+    targetRevision: main
+    enabled: true
+    path: apps/coredns
+    project: storage
+    namespace: object-storage
+    valueFiles:
+      - values-rno2-lab.yaml
+  storeweave-index-db:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    project: storage
+    namespace: object-storage
+    values:
+      environment: test
+      cluster:
+        tlsEnabled: false
+        storageSize: 6900Gi
+        storageClassName: local-storage-crdb
+        image: cockroachdb/cockroach:v21.2.17
+  regproxy:
+    enabled: true
+    valuesMerge:
+      regproxy:
+        dev: true
+  api-gateway-sandbox:
+    enabled: true
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-internal
+          namespace: victoria-metrics
+  dns-api:
+    enabled: true
+    values:
+      backend:
+        cloudflare:
+          enabled: false
+        other:
+          name: local
+      replicaCount: 1
+      ingress:
+        enabled: false
+      service:
+        annotations: {}
+      coreweave: {}

@@ -1,0 +1,82 @@
+clusterSpec:
+  region: us-east-04
+  scope: nvh200
+  clusterOrg: fe0dc0
+  networkAllocations:
+    externalLbCIDRs:
+      public: "166.19.11.16/29"
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-fe0dc0-nvh200.svc.cluster.local
+
+applications:
+  calico:
+    enabled: true
+    valuesMerge:
+      typha:
+        replicas: 1
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 2
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  konnectivity-agent:
+    enabled: false
+  control-plane:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.110"
+  external-secrets:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  node-local-dns:
+    valuesMerge:
+      vast:
+        enabled: true
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: nvh200
+            cluster_org: fe0dc0
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.110/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: fe0dc0-ca9a09d04d97
+          viewPolicy: nosquash-fe0dc0-ca9a09d04d97
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

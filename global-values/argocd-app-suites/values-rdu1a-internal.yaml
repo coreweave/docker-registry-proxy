@@ -1,0 +1,31 @@
+clusterSpec:
+  apiserver:
+    url: &url k8s.rdu1.int.coreweave.com
+    addtlUrl: *url
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.24.0/23"
+applications:
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "gb96f00,gb96f40,gb978a0"
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  internal-control-plane:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          etcd-backups-internal:
+            config: prod_int_rdu1
+      etcdBackup:
+        backblaze:
+          bucket: rdu1-int-etcd-backups
+      etcdMaintenance:
+        cluster: rdu1-internal
+        prometheus:
+          cluster: rdu1-internal

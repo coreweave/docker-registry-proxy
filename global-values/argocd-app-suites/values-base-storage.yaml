@@ -1,0 +1,346 @@
+clusterSpec:
+  scope: storage
+  clusterOrg: coreweave
+  networkAllocations:
+    podCIDRs: ["172.28.0.0/18"]
+    serviceCIDRs: ["172.30.0.0/23"]
+    internalLbCIDRs:
+      default: "172.30.64.0/24"
+    externalLbCIDRs:
+      # The first 100.127.0.0/24 is manually assigned for services that need static IPs
+      # Mons need static IPs, Calico uses these and they have to be a CIDR so we can't use metallb notation (IE 1-3).
+      mon-tss:
+      - "100.127.0.1/32"
+      - "100.127.0.2/32"
+      - "100.127.0.3/32"
+      # Services that don't need static IPs will get regular TSS LB services
+      # We have 100.127.0.0/17 for these so we'll carve up /24 blocks as we need more.
+      tss:
+      - "100.127.1.0/24"
+      public-anycast: "166.19.255.0/24"
+    customPodCIDRConfigs:
+      100.127.128.0/17:
+        name: ceph-tss-pod-ips
+        # keeps k8s from allocating these to pods as its for specific pods
+        # We will allocate this ourselves via annotations
+        nodeSelector: "!all()"
+argocd:
+  targetClusterURL: https://172.27.80.13
+
+projects:
+  storage:
+    enabled: true
+  data-platforms:
+    enabled: true
+
+applications:
+  # Storage specific Apps
+  cockroachdb-operator:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-operator
+    project: storage
+    namespace: cockroach-operator-system
+  cw-rook-operator:
+    enabled: false
+    path: apps/storage/cw-rook-operator
+    project: storage
+    namespace: rook-ceph
+  cw-ceph-cluster:
+    enabled: false
+    path: apps/storage/cw-ceph-cluster
+    project: storage
+    namespace: rook-ceph
+    ignoreDifferences:
+      - group: ceph.rook.io/v1
+        kind: CephCluster
+        jsonPointers:
+          - /spec/storage/config/nodes
+  cw-ceph-rbd:
+    enabled: false
+    path: apps/storage/cw-ceph-rbd
+    project: storage
+    namespace: rook-ceph
+  cw-ceph-object:
+    enabled: false
+    path: apps/storage/cw-ceph-object
+    project: storage
+    namespace: rook-ceph
+  storage-hardware-operator:
+    enabled: false
+    path: apps/storage/storage-hardware-operator
+    project: storage
+    namespace: rook-ceph
+  # Shared apps
+  argocd-service-monitors:
+    enabled: true
+  box-office:
+    enabled: false
+  calico:
+    enabled: true
+    path: apps/core/calico
+    targetRevision: 1.36.0
+    valuesMerge:
+      networkConfig:
+        vrfs:
+          k8s:
+            enabled: true
+            filter:
+              enabled: true
+          tss:
+            enabled: true
+          ipmi:
+            enabled: false # we do not have/need this
+          net:
+            enabled: false # I also don't know what this does
+          dpu:
+            enabled: false # I am unsure?
+          cw_mgmt:
+            enabled: true
+  calico-cleanup-controller:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.12.0
+  control-plane:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          control-plane-storage-cluster:
+            project: control-plane
+            config: prod
+          generic-pull-secrets-storage-cluster:
+            project: generic-pull-secrets
+            config: prod
+        externalSecrets:
+          mimir-credentials:
+            secretStoreName: control-plane-storage-cluster # TODO I think we need to make this?
+            type: Opaque
+            dataFrom:
+              - find:
+                  conversionStrategy: Default
+                  decodingStrategy: None
+                  name:
+                    regexp: (.*)
+                rewrite:
+                  - regexp:
+                      source: MIMIR_USERNAME
+                      target: USERNAME
+                  - regexp:
+                      source: MIMIR_PASSWORD
+                      target: PASSWORD
+            gitlab-registry:
+              secretStoreName: generic-pull-secrets-storage-cluster
+              type: kubernetes.io/dockerconfigjson
+              dataFrom:
+                - find:
+                    conversionStrategy: Default
+                    decodingStrategy: None
+                    name:
+                      regexp: GITLAB_IMAGE_PULL_SECRET
+                  rewrite:
+                    - regexp:
+                        source: (.*)
+                        target: .dockerconfigjson
+              target:
+                creationPolicy: Owner
+                deletionPolicy: Retain
+                template:
+                  engineVersion: v2
+                  mergePolicy: Replace
+                  type: kubernetes.io/dockerconfigjson
+          gitlab-registry:
+            secretStoreName: generic-pull-secrets-storage-cluster
+            type: kubernetes.io/dockerconfigjson
+            dataFrom:
+              - find:
+                  conversionStrategy: Default
+                  decodingStrategy: None
+                  name:
+                    regexp: GITLAB_IMAGE_PULL_SECRET
+                rewrite:
+                  - regexp:
+                      source: (.*)
+                      target: .dockerconfigjson
+            target:
+              creationPolicy: Owner
+              deletionPolicy: Retain
+              template:
+                engineVersion: v2
+                mergePolicy: Replace
+                type: kubernetes.io/dockerconfigjson
+      kubeception:
+        apiserver:
+          service:
+            loadBalancerIP: 172.27.80.13
+            addtlLocalService:
+              enabled: true
+          deployment:
+            resources:
+              requests:
+                cpu: 4
+                memory: 8Gi
+              limits:
+                memory: 64Gi
+        controllerManager:
+          deployment:
+            resources:
+              requests:
+                cpu: 2
+                memory: 4Gi
+              limits:
+                cpu: 4
+                memory: 16Gi
+        extraSchedulers:
+          enabled: false
+          schedulers: []
+  coredns:
+    enabled: true
+  cert-exporter:
+    enabled: true
+    valueFiles:
+      - values-kubecepted.yaml
+  cert-manager:
+    enabled: true
+  cw-node-controller:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.158.0
+    valuesMerge:
+      nodeLifeCycle:
+        boxoffice:
+          createTickets: true
+  eventrouter:
+    enabled: true
+  external-dns:
+    enabled: true
+  external-secrets:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.5.0
+    valuesMerge:
+      external-secrets:
+        crds:
+          createPushSecret: true
+        processPushSecret: true
+  in-cluster-config:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.35.0
+    chart: tenant-cluster-config
+  jspolicy:
+    enabled: true
+    targetRevision: jspolicy-v1.36.0
+    valuesMerge:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - '{{ template "jspolicy.fullname" . }}'
+              topologyKey: node.coreweave.cloud/rack
+  jspolicy-policies:
+    enabled: true
+    values:
+      policies:
+        updatePodLabels: true
+        mutateControlPlaneAffinity: false
+  local-storage-provisioner:
+    enabled: true
+  metallb:
+    enabled: true
+  metrics:
+    enabled: true
+    targetRevision: metrics-v1.510.2
+    valuesMerge:
+      sli:
+        monitor:
+          enabled: true
+  metrics-server:
+    enabled: true
+  nfd:
+    enabled: true
+  node-pci-exporter:
+    enabled: true
+    targetRevision: node-pci-exporter-v1.6.0
+    syncPolicy:
+      automated: {}
+  node-problem-detector:
+    enabled: true
+    valuesMerge:
+      image:
+        pullSecretsRequired: true
+      canaryCheckAddress: "172.31.255.1"
+  prometheus-smartctl-exporter:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.3.0
+    valuesMerge:
+      prometheus-smartctl-exporter:
+        serviceMonitor:
+          enabled: true
+        prometheusRules:
+          enabled: true
+  teleport-oob:
+    enabled: true
+    destination:
+      server: https://kubernetes.default.svc
+    namespace: storage-cluster
+    valuesMerge:
+      dopplerScope: internal
+      teleport-kube-oob-agent:
+        enabled: true
+        proxyAddr: teleport.na.int.coreweave.com:443
+  teleport:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.30.1
+    valuesMerge:
+      coreweave:
+        slackBotRestartCron:
+          enabled: false
+      scope: mgmt #points to the doppler config for pulling join tokens in
+      dopplerScope: mgmt
+      teleport-cluster:
+        enabled: false
+      teleport-kube-agent:
+        enabled: true
+        storage:
+          storageClassName: local-ssd
+      teleport-plugin-slack:
+        enabled: false
+  oidc:
+    enabled: true
+  reloader:
+    enabled: true
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        remoteWrite: []
+  jwks-auth-push:
+    enabled: true
+
+  traefik:
+    enabled: true
+    valuesMerge:
+      traefik:
+        service:
+          annotations:
+            metallb.universe.tf/address-pool: cw-mgmt
+  pvmo:
+    enabled: true
+    namespace: ""
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      ESO:
+        create: true
+      oob:
+        enabled: true
+        kubeConfigSecretName: admin-kubeconfig
+      service:
+        type: LoadBalancer

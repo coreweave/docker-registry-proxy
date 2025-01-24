@@ -1,0 +1,112 @@
+clusterSpec:
+  region: us-east-04
+  scope: us-shoggy-prod
+  clusterOrg: 6bab75
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 166.19.16.0/23
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-6bab75-us-shoggy-prod.svc.cluster.local
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  # control-plane & etcd are managed by the Katalyst operator
+  control-plane:
+    enabled: false
+  # katalyst operator manages the konnectivity-agent deployment
+  konnectivity-agent:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: true
+  calico:
+    enabled: true
+    valuesMerge:
+      typha:
+        replicas: 2
+      felix:
+        featureDetectionOverride: "MASQFullyRandom=false,SNATFullyRandom=false"
+  in-cluster-config:
+    enabled: false
+  nvidia-device-plugin:
+    valuesMerge:
+      runtimeConfig: |
+        disable-require = false
+        #swarm-resource = "DOCKER_RESOURCE_GPU"
+        accept-nvidia-visible-devices-envvar-when-unprivileged = true
+        accept-nvidia-visible-devices-as-volume-mounts = true
+
+        [nvidia-container-cli]
+        #root = "/run/nvidia/driver"
+        #path = "/usr/bin/nvidia-container-cli"
+        environment = []
+        #debug = "/var/log/nvidia-container-toolkit.log"
+        #ldcache = "/etc/ld.so.cache"
+        load-kmods = true
+        #no-cgroups = false
+        #user = "root:video"
+        ldconfig = "@/sbin/ldconfig.real"
+
+        [nvidia-container-runtime]
+        #debug = "/var/log/nvidia-container-runtime.log"
+        log-level = "info"
+
+        # Specify the runtimes to consider. This list is processed in order and the PATH
+        # searched for matching executables unless the entry is an absolute path.
+        runtimes = [
+            "docker-runc",
+            "runc",
+        ]
+
+        mode = "auto"
+
+            [nvidia-container-runtime.modes.csv]
+
+            mount-spec-path = "/etc/nvidia-container-runtime/host-files-for-container.d"
+  node-local-dns:
+    enabled: true
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        gpu:
+          targetNodes: 68
+          instanceType: gd-8xh100ib-i128
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 7
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: 100.124.0.31
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: us-shoggy-prod
+            cluster_org: 6bab75
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.31/loki/api/v1/push
+  # Teleport is managed by the katalyst-operator
+  teleport:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: 6bab75-shoggy-prod
+          viewPolicy: nosquash-6bab75-shoggy-prod
+  pvmo:
+    valuesMerge:
+      # TODO: Re-deploy after completing promised features
+      deploy: false
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

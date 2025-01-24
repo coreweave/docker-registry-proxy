@@ -1,0 +1,302 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.42.0/23"
+      public: "192.112.167.0/26"
+      dpu: "10.175.63.0/28"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-mgmt.k8s.us-west-03.int.coreweave.com
+applications:
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.40.11
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.80.40.11
+            - 172.27.80.11
+            - 172.24.0.1
+            - 172.26.64.10
+            - 172.26.64.238
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: false
+  blastshield-gw:
+    valuesMerge:
+      psp:
+        enabled: true
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQUxVNmZpVG5GV0xDVEg4WGxjcEV4NFl3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5EQXpNVGd4TkRBMk16TmFGdzB6TkRBeE1qVXhOREEyCk16TmFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRREVLcnFBWFFwTVk4Y1Y1Zzg4c1ErYzJQZjFRNHQwbWw4M3FyTHlNVEhsTG5KelhiTTlDNlIzCk9XNjRhdlVHdEtwKzd0Yml5SzZubyswRHh6RG44b2xWcThEYnd3Z3NLb0RMN3FZbytsRHkzdUtoVzNpS0pvVzUKS2UrdEIyWmVQeVVNVm1lYmtOQzBEVTZZSitjVVlVMWxPOXcxeXE5a05FaUtpMkNMU1k0TWNSNWZqK2QySy9PMQpEK3RZUllIRXBFcDVKVlZoRFQ1cmprUlZ5THVSbXR2SStpZjM4K1ViemYwMUtFVWhoeSs0STlSaklBa1FBYS80ClRUKzhYLzU5ei9yZ25aQXZadzBrSXBMOGR4Rms3Z1NzK0pMLzQ4d0l1K2wxU1BacVBsWG1SbzNqK3RlbzN2Tm4KcHBOVUI3dG5HTFh0L2h0dG0yRGJ0Q0J0TEFkbk1XTXhBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVVCRlhOTFpHVkRPSnIvTDIvd2NIYlpMMHNSZ0F3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFIeVNETFpVMTNkZVFFZzlLNkh1a0hSM25VbWpYcFZWbnBUMUNNekdwQTZPL1prY3RzNGNtSzZMeHUvRwo5V2FHMGZOVDFnSHdFWkpzZFMzdFBBNFFocHp0d2hxR3RseFFGbkw2ay9MWW9UOHlrN0sweXlVRTAxbmZIWEpNCndXSlo2c3RIWk1ZWE1IRExlNjFlbi9RVXJTRS9KektNa1BpcER0N1c4UUJuS3hJcm1uZkNnMk9LZjYzZ0x2cmkKZHIyUERmUjFKajZ3Q1RzQ1haTFltemgrRlR4dlAwR25LK0dTdlNPWmVxdGlTSThQZFFuNEJUdmFPUGlsRWx2dApiMHFyTU1CMUZqZWhHbTFXNnBHVHNqRUNRUE8rSFp3c1BUTEFEY2ZtRkR6eEE0QzNYZEFhc1Y5Q05Zc0dhTlpxCkV6ZU9ZN0FNL09JTU85K0xTcXByQ09JelAvOD0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  katalyst-proxy:
+    valuesMerge:
+      ncoreProxyPass: http://10.134.98.11  # remove once all nodeProfiles and dpuConfs are updated
+  teleport-rbac:
+    valuesMerge:
+      coreweave:
+        saml:
+          entityDescriptorUrl: https://login.coreweave.com/app/exkfsn2n0sop3LrNi5d7/sso/saml/metadata
+  teleport:
+    valuesMerge:
+      coreweave:
+        awxTbot:
+          enabled: true
+  redfish-services:
+    valuesMerge:
+      exporter:
+        replicas: 2
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-grpc:
+    enabled: true
+    valueFiles:
+      - values-us-west-03-mgmt.yaml
+  vast-csi-controller:
+    valuesMerge:
+      serviceMonitor:
+        enabled: true
+  tailscale-derp:
+    enabled: false
+  tailscale-operator:
+    enabled: false
+  metrics:
+    valuesMerge:
+      portkey:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.175.1.241
+                - 10.175.1.242
+                - 10.175.1.243
+                - 10.175.1.244
+              name: US-WEST-03
+              honorTimestamps: false
+      ufm:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.175.1.140
+                - 10.175.1.147
+              name: US-WEST-03-FAB10
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+                - name: lowfreq
+                  port: 9002
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /low_freq
+                  port: lowfreq
+                  interval: 300s
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                    - /cw1
+                    - /cw2
+                    - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+            - ip:
+                - 10.175.13.196
+                - 10.175.13.198
+              name: US-WEST-03-FAB11
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                    - /cw1
+                    - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+  vector:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        vectorIngester: vector-ingester.vector.svc.cluster.local
+        cluster: us-west-03-mgmt
+        clusterSecretStores:
+          kafka-secrets:
+            project: kafka-o11y-test
+            config: prod
+        externalSecrets:
+          kafka-tls:
+            secretStoreName: kafka-secrets
+            refreshInterval: 1h
+            target:
+              template:
+                data:
+                  ca.pem: "{{ .ca }}"
+                  cert.pem: "{{ .cert }}"
+                  key.pem: "{{ .key }}"
+                  tls.user.password: "{{ .pass }}"
+            data:
+              - secretKey: ca
+                remoteRef:
+                  key: KAFKA_O11Y_TEST_CLUSTER_CA_CERT
+              - secretKey: cert
+                remoteRef:
+                  key: KAFKA_O11Y_TEST_USER_LOGS_TEST_USER_TLS_USER_CRT
+              - secretKey: key
+                remoteRef:
+                  key: KAFKA_O11Y_TEST_USER_LOGS_TEST_USER_TLS_USER_KEY
+              - secretKey: pass
+                remoteRef:
+                  key: KAFKA_O11Y_TEST_USER_LOGS_TEST_USER_TLS_USER_PASSWORD
+
+      vector_tunnel:
+        metricsToIngester:
+          enabled: true
+      vector_gateway:
+        enabled: true
+        replicas: 10
+        haproxy:
+          enabled: true
+          replicas: 3
+        # env:
+        #   - name: KAFKA_KEY_PASS
+        #     valueFrom:
+        #       secretKeyRef:
+        #         name: kafka-tls
+        #         key: "tls.user.password"
+        # extraVolumes:
+        #   - name: kafka-tls-credentials
+        #     secret:
+        #       secretName: kafka-tls
+        # extraVolumeMounts:
+        #   - name: kafka-tls-credentials
+        #     mountPath: /local/user/tls
+        # additionalSinks:
+        #   gateway_to_kafka:
+        #     type: kafka
+        #     inputs:
+        #       - gateway_kube_router._unmatched
+        #       - gateway_kube_events_remap
+        #       - gateway_kube_audits_remap
+        #       - gateway_kube_router.journald
+        #     bootstrap_servers: "kafka://kafka-o11y-test.tls.us-east-03.int.coreweave.com:9095"
+        #     topic: us-west-03.mgmt.metrics.test
+        #     encoding:
+        #       codec: json
+        #     tls:
+        #       enabled: true
+        #       ca_file: /local/user/tls/ca.crt
+        #       crt_file: /local/user/tls/user.crt
+        #       key_file: /local/user/tls/user.key
+        #       key_pass: ${KAFKA_KEY_PASS}
+      vector_ingester:
+        enabled: true
+        replicas: 8
+        prometheus:
+          enabled: true
+          endpoint: http://vm.us-east-03.int.coreweave.com:8427/api/v1/write
+          auth:
+            enabled: true
+        loki:
+          enabled: true
+          endpoint: http://gateway.loki.coreweave.com
+          auth:
+            enabled: true
+        secops:
+          enabled: true
+          address: 216.153.57.63:6665
+        metaobsv:
+          enabled: true
+        syslog:
+          enabled: true
+          ip: 10.95.255.4
+        envFrom:
+          - secretRef:
+              name: vector-secrets
+        haproxy:
+          enabled: true
+          replicas: 4
+          service:
+            type: LoadBalancer
+            annotations:
+              metallb.universe.tf/address-pool: tss
+              metallb.universe.tf/loadBalancerIPs: 100.123.0.2
+              external-dns.alpha.kubernetes.io/hostname: vector-us-west-03.int.coreweave.com
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: us-west-03-mgmt
+            cluster_org: coreweave
+            region: us-west-03
+          config:
+            lokiAddress: http://gateway.loki.coreweave.com/loki/api/v1/push
+  victoria-metrics:
+    enabled: true
+  sortinghat-api:
+    valuesMerge:
+      config:
+        garbageCollectorConfig:
+          zone: US-WEST-03A
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  shat-resource-availability:
+    valuesMerge:
+      siteID: us-west-03a
+      zone: US-WEST-03A
+  shat-reservation:
+    valuesMerge:
+      config:
+        zone: US-WEST-03A
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  shat-gatekeeper:
+    valuesMerge:
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  storage-flcc-operator:
+    enabled: true
+    valueFiles:
+      - values-us-west-03-mgmt.yaml
+  dice-proxy:
+    enabled: true
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-west-03-coreweave-us-west-03-internal
+          namespace: victoria-metrics

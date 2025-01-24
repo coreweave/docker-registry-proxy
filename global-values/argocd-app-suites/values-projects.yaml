@@ -1,0 +1,75 @@
+projects:
+  app-platforms:
+    enabled: true
+  cloudops-sre:
+    enabled: true
+  cloud:
+    enabled: true
+  cni:
+    enabled: true
+  common:
+    enabled: true
+  conductor:
+    enabled: true
+  core:
+    enabled: true
+  core-interfaces:
+    enabled: true
+    roles:
+      - name: ci
+        description: CI/CD automation token
+        policies:
+          - p, proj:core-interfaces:ci, applications, sync, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, get, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, delete, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, update, core-interfaces/*, allow
+        groups:
+          - sec-Argocd-prod-coreinterfaces
+  corp:
+    enabled: true
+  csi:
+    enabled: true
+  data-platforms:
+    enabled: true
+  dev:
+    enabled: true
+  developer-productivity:
+    enabled: true
+  fleet-operations:
+    enabled: true
+  ml:
+    enabled: true
+  ml-interfaces:
+    enabled: true
+  monitoring:
+    enabled: true
+  network:
+    enabled: true
+  networkhpc:
+    enabled: true
+  network-data-path:
+    enabled: true
+  ngcp:
+    enabled: true
+  security:
+    enabled: true
+  storage:
+    enabled: true
+  systems-engineering:
+    enabled: true
+  vpc:
+    enabled: true
+  jspolicies:
+    enabled: true
+    syncWindows:
+    - kind: allow
+      schedule: '0 23 * * 3'
+      timeZone: UTC
+      duration: 10m
+      applications:
+      - '*'
+      ckysters:
+      - '*'
+      manualSync: true
+applications:
+  enabled: false

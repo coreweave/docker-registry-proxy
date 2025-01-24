@@ -1,0 +1,131 @@
+clusterSpec:
+  region: us-east-04
+  scope: fleeteng-dev
+  clusterOrg: cw-internal
+  cni: cilium
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 166.19.16.0/23
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-cw-internal-fleeteng-dev.svc.cluster.local
+
+applications:
+  calico:
+    enabled: false
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+      cilium:
+        hubble:
+          enabled: false
+          metrics:
+            enabled: null
+          tls:
+            enabled: false
+          ui:
+            enabled: false
+          relay:
+            enabled: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.1.1"
+  konnectivity-agent:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  coredns:
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.1.2"
+      kubeconfig:
+        cluster: cw-internal-fleeteng-dev
+        path: /etc/kubernetes/admin-config
+      secretName: internal-admin-kubeconfig
+      monitoring:
+        enabled: true
+      extraServiceAnnotations:
+        metallb.universe.tf/address-pool: tss
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      vast:
+        enabled: true
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.1.2"
+      nldClusterIP: "10.16.0.30"
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 2
+          instanceType: cd-hc-a384-genoa
+        gpu-l40s:
+          targetNodes: 1
+          instanceType: gd-8xl40s-i128
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: fleeteng-dev
+            cluster_org: cw-internal
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.1.1/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: cw-internal-fleeteng-dev
+          viewPolicy: nosquash-cw-internal-fleeteng-dev
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

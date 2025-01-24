@@ -1,0 +1,284 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: 10.80.106.0/23
+      public: 166.19.10.0/26
+      dpu: "10.177.63.0/28"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-mgmt.k8s.us-east-04.int.coreweave.com
+applications:
+  box-office:
+    namespace: box-office
+    valuesMerge:
+      box-office:
+        registerWithParent: true
+      ingress:
+        ingressClassName: "traefik-internal"
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.104.11
+      pki:
+        apiServer:
+          ipSans:
+          - 127.0.0.1
+          - 10.80.104.11
+          - 172.27.80.11
+          - 172.24.0.1
+          - 172.26.64.10
+          - 172.26.64.238
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "gb96770,gb967a0,gb96460"
+      nodeLifeCycle:
+        applyTaints: false
+  fleet-lifecycle-controller:
+    valuesMerge:
+      flcc:
+        defaultNodeProfile: "cw-internal-fleetops-default-us-east-04"
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRS3VSOGltM3poVEtRVC9FQkNhVkJXREFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1EWXlOVEU0TlRnek1sb1hEVE0wTURVd05ERTROVGd6Ck1sb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFPSkRoYU9CZTJNMVU0WWd3djFyUWxxMjJXZ3JyaXRYNGcwbnNtWVFKbWV5Vld2YUZIMnV6TFhECkx1UjBGazczVmJEUXZBVURoT0FYVWVUeHVwMWl2eTduc3kwSWhBUk5YY0JVczc0a25GT2hsVEt5WjNzSEJlaUoKaVdaYmRjTWxzb2ZPUEdqSGt1OFBEclZyVDg4U1BYaFpiVTlXUDErTCs3WFYzL1lLMW42T0pYeVNZRFpIOXU4eApjaUMzeVpZMURpVG4rQ1ViczFESzNsaThrWllWaUpxNENZQ1JOaEMzN051aWFMWUN1U05sQ0JUT04wUHVQa2hBCkk3dVRneW1OMW02U0xCY3pMMDZtMGtFMUUvT21TbEl3YlpzVkQ5SGdSdVQrMzBQT1FZRXRmK0p4dXVMZU1IbE4KcEhGWjNMTFNQSEZaVzhoTUNRUUpwSnE3YnE4OVpwc0NBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCUUdhY2hVc2kwTU50NmdiWTMrMVZsYXdFY2JjVEFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQTBJa3RhbG1GYTJ6QTNGZ1MyeExhVmsvYWhaMFFXV3pwUnNJU3VWQ09iQUV0YzFtZCtGUTJ6akFQcmZVQQp6NE9VRld5L2RzOHM2WGV2WmxoZ1kvQzVxYldabk1BQ0w1ays4YzFrbmJGbW52cTB1RHdEc0pnalVYdmJzT3RtCkhjeWxRVUpxTFMwTzhleVNxMVBmQnI5ZUgyM2RXR2ZCWXpLTlJqZG5jQ3dZK1pnRVNxdUtBeFJQeEhmOUJRcksKZGwwaGxZbmxwWDZtKzB4QWo1bG5XU2k2WmZyRnhPSzN2dVZMZGYxV0V3N2VxT0gvNW5FQVRXSE5HbjZqblh6dgpUQ1FRMnFTOGRVUWdPd3ZkYnE5WTlJZXgyd3ovVG9qRVZQWjhIOHhveHJ5V2lUcGU3VTNhamtmWGR4SDdldGZOCnhNME5rSDFDV2hOQWdDajlMQm90TDZjMktBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  teleport-rbac:
+    valuesMerge:
+      coreweave:
+        saml:
+          entityDescriptorUrl: https://login.coreweave.com/app/exkhymwthvJNmJ33o5d7/sso/saml/metadata
+  teleport:
+    valuesMerge:
+      coreweave:
+        awxTbot:
+          enabled: true
+  redfish-services:
+    valuesMerge:
+      exporter:
+        replicas: 10
+        env:
+          REDFISH_TIMEOUT: "4m"
+      controller:
+        env:
+          REDFISH_TIMEOUT: "4m"
+      discovery:
+        env:
+          REDFISH_TIMEOUT: "4m"
+      harvester:
+        env:
+          REDFISH_TIMEOUT: "4m"
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  storage-flcc-operator:
+    enabled: true
+    valueFiles:
+      - values-us-east-04-mgmt.yaml
+  vast-grpc:
+    enabled: true
+    valueFiles:
+      - values-us-east-04-mgmt.yaml
+  vast-csi-controller:
+    valuesMerge:
+      serviceMonitor:
+        enabled: true
+  tailscale-operator:
+    enabled: false
+  metrics:
+    valuesMerge:
+      portkey:
+        monitor:
+          enabled: true
+          endpoints:
+          - ip:
+            - 10.177.1.241
+            - 10.177.1.242
+            - 10.177.1.243
+            - 10.177.1.244
+            name: US-east-04
+            honorTimestamps: false
+      ufm:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.177.0.14
+                - 10.177.0.29
+              name: US-EAST-04-FAB15
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                  - /cw1
+                  - /cw2
+                  - /cw3
+                  - /cw4
+                  - /cw5
+                  - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+            - ip:
+                - 10.177.0.178
+                - 10.177.0.179
+              name: US-EAST-04-FAB16
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                  - /cw1
+                  - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+  node-assigner:
+    enabled: true
+    valuesMerge:
+      instanceTypes:
+        cd-hc-a384-genoa:
+          enabled: true
+        cd-hp-a96-genoa:
+          enabled: true
+        gd-8xh100ib-i128:
+          enabled: true
+        gd-8xh200ib-i128:
+          enabled: true
+        gd-8xa100-i128:
+          enabled: true
+        gd-8xl40-i128:
+          enabled: true
+        gd-8xl40s-i128:
+          enabled: true
+        gd-1xgh200:
+          enabled: true
+      bareMetalNodeClientConfig:
+        unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+        unassignedBMNLabelValues:
+          - 'cw-internal'
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false
+  sortinghat-api:
+    valuesMerge:
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  sortinghat-api-stg:
+    enabled: true
+    valuesMerge:
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  shat-reservation:
+    valuesMerge:
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  shat-gatekeeper:
+    valuesMerge:
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  o11y-custom:
+    enabled: true
+    valuesMerge:
+      vector:
+        enabled: true
+        customSources:
+          vector_nfs_source:
+            type: file
+            include:
+              - /var/vast_audit_dir/**/*.log
+        customTransforms:
+          vector_route_customer:
+            type: route
+            inputs:
+              - vector_nfs_source
+            route:
+              ea8e69_prod: .cluster_org == "ea8e69-prod"
+        customSinks:
+          vector_external_ea8e69_prod:
+            type: aws_s3
+            inputs:
+              - vector_route_customer.ea8e69_prod
+            bucket: my-bucket
+        defaultVolumes:
+          - name: vast-audits
+            hostPath:
+              path: "/var/vast_audit_dir/"
+        defaultVolumeMounts:
+          - name: vast-audits
+            mountPath: "/var/vast_audit_dir/"
+            readOnly: true
+  ufm-proxy:
+    enabled: true
+    valuesMerge:
+      config:
+        fabrics:
+          - name: fab15
+            ufms:
+              - address: 10.177.0.14
+                port: 443
+              - address: 10.177.0.29
+                port: 443
+          - name: fab16
+            ufms:
+              - address: 10.177.0.178
+                port: 443
+              - address: 10.177.0.179
+                port: 443
+  ib-partition-controller:
+    enabled: true
+    valuesMerge:
+      config:
+        partitionLabelSelector: ds.coreweave.com/physical-topology.region=US-EAST-04
+        ufmHost: ufm-proxy-fab15.hpcnet.svc.cluster.local
+      coreweave:
+        externalSecrets:
+          ufm-token:
+            secretStoreName: hpcnet
+            data:
+              - remoteRef:
+                  key: PARTITION_CONTROLLER_FAB15_UFM_TOKEN
+                secretKey: UFM_TOKEN
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-internal
+          namespace: victoria-metrics

@@ -1,0 +1,105 @@
+clusterSpec:
+  region: us-east-04
+  scope: sunk-dev
+  clusterOrg: cw-internal
+  cni: cilium
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam: 166.19.16.0/23
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-cw-internal-sunk-dev.svc.cluster.local
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  # control-plane & etcd are managed by the Katalyst operator
+  control-plane:
+    enabled: false
+  # katalyst operator manages the konnectivity-agent deployment
+  konnectivity-agent:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: false
+  calico:
+    enabled: false
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  in-cluster-config:
+    enabled: false
+  node-local-dns:
+    enabled: true
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        # cpu:
+        #   targetNodes: 3
+        # gpu-l40:
+        #   targetNodes: 3
+        #   instanceType: gd-8xl40-i128
+  nvidia-device-plugin-sunk:
+    valuesMerge:
+      image: registry.gitlab.com/coreweave/k8s-device-plugin:rebase-release-0-16-711dbd25
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: 100.124.0.132
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: sunk-dev
+            cluster_org: cw-internal
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.132/loki/api/v1/push
+  victoria-metrics-agent:
+    valuesMerge:
+      enabled: true
+      agent:
+        externalLabels:
+          cluster: sunk-dev
+          cluster_org: cw-internal
+          region: us-east-04
+        remoteWrite:
+        - url: http://100.124.0.132/api/v1/write
+  # Teleport is managed by the katalyst-operator
+  teleport:
+    enabled: false
+  # vast-csi:
+  #   hasDedicatedTenant: true
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: cw-internal-def46d7
+          viewPolicy: nosquash-cw-internal-def46d7
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

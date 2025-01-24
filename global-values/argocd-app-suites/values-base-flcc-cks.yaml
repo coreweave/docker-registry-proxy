@@ -1,0 +1,12 @@
+# This file is primarily used for new flcc provisioning.
+# Before there was FLCC. Which means this stuff is used for all clusters, that are for
+# MVP of CKS and POST MVP of CKS in terms of FLCC provisioning
+applications:
+  flcc-helper:
+    valuesMerge:
+      helper:
+        cksCluster: true
+  cw-node-controller:
+    valuesMerge:
+      nlcc:
+        deliveredReservation: ""

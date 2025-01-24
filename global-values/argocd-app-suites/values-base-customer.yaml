@@ -1,0 +1,452 @@
+clusterSpec:
+  scope: customer
+  monitoring:
+    basicAuth:
+      enabled: false #no auth needed here for katalyst-proxy
+  networkAllocations:
+    podCIDRs: ["10.0.0.0/13"]
+    serviceCIDRs: ["10.16.0.0/22"]
+    internalLbCIDRs:
+      default: "10.16.4.0/22"
+applications:
+  calico:
+    enabled: true
+    valuesMerge:
+      networkConfig:
+        vrfs:
+          tss:
+            enabled: false
+          dpu:
+            enabled: false
+          net:
+            enabled: false
+          ipmi:
+            enabled: false
+          cw_mgmt:
+            enabled: false
+  calico-cleanup-controller:
+    enabled: true
+    class: coreweave
+    valuesMerge:
+      metallbAddressPool: "tss"
+  box-office:
+    enabled: false
+  cks-cloud-managed-rbac:
+    enabled: true
+  cw-node-controller:
+    enabled: true
+    class: coreweave
+    valuesMerge:
+      features:
+        HPC_VERIFICATION_CONTROLLER: true
+      nodeLifeCycle:
+        enabled: true
+      controllerConfig:
+        topologyLabelsEnabled: false
+  flcc-helper:
+    enabled: true
+  coredns:
+    enabled: true
+    valuesMerge:
+      monitoring:
+        enabled: true
+      replicas: 2
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          cpu: 500m
+          memory: 128Mi
+      service:
+        externalTrafficPolicy: Cluster
+      affinity: |
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.coreweave.cloud/reserved
+                    operator: In
+                    values:
+                      - control-plane
+                      - coreweave
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node.coreweave.cloud/reserved
+                operator: In
+                values:
+                - coreweave
+        podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: k8s-app
+                      operator: In
+                      values:
+                        - coredns
+                topologyKey: kubernetes.io/hostname
+      tolerations:
+        - key: is_cpu_compute
+          operator: Exists
+        # ns.coreweave.cloud/org: control-plane
+        - key: node.coreweave.cloud/reserved
+          operator: Equal
+          value: a23e6272a875746a522968abe77c4ff953358e92
+
+  goldpinger:
+    enabled: false
+    valuesMerge:
+      service:
+        type: ClusterIP
+        extraLabels:
+          cluster.coreweave.cloud/type: tenant
+  metallb:
+    enabled: true
+  cert-manager:
+    enabled: true
+    syncPolicy: null
+    valuesMerge:
+      letsencrypt:
+        prod:
+          enabled: false
+        staging:
+          enabled: false
+      cloudflare:
+        enabled: false
+  control-plane:
+    enabled: true
+    valuesMerge:
+      konnectivity:
+        enabled: true
+        sidecar: false
+      kubeception:
+        apiserver:
+          serviceMonitor:
+            enabled: true
+            tlsConfig:
+              ca:
+                secret:
+                  name: cert-admin-client
+                  key: ca.crt
+              cert:
+                secret:
+                  name: cert-admin-client
+                  key: tls.crt
+              keySecret:
+                name: cert-admin-client
+                key: tls.key
+              insecureSkipVerify: true
+            scheme: https
+          service:
+            addtlLocalService:
+              annotations:
+                metallb.universe.tf/address-pool: tss #set addtl service as tss
+      preInstallJobs:
+        argoUseClusterIP: true
+  crowdstrike:
+    enabled: true
+    valuesMerge:
+      cs-k8s-protection-agent:
+        enabled: false
+  teleport:
+    enabled: true
+    destination:
+      server: https://kubernetes.default.svc
+    namespace: null
+    valuesMerge:
+      coreweave:
+        slackBotRestartCron:
+          enabled: false
+      dopplerScope: tenants
+      teleport-plugin-slack:
+        enabled: false
+      teleport-kube-agent:
+        storage:
+          storageClassName: shared-vast
+        rbac:
+          create: false # because we're running outside a cluster with a kubeconfig_file
+        teleportConfig:
+          kubernetes_service:
+            kube_cluster_name: "" #Overrides the top level kubeClusterName
+            kubeconfig_file: "/etc/coreweave/kubeconfig/admin-config"
+        extraVolumeMounts:
+          - name: kubeconfig
+            mountPath: /etc/coreweave/kubeconfig
+            readOnly: true
+  jspolicy:
+    enabled: true
+    valuesMerge:
+      jspolicy:
+        service:
+          annotations:
+            metallb.universe.tf/address-pool: tss
+  jspolicy-policies:
+    enabled: true
+    values:
+      policies:
+        validatePodSunkAccelerator: false
+        updateAddOrgId: true
+  in-cluster-config:
+    enabled: true
+  kubemod:
+    enabled: false
+  argo-crds:
+    enabled: true
+  epimetheus:
+    enabled: true
+    destination:
+      server: https://kubernetes.default.svc
+    class: coreweave
+    valuesMerge:
+      inClusterKubeConfig: false
+  hpc-verification:
+    enabled: true
+    syncPolicy:
+      automated:
+        prune: true
+    values:
+      argo-workflows:
+        argo-crds:
+          argoCD:
+            enabled: false
+          argoEvents:
+            enabled: true
+          argoWorkflows:
+            enabled: true
+      controller:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/reserved
+                      operator: In
+                      values:
+                        - control-plane
+      ingress:
+        annotations:
+          cert-manager.io/cluster-issuer: selfsigned-cluster-issuer
+  ipam:
+    enabled: true
+    class: coreweave
+  katalyst-proxy:
+    destination:
+      server: https://kubernetes.default.svc
+    enabled: true
+    namespace: null
+    valuesMerge:
+      addressPool: tss
+      ncoreProxyPass: ""
+  local-storage-provisioner:
+    # TODO: should this be false?
+    enabled: false
+  loki:
+    enabled: false # TODO: Configure and enable!
+    path: apps/ngcp/ngcp-k8s/managed-apps/loki/ # Temporary; ngcp-k8s has additional templates
+  konnectivity-agent:
+    enabled: true
+    valuesMerge:
+      deployment:
+        replicas: 2
+  metrics-server:
+    enabled: true
+  ipmi-exporter:
+    path: apps/fleet-operations/ipmi-exporter
+    project: fleet-operations
+    class: control-plane
+    namespace: ipmi-exporter
+    enabled: true
+    automated: true
+    automatedOptions:
+      prune: true
+    valuesMerge:
+      image:
+        repository: registry.gitlab.com/coreweave/utility-images-customer-private/ipmi-exporter
+        tag: v1.1.0
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: gpu.nvidia.com/model
+                    operator: In
+                    values:
+                      - H100_PCIE
+                      - H100_NVLINK_80GB
+                      - A100_NVLINK
+                      - A100_NVLINK_80GB
+                      - A100_PCIE_40GB
+                      - A100_PCIE_80GB
+                      - L40
+                      - L40S
+                      - H200
+                      - GH200_480GB
+                      - Graphics_Device
+                      - GB200
+      fullnameOverride: ipmi-exporter
+      nameOverride: ipmi-exporter
+  metrics:
+    releaseName: metrics
+    enabled: true
+    valuesMerge:
+      prometheus-operator:
+        defaultRules:
+          # Clear out the region and cluster_org labels since those aren't in the customer cluster.
+          additionalAggregationLabels: []
+        kubeApiServer:
+          enabled: false
+        prometheusOperator:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node.coreweave.cloud/reserved
+                        operator: In
+                        values:
+                          - control-plane
+        kube-state-metrics:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node.coreweave.cloud/reserved
+                        operator: In
+                        values:
+                          - control-plane
+      dcgm-exporter:
+        enabled: true
+  multus:
+    enabled: true
+  multus-cni:
+    enabled: true
+  nfd:
+    enabled: true
+  node-problem-detector:
+    enabled: true
+  pvmo:
+    enabled: true
+    namespace: ""
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      ESO:
+        create: true
+      oob:
+        enabled: true
+        kubeConfigSecretName: admin-kubeconfig
+      service:
+        type: LoadBalancer
+        annotations:
+          metallb.universe.tf/address-pool: tss
+      controller:
+        resources:
+          limits:
+            cpu: 4
+            memory: 24Gi
+          requests:
+            cpu: 1
+            memory: 4Gi
+  node-pci-exporter:
+    enabled: true
+    targetRevision: node-pci-exporter-v1.6.0
+    syncPolicy:
+      automated: {}
+  node-reporter:
+    destination:
+      server: https://kubernetes.default.svc
+    namespace: ""
+    valuesMerge:
+      externalCluster:
+        enabled: true
+  nvidia-device-plugin:
+    enabled: true
+  nvidia-device-plugin-sunk:
+    enabled: true
+  oidc:
+    enabled: false
+  promtail:
+    enabled: true
+    path: apps/ngcp/ngcp-k8s/managed-apps/promtail/ # Temporary; ngcp-k8s has a distinct kustomization.yaml
+  traefik:
+    enabled: false
+  eventrouter:
+    enabled: true
+  remote-dns:
+    enabled: true
+    destination:
+      server: https://kubernetes.default.svc
+    namespace: null
+  rook-cluster:
+    enabled: false
+  rook-operator:
+    enabled: false
+    path: apps/ngcp/ngcp-k8s/managed-apps/rook-operator/ # Temporary; ngcp-k8s has additional templates
+  vast-csi:
+    enabled: true
+  vast-csi-controller:
+    enabled: true
+  ping-exporter:
+    class: control-plane
+    enabled: true
+  target-prober:
+    class: control-plane
+    enabled: false
+  victoria-metrics:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+        externalSecrets:
+      victoria-metrics-agent:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node.coreweave.cloud/reserved
+                      operator: In
+                      values:
+                        - control-plane
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app.kubernetes.io/name
+                        operator: In
+                        values:
+                          - vmagent
+                  topologyKey: 'kubernetes.io/hostname'
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app.kubernetes.io/name
+                        operator: In
+                        values:
+                          - vmagent
+                  topologyKey: 'node.coreweave.cloud/rack'
+        remoteWrite: [ ]
+        namespaceSelector:
+          values:
+            - kube-system
+            - calico-system
+            - cilium-system
+            - metrics
+            - node-problem-detector
+            - pv-management
+            - sunk
+            - vector
+            - victoria-metrics
+            - target-prober
+            - ping-exporter
+            - object-storage
+            - ipmi-exporter
+            - dcgm-exporter
+  telecaster:
+    appName: o11y-fwd
+    namespace: cw-o11y-fwd

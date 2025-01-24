@@ -1,0 +1,204 @@
+clusterSpec:
+  region: region
+  scope: scope
+  clusterOrg: clusterOrg
+  objStorageRegion: test1
+  apiserver:
+    port: 6443
+    # url: k8s.internal.dev.coreweave.com; typically generated dynamically
+  networkAllocations:
+    asNumber: 64512
+    natOutgoing: true # NAT outgoing connections outside the cluster by default, we want it in all clusters except for DM/Workload due to multi-VRF attachments
+    podCIDRs: ["127.0.0.1/32"]
+    serviceCIDRs: ["127.0.0.1/32"]
+    internalLbCIDRs:
+      lo: "127.0.0.1/32"
+    externalLbCIDRs:
+      behold: "127.0.0.1/32"
+  typhaReplicas: 1
+  bgpPeersSelectors: true
+  ingress:
+    metallbPool: public #default
+  # coreDnsIp: "" Dynamically set by default
+  monitoring:
+    cephNodeExporter:
+      endpoints:
+        {}
+        # lga1:
+        #   - { ip: 10.136.15.10, nodename: croit-mgmt-lga1 }
+        #   - { ip: 10.136.15.11, nodename: R45-SVC-01 }
+argocd:
+  argocdInstanceNamespace: argocd
+  sync:
+    # automatedSync:
+    # enabled: false
+    # prune: true
+    showOrphanedResources: false
+  globalDefaults:
+    repoURL: https://github.com/coreweave/k8s-services.git
+    targetRevision: master
+    overrideAllTargetRevision: ""
+  selfManaged:
+    suites: []
+
+defaultProject: core # This project is assigned to any apps that don't explicitly set a project
+projects:
+  cloud:
+    roles:
+      - name: ci
+        description: CI/CD automation token
+        policies:
+          - p, proj:cloud:ci, applications, sync, cloud/*, allow
+          - p, proj:cloud:ci, applications, get, cloud/*, allow
+  cni:
+  common:
+  conductor:
+  core-interfaces:
+    roles:
+      - name: ci
+        description: CI/CD automation token
+        policies:
+          - p, proj:core-interfaces:ci, applications, sync, core-interfaces/*, allow
+          - p, proj:core-interfaces:ci, applications, get, core-interfaces/*, allow
+  core:
+  corp:
+  csi:
+  dev:
+  fleet-operations:
+  ml:
+  ml-interfaces:
+  monitoring:
+  network:
+    roles:
+      - name: ci
+        description: CI/CD automation token
+        policies:
+          - p, proj:network:ci, applications, sync, network/*, allow
+          - p, proj:network:ci, applications, get, network/*, allow
+  ngcp:
+  security:
+  vpc:
+
+applications:
+  aclmapper:
+    enabled: true
+  argocd:
+    enabled: true
+  argo-crds:
+    enabled: true
+  argocd-service-monitors:
+    enabled: true
+  box-office:
+    enabled: true
+  calico:
+    enabled: true
+    valuesMerge:
+      networkConfig:
+        peerASN: "0000000000"
+        hostCIDRs:
+          - 0.0.0.0/15 # Site specific CIDR for all hosts (DPU-TO-NODE)
+        networkMgmtCIDRs:
+          - 1.1.1.1/20 # Site specific CIDR for network management
+        dpuCIDRs:
+          - 2.2.2.2/18 # Site specific CIDR for DPU OOB
+        ipmiCIDRs:
+          - 3.3.3.3/18 # Site specific CIDR for host IPMI
+        vrfs:
+          tss:
+            enabled: false
+          dpu:
+            enabled: false
+          net:
+            enabled: false
+          ipmi:
+            enabled: false
+          cw_mgmt:
+            enabled: false
+  calico-cleanup-controller:
+    enabled: true
+  cert-manager:
+    enabled: true
+  control-plane:
+    enabled: true
+  coredns:
+    enabled: true
+  crowdstrike:
+    enabled: true
+  cw-node-controller:
+    enabled: true
+  epimetheus:
+    enabled: true
+  eventrouter:
+    enabled: true
+  external-dns:
+    enabled: true
+  external-secrets:
+    enabled: true
+  in-cluster-config:
+    enabled: true
+  hpc-verification:
+    enabled: true
+  jspolicy:
+    enabled: true
+  katalyst-operator:
+    enabled: true
+  katalyst-proxy:
+    enabled: true
+  knative-operator:
+    enabled: true
+  knative-serving:
+    enabled: true
+  konnectivity-agent:
+    enabled: true
+  kubemod:
+    enabled: true
+  local-storage-provisioner:
+    enabled: true
+  loki:
+    enabled: true
+  metallb:
+    enabled: true
+  metrics:
+    enabled: true
+  metrics-server:
+    enabled: true
+  multus:
+    enabled: true
+  multus-cni:
+    enabled: true
+  nfd:
+    enabled: true
+  node-pci-exporter:
+    enabled: true
+  node-problem-detector:
+    enabled: true
+  nvidia-device-plugin:
+    enabled: true
+  nvidia-device-plugin-sunk:
+    enabled: true
+  oidc:
+    enabled: true
+  promtail:
+    enabled: true
+  vector:
+    enabled: false
+  victoria-metrics:
+    enabled: false
+  pvmo:
+    enabled: true
+  redfish-services:
+    enabled: true
+  reloader:
+    enabled: true
+  rook-ceph:
+    enabled: true
+  rook-cluster:
+    enabled: true
+  rook-operator:
+    enabled: true
+  teleport:
+    enabled: true
+  traefik:
+    enabled: true
+  vast-csi:
+    enabled: true

@@ -1,0 +1,1109 @@
+clusterSpec:
+  region: us-east-03
+  scope: core-services
+  clusterOrg: coreweave
+  apiserver:
+    addtlUrl: api-tss.core-services.k8s.us-east-03.int.coreweave.com
+  networkAllocations:
+    externalLbCIDRs:
+      public: "166.19.4.0/26"
+      cw-mgmt: "10.80.64.0/24"
+    customPodCIDRConfigs:
+      10.80.65.0/24:
+        name: cw-mgmt-pod-ips
+        blockSize: 30
+        natOutgoing: false
+        # keeps k8s from allocating these to pods as its for specific pods
+        # We will allocate this ourselves via annotations
+        nodeSelector: "!all()"
+
+argocd:
+  targetClusterURL: "https://172.20.36.64" #TODO: Add this
+
+projects:
+  sa:
+    enabled: true
+  cloudops-sre:
+    enabled: true
+
+applications:
+  atlantis:
+    enabled: true
+    path: apps/common/atlantis
+    namespace: atlantis
+    project: common
+    syncPolicy:
+      automated:
+        prune: true
+      retry:
+        limit: 5
+        backoff:
+          duration: 15s
+          factor: 1
+          maxDuration: 3m
+  atlantis-cdktf:
+    enabled: true
+    path: apps/common/atlantis-cdktf
+    namespace: atlantis-cdktf
+    project: common
+    syncPolicy:
+      automated:
+        prune: true
+      retry:
+        limit: 5
+        backoff:
+          duration: 15s
+          factor: 1
+          maxDuration: 3m
+  awx-operator:
+    enabled: true
+    valuesMerge:
+      teleport_bot:
+        token_name: awx-tbot-global
+      galactory:
+        artifactory_host: http://awx-operator-core-services-artifactory.awx:8081/artifactory/galactory-local
+  bsr:
+    enabled: true
+  box-office:
+    enabled: true
+    destination:
+      server: ""
+    namespace: box-office
+    valuesMerge:
+      box-office:
+        url: https://box-office.core-services.ingress.coreweave.com
+        registerWithJira: true
+      ingress:
+        address: box-office.core-services.ingress.coreweave.com
+        ingressClassName: "traefik"
+  cks-api-server-stag:
+    enabled: true
+  cks-api-server-prod:
+    enabled: true
+  cockroachdb-operator:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-operator
+    project: data-platforms
+    namespace: cockroach-operator-system
+  cockroachdb-crdb-test:
+    enabled: false
+    path: apps/data-platforms/cockroachdb-cluster
+    class: us-east-03-core-services-crdb-test
+    project: data-platforms
+    namespace: crdb-test
+    valueFiles:
+      - values-us-east-03-core-services-crdb-test.yaml
+  dns-api:
+    enabled: true
+  dredd:
+    enabled: true
+  dredd-staging:
+    enabled: true
+  flipt:
+    enabled: true
+  kafka-operator:
+    enabled: true
+    path: apps/data-platforms/kafka-operator
+    class: data-kafka
+    project: data-platforms
+    namespace: data-kafka-operator
+    valueFiles:
+      - values/us-east-03/core-services.yaml
+  kafka-alpha:
+    enabled: true
+    path: apps/data-platforms/kafka-cluster
+    class: data-kafka
+    project: data-platforms
+    namespace: data-kafka-alpha
+    valueFiles:
+      - values/us-east-03/core-services/data-kafka-alpha.yaml
+  kafka-o11y-test:
+    enabled: true
+    path: apps/data-platforms/kafka-cluster
+    class: crdb-test
+    project: data-platforms
+    namespace: data-kafka-o11y-test
+    valueFiles:
+      - values/us-east-03/core-services/data-kafka-o11y-test.yaml
+  kafka-wide-dev:
+    enabled: true
+    path: apps/data-platforms/kafka-cluster
+    class: data-kafka
+    project: data-platforms
+    namespace: data-kafka-wide-dev
+    valueFiles:
+      - values/us-east-03/core-services/data-kafka-wide-dev.yaml
+  cw-metrics-browser:
+    namespace: cw-metrics-browser
+    enabled: true
+    repoURL: https://artifacts.coreweave.com/basic/cw-metrics-browser/helm/charts/
+    targetRevision: 1.23.0
+    project: fleet-operations
+    syncPolicy:
+      automated:
+        prune: true
+    valueFiles:
+      - values-core-services.yaml
+  client-bot:
+    namespace: client-bot
+    enabled: true
+    repoURL: https://artifacts.coreweave.com/basic/client-bot/helm/charts/
+    targetRevision: 1.4.0
+    project: fleet-operations
+    syncPolicy:
+      automated:
+        prune: true
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: true
+        deliveredReservation: "coreweave"
+  deviceslot-operator:
+    enabled: true
+    values:
+      operatorConfig:
+        region: CORE
+  dso-netracker:
+    enabled: true
+    values:
+      netracker:
+        exportplanneddevices: false
+        teleportname: netracker-core-services
+      scrapeconfig:
+        # setting exporters empty should disable all without enumeration needed
+        exporters:
+      netracker-blackbox:
+        service:
+          annotations:
+            teleport.dev/name: netracker-blackbox-core-services
+  fleetops-imapabot:
+    enabled: true
+    values:
+      processes:
+        dcaccess:
+          enabled: true
+        microcode:
+          enabled: true
+        smcrma:
+          enabled: true
+        dcaccessreq:
+          enabled: true
+  harmonizer:
+    enabled: true
+    values:
+      redis:
+        master:
+          resources:
+            limits:
+              memory: 11Gi
+            requests:
+              memory: 11Gi
+        replica:
+          resources:
+            limits:
+              memory: 11Gi
+            requests:
+              memory: 11Gi
+      server:
+        env:
+          - name: METRICS_NETBOX_ASSET_ENABLED
+            value: "TRUE"
+          - name: REDIS_ADDRESS # Existing item from the chart, does not merge
+            value: redis-replicas
+      processes:
+        asn2bucket:
+          enabled: true
+        asn2netbox:
+          enabled: true
+        asn2vault:
+          enabled: true
+        netboxcollector:
+          enabled: true
+          # including all env vars since it does not merge
+          env:
+            - name: NETBOX_ASSET_ZONE_FILTER_ENABLE
+              value: "false"
+            - name: NETBOX_API_TIMEOUT
+              value: "250"
+            - name: COLLECTOR_TIMEOUT
+              value: "250s"
+            - name: REDIS_ADDRESS
+              value: redis-master
+            - name: NETBOX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: harmonizer-secrets
+                  key: NETBOX_TOKEN
+            - name: NETBOX_URL
+              valueFrom:
+                secretKeyRef:
+                  name: harmonizer-secrets
+                  key: NETBOX_URL
+        snipeitcollector:
+          enabled: true
+        snipeit2netbox:
+          enabled: true
+        snipeit2jiracw:
+          enabled: true
+        snipeit2jiraalbatross:
+          enabled: true
+        snipeit2jiraeagle:
+          enabled: true
+        snipeit2jiraosprey:
+          enabled: true
+  fleetops-s3proxy:
+    enabled: true
+    values:
+      tservice:
+        enabled: true
+        annotations:
+          teleport.dev/name: fleeteng
+          teleport.dev/port: "8080"
+        labels:
+          teleport.coreweave.cloud/app: discover
+          service.coreweave.cloud/class: fleeteng
+  cloudnative-pg:
+    enabled: true
+  control-plane:
+    valuesMerge:
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: "100.124.0.11"
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.core-services.k8s.us-east-03.coreweave.com
+      kubeception:
+        apiserver:
+          deployment:
+            advertiseAddress: "100.124.0.10"
+            resources:
+              requests:
+                cpu: 5
+                memory: 50Gi
+              limits:
+                memory: 50Gi
+          service:
+            loadBalancerIP: "172.21.0.14"
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: "100.124.0.10"
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 100.124.0.10
+            - 172.21.0.14
+            - 172.20.61.175
+            - 10.16.0.1
+            - 172.20.22.32
+  cert-manager:
+    valuesMerge:
+      letsencrypt:
+        prod:
+          enabled: true
+      cloudflare:
+        enabled: true
+  calico:
+    valuesMerge:
+      networkConfig:
+        networkMgmtCIDRs:
+          - 10.250.0.0/16  # Global backbone prefix
+          - 10.169.0.0/19   # US-WEST-04    / US-SPK02 / RNO2
+          - 10.171.224.0/19 # US-CENTRAL-03 / US-PLZ01 / DFW1
+          - 10.173.0.0/19   # US-EAST-05    / US-CVY01 / RDU1
+          - 10.175.0.0/19   # US-WEST-03    / US-HIO01 / PDX1
+          - 10.177.0.0/19   # US-EAST-04    / US-CSZ01 / RIC1
+          - 10.181.0.0/19   # US-CENTRAL-02 / US-VO201 / ORD3
+          - 10.183.0.0/19   # US-EAST-03    / US-BVI01 / PHL1
+          - 10.185.0.0/19   # US-EAST-02    / US-EWS01
+        vrfs:
+          cw_mgmt:
+            enabled: true
+          net:
+            enabled: true
+      calicoNode:
+        calico-node-ebpf-arm64:
+          image: docker.io/calico/node:v3.26.1
+          nodeSelector:
+            kubernetes.io/arch: arm64
+  nfd:
+    valuesMerge:
+      worker:
+        image: ghcr.io/coreweave/nascd/nfd/node-feature-discovery:multi-arch-0.9.0
+  external-dns:
+    enabled: true
+  jwks-auth-push:
+    enabled: true
+    namespace: jwks-auth
+    destination:
+      server: 'https://172.20.36.64' #hardcode this for running in band since we have network issues
+    valuesMerge:
+      outOfBand: false
+      pushHost: "jwks-auth-server-core-services.jwks-auth.svc.cluster.local"
+  jwks-auth-server:
+    enabled: true
+    valuesMerge:
+      jwks-auth:
+        env:
+        - name: REDIS_HOST
+          value: jwks-auth-server-core-services-redis.jwks-auth.svc.cluster.local #TODO: will template this later but this is a singletone for now
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: jwks-auth-server-core-services-redis
+              key: redis-password
+  jspolicy:
+    enabled: true
+    values:
+      jspolicy:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: node.coreweave.cloud/class
+                  operator: In
+                  values:
+                  - cpu
+        clusterRoleBinding:
+          create: false
+        env:
+          JS_POLICY_WEBHOOK_URL: https://jspolicy.coreweave-core-services.k8s.us-east-03.coreweave.com
+          KUBECONFIG: /etc/kubeconfig/admin-config
+        jspolicy:
+          extraVolumeMounts:
+          - mountPath: /etc/kubeconfig
+            name: admin-kubeconfig
+            readOnly: true
+          extraVolumes:
+          - name: admin-kubeconfig
+            secret:
+              secretName: admin-kubeconfig
+          resources:
+            limits:
+              cpu: 2
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              memory: 2Gi
+        service:
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: jspolicy.coreweave-core-services.k8s.us-east-03.coreweave.com
+            metallb.universe.tf/address-pool: tss
+          type: LoadBalancer
+        serviceAccount:
+          create: false
+          name: default
+        webhook:
+          create: false
+      policies:
+        enabled: false
+  external-secrets:
+    enabled: true
+    valuesMerge:
+      external-secrets:
+        crds:
+          createPushSecret: true
+        processPushSecret: true
+  grafana-ha-internal:
+    enabled: true
+    path: apps/monitoring/grafana
+    class: grafana-internal
+    project: monitoring
+    namespace: grafana-internal
+    valueFiles:
+      - values-us-east-03-core-services.yaml
+  in-cluster-config:
+    valuesMerge:
+      ipmiFanController:
+        enabled: true
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQU16ZUtrdld0NjlGSDVBdGc4T01Bd013RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5EQXpNamN4TXpFek1ESmFGdzB6TkRBeU1ETXhNekV6Ck1ESmFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRQzJ5VjVVUU5SZHJvQ1RXZ3VTQW9QMWlhK2p5V2lTZzQyd0I0M1RFb0V4Lzl4L2hxYmRLSFFNCnVWd0s3Y3FTZkFZV0NCOXNTWEw1NUZtNWdySTNwWUIyRjVMOUNEUytVc2N5emJ3eGFPVzZRb0V4bm1NTzkwVTkKcUdDeHM2eXIwSThXV2Y3YjhESGw3Z3pRVUxWT1ZYZEdYK1dFbmFnRWJUdDRQYlJzOFprdHBkNm13Vmx3cUtmVgpqem91eW9ZMEkwMUZKaFRmWVJYOWUvTUFnbTdHV1M1ZmRTLytPQklPR0FnU0U3MUROS0czSVVDT1FGUHRabVBBCllnZWM4dm5OeTR4WmRIaVIySGZrYWVKUGx0MFpOSXEwMitnRmttZHVPQnhYckhpQ1JndHoxbXBlaWJadFFIa28KU01ZMVUwMitIVnJQSTVlb0RXQ1JLUFhXMWVKYVloRTVBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVU2dDV6d0JBKzNZajV3M2M2SDNnb0ZHbVRBRTh3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFEZ0tQWFhTMlRlby9nMFUwc1lRMXNON3Nsa0g0dnVSQ2QvTytGb3pmek9BQnRhdlhBTXRsS3FNeVF6cQpGTDZVWDMxbW9UcHFFWVp2RUI0MlRoN09MSDYvQ25RT1FDZjBzSW9hdkQwZG5UUnc2bE9xc3VVeVZ0RlRYWk93CjZrSzYzcXlCWW9tZ3ZvTjNrZVpJT2dFTUpMUHpMWmFoMFFaNzczemI0ZDJaME1GZy9mUGJpeWV3SXZ0ajZnamcKWjBWVjFpMXEwY3dJMlpoQ0taTVJZTHk2UUQrdW02OG9PQjhyZ3BYZWVHakhrT0dpVlJWOUpRQmFvT3BmSGZUcQpLSElJRlN3WjlKSVJlM3dOZlhwNU85RFJlTEZlejdxWTdWb3JseFpWb1ZUZW1SUWR4NHhON2R6Qmw3ZUZSZ2lzCnN4bHJxOUdHem5kUjlvVTJmRWY1UTNWNmlEST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  konnectivity-agent:
+    values:
+      serverAddress: konn-tss.core-services.k8s.us-east-03.coreweave.com
+  katalyst-operator: # needed for etcdcluster of katalog
+    enabled: true
+  katalog:
+    enabled: true
+    valuesMerge:
+      pki:
+        apiServer:
+          dnsNames:
+            - "katalog.us-east-03.int.coreweave.com"
+          ipSans:
+            - 10.80.64.10
+      service:
+        api-server:
+          annotations:
+            metallb.universe.tf/address-pool: "cw-mgmt"
+            metallb.universe.tf/loadBalancerIPs: 10.80.64.10
+            external-dns.alpha.kubernetes.io/hostname: "katalog.us-east-03.int.coreweave.com"
+      etcdcluster:
+        backup:
+          enabled: true
+        secretName: etcd-katalog-backup
+        persistence:
+          storageClass: "local-ssd"
+          storageSize: "16Gi"
+      externalSecrets:
+        etcd-katalog-backup:
+          secretStoreName: "katalog-secrets"
+          dataFrom:
+            - find:
+                name:
+                  regexp: B2_KEY
+              rewrite:
+                - regexp:
+                    source: (.*)
+                    target: AWS_SECRET_ACCESS_KEY
+            - find:
+                name:
+                  regexp: B2_ACCOUNT
+              rewrite:
+                - regexp:
+                    source: (.*)
+                    target: AWS_ACCESS_KEY_ID
+            - find:
+                name:
+                  regexp: BUCKET_NAME
+            - find:
+                name:
+                  regexp: BUCKET_ENDPOINT
+      clusterSecretStores:
+        katalog-secrets:
+          project: etcd-backups
+          config: prod_katalog
+  in-katalog-config:
+    enabled: true
+    destination:
+      server: https://10.80.64.10:6443
+  katalog-staging:
+    enabled: true
+    valuesMerge:
+      pki:
+        apiServer:
+          dnsNames:
+            - "katalog-staging.us-east-03.int.coreweave.com"
+          ipSans:
+            - 10.80.64.1
+      service:
+        api-server:
+          annotations:
+            metallb.universe.tf/address-pool: "cw-mgmt"
+            metallb.universe.tf/loadBalancerIPs: 10.80.64.1
+            external-dns.alpha.kubernetes.io/hostname: "katalog-staging.us-east-03.int.coreweave.com"
+      etcdcluster:
+        backup:
+          enabled: true
+        secretName: etcd-katalog-backup
+        persistence:
+          storageClass: "local-ssd"
+          storageSize: "16Gi"
+      externalSecrets:
+        etcd-katalog-backup:
+          secretStoreName: "katalog-staging-secrets"
+          dataFrom:
+            - find:
+                name:
+                  regexp: B2_KEY
+              rewrite:
+                - regexp:
+                    source: (.*)
+                    target: AWS_SECRET_ACCESS_KEY
+            - find:
+                name:
+                  regexp: B2_ACCOUNT
+              rewrite:
+                - regexp:
+                    source: (.*)
+                    target: AWS_ACCESS_KEY_ID
+            - find:
+                name:
+                  regexp: BUCKET_NAME
+            - find:
+                name:
+                  regexp: BUCKET_ENDPOINT
+      clusterSecretStores:
+        katalog-staging-secrets:
+          project: etcd-backups
+          config: prod_staging_katalog
+  in-katalog-config-staging:
+    enabled: true
+    destination:
+      server: https://10.80.64.1:6443
+  infrahub:
+    enabled: true
+  katalyst-proxy:
+    valuesMerge:
+      enableExternalDNS: false
+      loadBalancerIP: "100.124.0.15"
+  network-datastores:
+    enabled: true
+  nexus-dev:
+    enabled: true
+    path: apps/corp/nexus
+    namespace: nexus-dev
+    project: corp
+    valueFiles:
+      - values-us-east-03-dev.yaml
+  katalog-configmaps:
+    enabled: true
+  katalog-configmaps-staging:
+    enabled: true
+  postgres-operator:
+    enabled: true
+    automated: true
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: us-east-03-core-services
+            cluster_org: coreweave
+            region: us-east-03
+          config:
+            lokiAddress: http://100.124.0.15/loki/api/v1/push
+  reloader:
+    enabled: true
+  reserved-instance-exporter:
+    namespace: reserved-instance-exporter
+    enabled: true
+    repoURL: https://artifacts.coreweave.com/basic/reserved-instance-exporter/helm/charts/
+    targetRevision: 2.3.0
+    project: fleet-operations
+    syncPolicy:
+      automated:
+        prune: true
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  topolvm-csi:
+    enabled: true
+    valueFiles:
+      - values-us-east-03-core-services.yaml
+  windmill:
+    enabled: true
+    valueFiles:
+      - values-us-east-03.yaml
+  traefik-external:
+    namespace: traefik
+    path: apps/common/traefik
+    project: common
+    enabled: true
+    values:
+      traefik:
+        additionalArguments:
+          - "--providers.kubernetescrd.labelselector=kubernetes.io/ingress.class=traefik"
+        dashboard:
+          enabled: false
+        ingressRoute:
+          dashboard:
+            enabled: false
+        ingressClass:
+          name: traefik
+          isDefaultClass: false
+        providers:
+          kubernetesCRD:
+            allowEmptyServices: true
+            allowExternalNameServices: true
+            enabled: true
+            ingressClass: traefik
+          kubernetesIngress:
+            allowEmptyServices: true
+            allowExternalNameServices: true
+            enabled: true
+            ingressClass: traefik
+            publishedService:
+              enabled: false
+        resources:
+          limits:
+            cpu: "4"
+            memory: 4Gi
+          requests:
+            cpu: "1"
+            memory: 4Gi
+        service:
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: "*.core-services.ingress.coreweave.com"
+            metallb.universe.tf/address-pool: public
+          enabled: true
+          spec:
+            externalTrafficPolicy: Local
+      wildcardTLS:
+        domain: "*.core-services.ingress.coreweave.com"
+        enabled: true
+        ingressClass: traefik
+  traefik:
+    namespace: traefik-internal
+    enabled: true
+    valuesMerge:
+      traefik:
+        ports:
+          web:
+            expose:
+              default: false
+        additionalArguments:
+          - "--providers.kubernetescrd.labelselector=kubernetes.io/ingress.class=traefik-internal"
+        ingressClass:
+          name: traefik-internal
+          isDefaultClass: true
+        providers:
+          kubernetesCRD:
+            ingressClass: traefik-internal
+          kubernetesIngress:
+            ingressClass: traefik-internal
+        service:
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: "*.core-services.ingress.int.coreweave.com"
+            metallb.universe.tf/address-pool: cw-mgmt
+      wildcardTLS:
+        domain: "*.core-services.ingress.int.coreweave.com"
+        ingressClass: traefik-internal
+  kubemod:
+    enabled: false
+  metrics:
+    valuesMerge:
+      victoria-metrics:
+        alerting:
+          enabled: true
+      coreweave:
+        cloudCustomerAlerting:
+          enabled: true
+      prometheus-operator:
+        defaultRules:
+          create: false
+  vector:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        cluster: us-east-03-core-services
+        cluster_org: coreweave
+        region: us-east-03
+  victoria-metrics:
+    releaseName: victoria-metrics-cluster
+    class: victoria-metrics
+    enabled: true
+    valueFiles:
+      - values-core-services.yaml
+      - values-us-east-03.yaml
+  victoria-metrics-metao11y:
+    enabled: true
+  telecaster:
+    releaseName: telecaster
+    enabled: true
+    valueFiles:
+      - values-us-east-03-core-services.yaml
+  kabinet-charts:
+    enabled: true
+  kabinet-charts-staging:
+    enabled: true
+
+  authentik-sa:
+    enabled: true
+    project: sa
+    namespace: sa-management
+    path: apps/sa/authentik
+    sources: |-
+      - repoURL: https://github.com/coreweave/k8s-services.git
+        path: apps/sa/authentik
+        targetRevision: master
+        helm:
+          valueFiles:
+          - values-us-east-03.yaml
+  chartmuseum-sa:
+    enabled: true
+    project: sa
+    namespace: sa-management
+    sources: |-
+      - chart: chartmuseum
+        repoURL: https://chartmuseum.github.io/charts
+        targetRevision: 3.10.2
+        helm:
+          valueFiles:
+          - $values/apps/sa/chartmuseum/values.yaml
+      - repoURL: https://github.com/coreweave/k8s-services.git
+        targetRevision: master
+        ref: "values"
+    values: {}
+  chartmuseum-sa-staging:
+    enabled: true
+    project: sa
+    namespace: sa-management
+    sources: |-
+      - chart: chartmuseum
+        repoURL: https://chartmuseum.github.io/charts
+        targetRevision: 3.10.2
+        helm:
+          valueFiles:
+          - $values/apps/sa/chartmuseum/values-staging.yaml
+      - repoURL: https://github.com/coreweave/k8s-services.git
+        targetRevision: master
+        ref: "values"
+    values: {}
+  secrets-sa:
+    enabled: true
+    path: apps/sa/secrets
+    project: sa
+    namespace: sa-management
+    values: {}
+  argo-sa:
+    enabled: true
+    path: apps/sa/argo
+    project: sa
+    namespace: sa-management
+    valueFiles:
+      - values-us-east-03.yaml
+    valuesMerge:
+      argo-workflows:
+        server:
+          serviceAnnotations: {}
+  cloud-console-qa:
+    enabled: true
+    automated: true
+  cloud-console-staging:
+    enabled: true
+    automated: true
+  cloud-console:
+    enabled: true
+  teleport-katalog:
+    enabled: true
+    valuesMerge:
+      dopplerScope: internal #pull info for NA instance from here
+      teleport-kube-oob-agent:
+        enabled: true
+        proxyAddr: teleport.na.int.coreweave.com:443
+  teleport-katalog-staging:
+    enabled: true
+    valuesMerge:
+      dopplerScope: internal #pull info for NA instance from here
+      teleport-kube-oob-agent:
+        enabled: true
+        proxyAddr: teleport.na.int.coreweave.com:443
+  teleport-in-cluster:
+    enabled: true
+    valuesMerge:
+      teleport-cluster:
+        enabled: false
+      teleport-kube-agent:
+        enabled: false
+      teleport-app-agent:
+        proxyAddress: teleport.na.int.coreweave.com
+        enabled: true
+        joinGeoCluster: true
+        rbac:
+          create: true
+        serviceAccount:
+          create: true
+  vast-csi:
+    addEphemeral: true
+  vault:
+    enabled: true
+    unsealerImageDef: ghcr.io/coreweave/vault-unsealer:6b32df5 # if you change this, you'll need to reencrypt the unseal keys
+    dnsNames:
+    - secvault.int.coreweave.com
+    - secvault.us-east-03.int.coreweave.com
+    valuesMerge:
+      global:
+        serverTelemetry:
+          prometheusOperator: true
+      vault:
+        server:
+          resources:
+            requests:
+              cpu: 10m
+          dataStorage:
+            size: 50Gi
+            storageClass: shared-vast
+        serverTelemetry:
+          serviceMonitor:
+            enabled: false
+        ui:
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: secvault.int.coreweave.com
+  promforward-cks:
+    enabled: true
+  promforward-cks-staging:
+    enabled: true
+  promforward-cks-qa:
+    enabled: true
+  managed-grafana-qa:
+    enabled: true
+  managed-grafana-staging:
+    enabled: true
+  managed-grafana:
+    enabled: true
+  warden:
+    enabled: true
+    path: apps/security/warden
+    namespace: warden
+    project: security
+    syncPolicy:
+      automated:
+        prune: true
+      retry:
+        limit: 5
+        backoff:
+          duration: 15s
+          factor: 1
+          maxDuration: 3m
+  cert-dispenser:
+    enabled: true
+    path: apps/security/cert-dispenser
+    namespace: cert-dispenser
+    project: security
+  github-runner:
+    enabled: true
+    valuesFiles:
+      - values.yaml
+    valuesMerge:
+      githubRunnerSets:
+        - scaleSet: cw
+          runnerGroup: cw
+          minRunners: 1
+          maxRunners: 50
+          storage:
+            request: 14Gi
+            class: ephemeral-local-ssd
+            mode: ReadWriteOnce
+        - scaleSet: cw-dind-small
+          useKataContainers: true
+          runnerGroup: cw-dind-small
+          dindRunnerImageVersion: v2.321.0-ubuntu-22.04
+          minRunners: 0
+          maxRunners: 15
+          resources:
+            memory: 8Gi
+            cpu: 2
+          storage:
+            request: 15Gi
+            class: ephemeral-local-ssd
+            mode: ReadWriteOnce
+        - scaleSet: cw-dind-medium
+          useKataContainers: true
+          runnerGroup: cw-dind-medium
+          dindRunnerImageVersion: v2.321.0-ubuntu-22.04
+          minRunners: 0
+          maxRunners: 10
+          resources:
+            memory: 16Gi
+            cpu: 4
+          storage:
+            request: 30Gi
+            class: ephemeral-local-ssd
+            mode: ReadWriteOnce
+        - scaleSet: cw-dind-large
+          useKataContainers: true
+          runnerGroup: cw-dind-large
+          dindRunnerImageVersion: v2.321.0-ubuntu-22.04
+          minRunners: 0
+          maxRunners: 5
+          resources:
+            memory: 32Gi
+            cpu: 8
+          storage:
+            request: 60Gi
+            class: ephemeral-local-ssd
+            mode: ReadWriteOnce
+        - scaleSet: cw-legacy
+          runnerGroup: cw-legacy
+          minRunners: 1
+          maxRunners: 50
+          storage:
+            request: 50Gi
+            class: ephemeral-shared-vast
+        - scaleSet: cw-dev
+          runnerGroup: cw-dev
+          minRunners: 0
+          maxRunners: 10
+          devRunner: true
+          storage:
+            class: ephemeral-local-ssd
+            request: 5Gi
+            mode: ReadWriteOnce
+
+  local-storage-provisioner:
+    enabled: true
+    valuesMerge:
+      classes:
+        - name: local-ssd
+          hostDir: /mnt/local/k8s-local-storage
+          volumeMode: Filesystem
+          fsType: xfs
+          namePattern: "*"
+          blockCleanerCommand:
+            - "/scripts/shred.sh"
+            - "2"
+          storageClass:
+            reclaimPolicy: Retain
+            isDefaultClass: false
+        - name: ephemeral-local-ssd
+          hostDir: /mnt/local/k8s-local-storage
+          volumeMode: Filesystem
+          fsType: xfs
+          namePattern: "*"
+          blockCleanerCommand:
+            - "/scripts/shred.sh"
+            - "2"
+          storageClass:
+            reclaimPolicy: Delete
+            isDefaultClass: false
+
+  kata-containers:
+    enabled: true
+    path: apps/developer-productivity/kata-containers
+    project: developer-productivity
+    namespace: kata-system
+    class: coreweave
+    syncPolicy:
+      automated:
+        prune: true
+    valuesMerge:
+      kataContainers:
+        daemonSet:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                    - key: node.coreweave.cloud/reserved
+                      operator: In
+                      values:
+                        - coreweave
+                    - key: node.coreweave.cloud/state
+                      operator: In
+                      values:
+                        - production
+
+  hello-world:
+    enabled: true
+    class: coreweave
+
+  # buildweave buildkit
+  buildweave-buildkitd:
+    namespace: git-devprod
+    enabled: true
+    repoURL: https://artifacts.coreweave.com/basic/buildweave/helm/charts/
+    chart: buildkitd
+    targetRevision: 1.8.0
+    project: developer-productivity
+    class: coreweave
+    syncPolicy:
+      automated:
+        prune: true
+
+  # buildweave metrics
+  buildweave-metrics:
+    namespace: git-devprod
+    enabled: true
+    repoURL: https://artifacts.coreweave.com/basic/buildweave/helm/charts/
+    chart: buildweave-metrics
+    targetRevision: 1.2.1
+    project: developer-productivity
+    class: coreweave
+    syncPolicy:
+      automated:
+        prune: true
+
+  # buildweave cert rotator
+  buildweave-buildkitd-cert-rotator:
+    namespace: git-devprod
+    enabled: true
+    repoURL: https://artifacts.coreweave.com/basic/buildweave/helm/charts/
+    chart: buildkitd-cert-rotator
+    targetRevision: 1.7.0
+    project: developer-productivity
+    class: coreweave
+    syncPolicy:
+      automated:
+        prune: true
+
+  temporal-codec-server-vault:
+    enabled: true
+  katalog-executor:
+    enabled: true
+  katalog-executor-staging:
+    enabled: true
+  chartmuseum-ha:
+    enabled: true
+  katalog-resources:
+    enabled: true
+  katalog-resources-staging:
+    enabled: true
+  remote-dns:
+    enabled: false
+  testkube-control-plane:
+    enabled: true
+    valueFiles:
+      - values-prod-us-east-03-core-services.yaml
+  testkube-core-agent-kinf:
+    enabled: true
+    valueFiles:
+      - values-prod-us-east-03-core-services-kinf.yaml
+  testkube-core-agent-kplat:
+    enabled: true
+    valueFiles:
+      - values-prod-us-east-03-core-services-kplat.yaml
+  testkube-core-agent-clops:
+    enabled: true
+    valueFiles:
+      - values-prod-us-east-03-core-services-clops.yaml
+  testkube-core-agent-dataplat:
+    enabled: true
+    valueFiles:
+      - values-prod-us-east-03-core-services-dataplat.yaml
+  sloth-operator:
+    enabled: true
+  slo:
+    enabled: true
+  backstage:
+    enabled: true
+    valueFiles:
+      - values-prod-us-east-03-core-services.yaml
+  backstage-staging:
+    enabled: true
+    valueFiles:
+      - values-staging-us-east-03-core-services.yaml
+  backstage-to-jira-assets:
+    enabled: true
+    valueFiles:
+      - values-prod-us-east-03-core-services.yaml
+  zoom-to-gdrive:
+    enabled: true
+    valueFiles:
+      - values-prod-us-east-03-core-services.yaml
+  synthetics:
+    enabled: true
+    valueFiles:
+      - values-prod-us-east-03-core-services.yaml
+  eclypsium-alerts:
+    enabled: true
+    valuesMerge:
+      ingress:
+        host: eclypsium-alerts.core-services.ingress.coreweave.com
+  prefix-api-server-stag:
+    enabled: true
+  vpc-api-server-stag:
+    enabled: true
+  prefix-api-server-prod:
+    enabled: true
+  vpc-api-server-prod:
+    enabled: true
+  o11y-alerting-rpc:
+    enabled: true
+    valueFiles:
+      - values-us-east-03-core-services.yaml
+  admin-app-staging:
+    enabled: true
+  admin-app-prod:
+    enabled: false
+  seed:
+    enabled: true
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-03-coreweave-us-east-03-ngcp
+          namespace: victoria-metrics

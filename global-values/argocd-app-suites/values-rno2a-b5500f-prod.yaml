@@ -1,0 +1,112 @@
+clusterSpec:
+  region: rno2
+  scope: prod
+  clusterOrg: b5500f
+  networkAllocations:
+    externalLbCIDRs:
+      public: "166.19.5.0/27"
+argocd:
+  targetClusterURL: "https://172.20.10.136"
+
+applications:
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: true
+  jspolicy-policies:
+    values:
+      policies:
+        updateAddOrgId: true
+  konnectivity-agent:
+    values:
+      serverAddress: konn-tss.b5500f-prod.k8s.rno2.coreweave.com
+  control-plane:
+    valuesMerge:
+      etcd-local:
+        replicaCount: 0
+        metrics:
+          enabled: false
+      etcd-events:
+        enabled: false
+      etcdBackup:
+        enabled: false
+      etcdMaintenance:
+        enabled: false
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: 100.124.0.38
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.b5500f-prod.k8s.rno2.coreweave.com
+      kubeception:
+        apiserver:
+          deployment:
+            replicas: 3
+            resources:
+              limits:
+                memory: 8Gi
+              requests:
+                memory: 5Gi
+            etcdServers:
+              overrides: ""
+              address: https://etcd-local-operator:2379
+            advertiseAddress: "100.124.0.37"
+            oidcParams:
+              caFile: ""
+              groupsClaim: groups
+              groupsPrefix: ""
+              usernamePrefix: ""
+              clientID: "0oah9ywjn1h7SW3Mq697"
+              issuerURL: "https://cohere.okta.com/oauth2/aushde77lrQWjpzku697"
+              usernameClaim: email
+          service:
+            loadBalancerIP: "192.112.165.69"
+            annotations:
+              metallb.universe.tf/address-pool: public
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: "100.124.0.37"
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.16.0.1
+            - 100.124.0.37
+            - 172.20.55.159
+            - 192.112.165.69
+            - 172.20.10.136
+            - 10.80.0.1
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQU5VcHRNdjZZa1RLR1NCYVpwcmJJWWd3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5EQTBNall3TWpNd01EZGFGdzB6TkRBek1EVXdNak13Ck1EZGFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRGE1UksweWozY1dOZ08rWk0rclRPWndCSzQ1cEpUWDRVQ1dxNW5mY000TmxsUzB6QmRDQXRICnlhWVJFMVJNVTltdEo3SWZ2VmNmaFZiU2RZQ3NPaXBPVHVMM2htbXZsTzd5ZUV1S1NzUjE5SklQT0FLWTNZVHMKUU91RDBxZnA1b01FZHNyejQycUkxcmIwazM0eEJQUURPZUJJM2RvWGVBckVUblZGaGdGbUxjKzU3L01jZW54dQpESWFMVWpYNlBlZ0NzMGtEemVHRzdBSkQrZytscENpRG1ocXZSOTZheG1yeWsvYjNaRXNGOGcrSkVueXJ1ckwwCkRzemhidlVQRXBpVi9QL1E3QU9qNitDVVhJRUlUYXoycGtUWlR1ckR2ZTdTdkF2aEUxOHBYOG1tbElpSFVONXoKVWRnenZCL0pIT2VWNXNhV2gzS3BVVUh0TU5wU3pPdXhBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVU1L0JHM01MdU1RWWZaV3dicFFGdkorMWozcGd3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFETHZvQk1GbXVRcm50NkZneDJNaytXQzcvVjFyL1NZOHVmeFlJQ295cDY1U3lSMHY3Slk0cDE0bXVtNQpRbHNKbUVyNTY2b3ZIZGRlS20rQWdGVEdJeENPd0QrZTFCcldzUU9ZVHdZRHR4N3JJWnMwZ0JaMXhLeWEzdndXCi96bVVaMmltVmpaRVczQk05aDBVaHZhT09qRE5Nck5ML3lQNUFKTThObldhUFF2aVVZampkdWtqZ1R6ZFB5N1EKUjh5K2J6QkRkdkVxMVNUY0FOUTUwQUUyT1pldDlBZmtYdHRqQXIrREJML0FRdjQyaFJKMFRRV3YzSVh5dy9mTQpjYXB3MFUrbURDK3RiNEZWYVByTFR0anYzZ0xYTUQ0V09DcnE0d1V3aFpJdW5tMWh2ZkJ6eVBNamZqQ1NBaENBCiszbHhNMjhLNmVGQlprUnFVeDdLcldvUEdzWT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.30"
+  traefik:
+    enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: prod
+            cluster_org: b5500f
+            region: rno2
+          config:
+            lokiAddress: http://100.124.0.30/loki/api/v1/push
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-csi:
+    hasDedicatedTenant: true
+  vast-csi-controller:
+    hasDedicatedTenant: true
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-ngcp
+          namespace: victoria-metrics

@@ -1,0 +1,325 @@
+---
+# Source: regproxy/templates/regproxy-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: regproxy
+  namespace: regproxy
+automountServiceAccountToken: true
+---
+# Source: regproxy/templates/regproxy-liveness.yaml
+apiVersion: v1
+data:
+  liveliness.sh: |+
+    #!/bin/bash
+
+    IFS=', '
+
+    read -r -a repos <<< "$LIVELINESS_REPOS"
+
+    for i in "${repos[@]}"
+    do
+      echo "repo $i liveliness check..."
+      response=$(curl --head -L -w '%{http_code}' -o /dev/null -s -k -x http://127.0.0.1:3128 "$i" -m "${CURL_TIMEOUT:-2}")
+      if [[ "$response" -lt "200" ]] || [[ "$response" -ge "400" ]]; then
+        echo "failed curl for repo $i with response $response" >&2
+        exit 1
+      fi
+    done
+
+    cache_dir="/docker_mirror_cache"
+
+    # Get the available space in the directory
+    free_space=$(df -BG "${cache_dir}" | awk 'NR==2 {print $4}' | tr -d 'G')
+    # Offset by a bit to prevent race condition w/ cache manager clean-up
+    min_free=$[$(sed 's/g//I' <<< "${CACHE_MIN_FREE:-10g}")-5]
+
+    # Compare available space with the threshold
+    if [ "${free_space}" -lt "${min_free}" ]; then
+        echo "Free space in $cache_dir is $free_space; less than defined CACHE_MIN_FREE $min_free" >&2
+        echo "true" > /docker_mirror_cache/wipe_me
+        exit 1
+    fi
+
+kind: ConfigMap
+metadata:
+  name: regproxy-liveliness
+  namespace: regproxy
+---
+# Source: regproxy/templates/regproxy-prestart.yaml
+apiVersion: v1
+data:
+  postStart.sh: |
+    #!/bin/bash
+
+    echo 02 > /ca/ca.srl
+
+kind: ConfigMap
+metadata:
+  name: regproxy-poststart
+  namespace: regproxy
+---
+# Source: regproxy/templates/regproxy-rolebinding.yaml
+# This applies psp/regproxy to the regproxy ServiceAccount
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: psp:regproxy
+  namespace: regproxy
+subjects:
+  - kind: ServiceAccount
+    name: regproxy
+    namespace: regproxy
+roleRef:
+  kind: ClusterRole
+  name: psp:regproxy # A references to the role defined in k8s-cluster/in-cluster-config
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: regproxy/templates/regproxy-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: regproxy-directpath
+  namespace: regproxy
+  labels:
+    k8s-app: regproxy
+    kubernetes.io/cluster-service: "true"
+    kubernetes.io/name: "regproxy"
+spec:
+  
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  loadBalancerIP: 
+  
+  selector:
+    k8s-app: regproxy
+  ports:
+  - port: 3128
+    protocol: TCP
+    targetPort: 3128
+---
+# Source: regproxy/templates/regproxy-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: regproxy
+  namespace: regproxy
+  labels:
+    k8s-app: regproxy
+    kubernetes.io/name: "regproxy"
+    kubernetes.io/cluster-service: "true"
+spec:
+  replicas: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      k8s-app: regproxy
+  template:
+    metadata:
+      labels:
+        k8s-app: regproxy
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: 'docker/default'
+    spec:
+      serviceAccountName: regproxy
+      containers:
+        - name: proxy
+          image: registry.gitlab.com/coreweave/docker-registry-proxy:v1.14.2
+          imagePullPolicy: IfNotPresent
+          startupProbe:
+            failureThreshold: 15
+            httpGet:
+              path: /
+              port: 3128
+              scheme: HTTP
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          readinessProbe:
+            failureThreshold: 2
+            httpGet:
+              path: /
+              port: 3128
+              scheme: HTTP
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          livenessProbe: 
+            failureThreshold: 2
+            httpGet:
+              path: /
+              port: 3128
+              scheme: HTTP
+            periodSeconds: 10
+            timeoutSeconds: 10
+          env:
+            - name: WORKER_PROCESSES
+              valueFrom:
+                resourceFieldRef:
+                  containerName: proxy
+                  resource: limits.cpu
+            - name: SLOW_TIER_ENABLED
+              value: "true"
+            - name: SLOW_TIER_URIS
+              value: ~^/v2/replicate-production/(.*);~^/v2/fastertransformer_fudge/(.*);~^/v2/simplertransformer/(.*)
+            - name: SLOW_CACHE_DIRECTORY
+              value: /slow_docker_mirror_cache
+            - name: CURL_TIMEOUT
+              value: "5"
+            - name: CACHE_MIN_FREE
+              value: 15g
+            - name: REGISTRIES
+              value: gcr.io quay.io registry.gitlab.com registry.crowdstrike.com nvcr.io cvedia.azurecr.io
+                inflacr.azurecr.io inf5acr.azurecr.io ghcr.io us-docker.pkg.dev gitlab.com docker.artifacts.coreweave.com
+                docker.cloudsmith.io
+            - name: CACHE_MAX_SIZE
+              value: 350g
+            - name: ENABLE_MANIFEST_CACHE
+              value: "true"
+            - name: AUTH_REGISTRIES
+              valueFrom:
+                secretKeyRef:
+                  key: registries
+                  name: auth-registries
+            - name: ALLOW_OWN_AUTH
+              value: "true"
+            - name: ALLOW_PUSH_WITH_OWN_AUTH
+              value: "true"
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/bash", "-c", "/postStart.sh"]
+          volumeMounts:
+            - name: ca
+              mountPath: /ca/ca.crt
+              subPath: tls.crt
+            - name: liveliness
+              mountPath: /liveliness.sh
+              subPath: liveliness.sh
+            - name: poststart
+              mountPath: /postStart.sh
+              subPath: postStart.sh
+            - name: ca
+              mountPath: /ca/ca.key
+              subPath: tls.key
+            - name: cache
+              mountPath: /docker_mirror_cache
+            - name: slow-cache
+              mountPath: /slow_docker_mirror_cache
+          resources:
+            limits:
+              ephemeral-storage: 2Ti
+              memory: 360Gi
+            requests:
+              cpu: 2000m
+              ephemeral-storage: 1Ti
+              memory: 360Gi
+          ports:
+            - name: registry
+              protocol: TCP
+              containerPort: 3128
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_BIND_SERVICE
+            readOnlyRootFilesystem: false
+      imagePullSecrets:
+        - name: docker-registry-cw-proxy
+      volumes:
+        - name: ca
+          secret:
+            secretName: regproxy-ca
+        - name: liveliness
+          configMap:
+            name: regproxy-liveliness
+        - configMap:
+            defaultMode: 500 # This translates to r-x------; need to be able to execute, default value of 420 translates to r--r-----
+            name: regproxy-poststart
+          name: poststart
+        - name: cache
+          emptyDir:
+            medium: Memory
+            sizeLimit: "350Gi"
+        - name: slow-cache
+          emptyDir:
+            medium: ""
+            sizeLimit: 2Ti
+---
+# Source: regproxy/templates/cluster-secret-stores.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: regproxy
+  namespace: regproxy
+spec:
+  provider:
+    doppler:
+      project: regproxy
+      config: prod
+      auth:
+        secretRef:
+          dopplerToken:
+            name: doppler-token-auth-api
+            key: dopplerToken
+            namespace: external-secrets
+  conditions:
+    - namespaces:
+      - regproxy
+---
+# Source: regproxy/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: auth-registries
+  namespace: regproxy
+spec:
+  refreshInterval: 60s
+  secretStoreRef:
+    name: regproxy
+    kind: ClusterSecretStore
+  target:
+    name: auth-registries
+  dataFrom:
+    - find:
+        decodingStrategy: Auto
+        name:
+          regexp: AUTH_REGISTRIES
+      rewrite:
+      - regexp:
+          source: .*
+          target: registries
+---
+# Source: regproxy/templates/external-secrets.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: regproxy-ca
+  namespace: regproxy
+spec:
+  refreshInterval: 60s
+  secretStoreRef:
+    name: regproxy
+    kind: ClusterSecretStore
+  target:
+    name: regproxy-ca
+  dataFrom:
+    - find:
+        decodingStrategy: Auto
+        name:
+          regexp: CA_CERT
+      rewrite:
+      - regexp:
+          source: .*
+          target: tls.crt
+    - find:
+        decodingStrategy: Auto
+        name:
+          regexp: CA_KEY
+      rewrite:
+      - regexp:
+          source: .*
+          target: tls.key

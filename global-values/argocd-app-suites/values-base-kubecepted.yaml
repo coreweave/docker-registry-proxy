@@ -1,0 +1,486 @@
+clusterSpec:
+  region: dev-cluster
+  scope: kubecepted
+  apiserver:
+    port: 32443
+    url: "10.100.1.1"
+  networkAllocations:
+    asNumber: "64321"
+    podCIDRs: [ "10.236.64.0/18" ]
+    serviceCIDRs: [ "10.236.0.0/18" ]
+    internalLbCIDRs:
+      default: "10.236.128.0/18"
+  bgpPeersSelectors: false
+  asNumber: 64321
+  bgpPeers:
+    vrouter:
+      asn: 65432
+      ip: 10.100.1.1
+  coreDnsIp: 10.236.0.3
+argocd:
+  targetClusterURL: https://10.100.1.1:32443
+
+applications:
+  calico:
+    enabled: true
+    valuesMerge:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 250Mi
+        limits:
+          cpu: 500m
+          memory: 500Mi
+      networkConfig:
+        peerASN: 65432
+        hostCIDRs:
+          - 10.100.1.0/24
+        vrfs:
+          k8s:
+            enabled: true
+            filter:
+              enabled: true
+            peerIP: 10.100.1.1
+          tss:
+            enabled: false
+          ipmi:
+            enabled: false
+          net:
+            enabled: false
+          dpu:
+            enabled: false
+          cw_mgmt:
+            enabled: false
+      calicoController:
+        resources:
+          requests:
+            cpu: 200m
+            memory: 250Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
+      calicoNode:
+        calico-node-ebpf:
+          overrideServicesEndpoint:
+            host: 10.100.1.1
+            port: 32443
+      felix:
+        excludeCoreDnsFromNat: false # false when node-local-dns is absent
+      typha:
+        overrideServicesEndpoint:
+          host: 10.100.1.1
+          port: 32443
+        replicas: 2
+        resources:
+          requests:
+            cpu: 200m
+            memory: 250Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
+
+  control-plane:
+    enabled: true
+    valuesMerge:
+      preInstallJobs:
+        enabled: true
+      coreweave:
+        clusterSecretStores:
+          dev-cluster:
+            project: dev-cluster
+            config: dev
+        externalSecrets:
+          dev-cluster-selfsigned-k8s-root-ca:
+            secretStoreName: dev-cluster
+            target:
+              template:
+                type: kubernetes.io/tls
+            dataFrom:
+              - find:
+                  name:
+                    regexp: "DEV_MGMT_CA_CRT_64"
+                  decodingStrategy: Auto
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "tls.crt"
+              - find:
+                  name:
+                    regexp: "DEV_MGMT_CA_KEY_64"
+                  decodingStrategy: Auto
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "tls.key"
+          k8s-ca:
+            secretStoreName: dev-cluster
+            target:
+              template:
+                type: kubernetes.io/tls
+            dataFrom:
+              - find:
+                  name:
+                    regexp: "DEV_MGMT_CA_CRT_64"
+                  decodingStrategy: Auto
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "ca.crt"
+              - find:
+                  name:
+                    regexp: "DEV_MGMT_K8S_CA_CERT_64"
+                  decodingStrategy: Auto
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "tls.crt"
+              - find:
+                  name:
+                    regexp: "DEV_MGMT_K8S_CA_KEY_64"
+                  decodingStrategy: Auto
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "tls.key"
+      dev:
+        enabled: true
+        certHooks: false
+      pki:
+        customCASecretName: "dev-cluster-selfsigned-k8s-root-ca"
+        addtlCerts:
+          cloudApp: true
+        apiServer:
+          ipSans:
+            - 10.100.1.1
+            - 10.100.1.2
+            - 10.236.0.1
+            - 127.0.0.1
+          dnsNames:
+            - kube-apiserver
+            - kubernetes
+            - kubernetes.default
+            - kubernetes.default.svc
+            - kube-apiserver.kubecepted-cluster.svc.dev.internal.k8s
+      kubeception:
+        scheduler:
+          deployment:
+            replicas: 1
+          service:
+            type: NodePort
+            annotations: {}
+            externalTrafficPolicy: null
+        controllerManager:
+          deployment:
+            replicas: 1
+            cidrRanges:
+              clusterCidr: 10.236.64.0/12
+              serviceCidr: 10.236.0.0/18
+            resources:
+              requests:
+                cpu: 0.5
+                memory: 128Mi
+              limits:
+                cpu: 1
+                memory: 256Mi
+          service:
+            type: NodePort
+            annotations: {}
+            externalTrafficPolicy: null
+        apiserver:
+          deployment:
+            replicas: 1
+            resources:
+              requests:
+                cpu: 0.5
+                memory: 2Gi
+              limits:
+                cpu: 2
+                memory: 3Gi
+            cidrRanges:
+              nodePortRange: 30000-39534
+              clusterIpRange: 10.236.0.0/18
+            hostNetwork: false
+            dnsPolicy: ClusterFirst
+          service:
+            type: NodePort
+            nodePort: 32443
+            externalTrafficPolicy: Cluster
+            annotations: {}
+          certs:
+            dnsNames:
+            - kube-apiserver
+            - kubernetes
+            - kubernetes.default
+            - kubernetes.default.svc
+            - kube-apiserver.kubecepted-cluster.svc.dev.internal.k8s
+        extraSchedulers:
+          enabled: false
+          controller:
+            resources:
+              requests:
+                cpu: 0.5
+                memory: 128Mi
+              limits:
+                cpu: 1
+                memory: 256Mi
+          schedulers:
+            coreweave-coscheduler:
+              enabled: false
+              scheduler:
+                resources:
+                  requests:
+                    cpu: 0.5
+                    memory: 128Mi
+                  limits:
+                    cpu: 1
+                    memory: 256Mi
+            determined-coscheduler:
+              enabled: false
+              scheduler:
+                resources:
+                  requests:
+                    cpu: 0.5
+                    memory: 128Mi
+                  limits:
+                    cpu: 1
+                    memory: 256Mi
+            exhaustive:
+              enabled: false
+              scheduler:
+                resources:
+                  requests:
+                    cpu: 0.5
+                    memory: 128Mi
+                  limits:
+                    cpu: 1
+                    memory: 256Mi
+      etcd-local: &etcd
+        fullnameOverride: etcd-local
+        nameOverride: etcd-local
+        resources:
+          requests:
+            cpu: null
+            memory: null
+        replicaCount: 1
+        initialClusterState: "new"
+        persistence:
+          size: 1Gi
+        metrics:
+          enabled: false
+          serviceMonitor:
+            enabled: false
+        nodeSelector:
+          node.coreweave.cloud/local-persistent-storage: "true"
+      etcd-events:
+        <<: *etcd
+        fullnameOverride: etcd-events
+        nameOverride: etcd-events
+      etcdBackup:
+        enabled: false
+      etcdMaintenance:
+        enabled: false
+
+  coredns:
+    enabled: true
+
+  cw-node-controller:
+    enabled: false
+
+  epimetheus:
+    enabled: false
+
+  external-secrets:
+    enabled: true
+
+  eventrouter:
+    enabled: false
+
+  internal-control-plane:
+    enabled: false
+
+  in-cluster-config:
+    enabled: true
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQUpndXlPUzgzQUpxK0FyeC9jMjl0UmN3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU1qQXlNRGd3TkRBNE5EbGFGdzB6TVRFeU1UZ3dOREE0Ck5EbGFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRERPeTVSenRNYldQZXdrL3J1anpXY1JNWk5ld1BLMjF5eFZSMjl6YUk2dFhLVng0VGcrWm9oClZWT25EL00xNEtMd2JYdjBRRHcrTSs3cmszc2lCKzFaMVhTcVhjTHd0V25UVnVxOFZnSFlzem5FN1p6d0xLbUIKZEZ3V1JveGlmMjdBUUptb1Exd0UvYVRqV3VLY3UrKzFwbHIzZWZLV3VzZ1NXL1FMSytzWnc3Z1lVc1BHL0JQYQpoUVRDMEFKV1V0YmJkM0tzcUZPMitXVWZzR2RRQUtuclh6TE1oL0VNZUdiYlY1K2tNNW1pWjM2NEs0S1FPNm5ECjJFWjk3WERuMG43ZnNVUHdTMENDdVJSbHFOaFJhMzYrMnc3RHBXbDVEUytIaTQ0Q0U5SC9kM0RUUEpCWXgwLy8KcEtHZDJVc2xZdVBhNFl0NmJGTDN5azFISlhJdG40RExBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVVSR1gyeHkvb2RMR2kvZUtYdkgwMGhHTitBWTR3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFMamhMckRxbU1jL1NzZURpUU1ybUsrdW80aWlSTUY2Ylpjb1dac0tzYldGbDlBQkZ0QXBGVU1JL0UvKwoxcTdDRUxXNE9STWRrT2puUVpZM3pubFlJQjhrNGw3OUlOa3BaSWxzMHg2bFdSOWRGUUNaMG1BdFFFWnBmUkpVCmZPZGhXRDNoaVptMm1VOUpXWm56dU1QczloNUFwekNlc3FBU2JwT1ZjRWZTRkV5V0JJVjFlRWp0TThDZWV6a3QKQnlOaWFKNG54UFIzRFlSZklLQlFrd3ZOTlhESDBqMjdiVTdsa0pvU09uUHkwUXQ1bGRia2I2YTRtaWd0N3VFLwpna2NJSklpMy9TTmJaWTl0U1FGZVFSSnZlYUtaSmh4ajM5R0dRcnJzK2ZOcW16TnJxZzVqdTZSSW9yY1ErZzJJCnprWFcrWFpscEJ5aWFCbmJTTW1aVGkzbFdLWT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+        server: 10.100.1.1:32443
+
+  k8s-internal-svc:
+    enabled: false
+
+  local-storage-provisioner:
+    enabled: true
+
+  metallb:
+    enabled: true
+
+  metrics:
+    enabled: true
+
+  metrics-server:
+    enabled: true
+
+  nfd:
+    enabled: false
+
+  node-problem-detector:
+    enabled: false
+
+  promtail:
+    enabled: false
+
+  regproxy:
+    enabled: false
+
+  # dev-cluster is the only thing in AppSuites using  rook-ceph
+  # Just sticking with the app's built in values files for now because of that
+  rook-operator:
+    enabled: true
+    path: apps/csi/rook-operator
+    valueFiles:
+      - values-dev.yaml
+
+  rook-cluster:
+    enabled: true
+    path: apps/csi/rook-cluster
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          rook-cluster-dev:
+            project: ceph
+            config: dev
+        externalSecrets:
+          rgw-admin-ops-user:
+            secretStoreName: rook-cluster-dev
+            type: kubernetes.io/rook
+            dataFrom:
+            - find:
+                name:
+                  regexp: ACCESSKEY
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "accessKey"
+            - find:
+                name:
+                  regexp: SECRETKEY
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "secretKey"
+          rook-ceph-mon:
+            secretStoreName: rook-cluster-dev
+            dataFrom:
+            - find:
+                name:
+                  regexp: CLUSTER_NAME
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "cluster-name"
+            - find:
+                name:
+                  regexp: FSID
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "fsid"
+            - find:
+                name:
+                  regexp: MON_SECRET
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "mon-secret"
+            - find:
+                name:
+                  regexp: CEPH_USERNAME
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "ceph-username"
+            - find:
+                name:
+                  regexp: CEPH_SECRET
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "ceph-secret"
+            - find:
+                name:
+                  regexp: ADMIN_SECRET
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "admin-secret"
+          rook-ceph-dev-admin:
+            secretStoreName: rook-cluster-dev
+            dataFrom:
+            - find:
+                name:
+                  regexp: CEPH_USERNAME
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "userID"
+            - find:
+                name:
+                  regexp: CEPH_SECRET
+              rewrite:
+                - regexp:
+                    source: "(.*)"
+                    target: "userKey"
+      dev:
+        enabled: true
+        image: quay.io/ceph/demo:latest-quincy
+        network: "10.236.64.0/18"
+        service:
+          rgw:
+            port: 8082
+          mon:
+            port: 3300
+        persistence:
+          storageClass: local-ssd
+          size: 20Gi
+        resources:
+          requests:
+            memory: 1Gi
+          limits:
+            memory: 1Gi
+      mon:
+        sealedSecret: null
+        endpointsConfig:
+          endpoints:
+            rook-ceph-dev-0: rook-ceph-dev.rook-ceph-dev.svc.cluster.local:3300
+          maxMonId: -1
+      rook-cluster:
+        csi-sealed-secret: {}
+      csi: null
+      cephCluster:
+        region: dev
+      storageClasses:
+        presets: null
+        additionalClasses:
+        - name: block
+          cdiCSIClone:
+            enable: true
+          pool: rbd
+          type: rbd
+          mapOptions: ms_mode=prefer-secure
+        - name: shared
+          cdiCSIClone:
+            enable: true
+          pool: cephfs_data
+          type: cephfs
+          kernelMountOptions: recover_session=clean,ms_mode=prefer-secure
+      s3:
+        enabled: false
+      cephExporter:
+        enabled: false
+    ignoreDifferences:
+      - group: ''
+        kind: ConfigMap
+        name: rook-ceph-mon-endpoints
+        jsonPointers:
+          - /data
+          - /metadata/labels

@@ -1,0 +1,214 @@
+clusterSpec:
+  region: rno2
+  scope: prod
+  clusterOrg: 189d5b
+  networkAllocations:
+    externalLbCIDRs:
+      public: "166.19.5.32/29"
+    internalLbCIDRs:
+      regional: "10.16.8.0/22"
+
+argocd:
+  targetClusterURL: https://172.20.3.230
+
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutatePodTailscaleNetfilter: true
+        mutatePodTailscaleResources: true
+        mutateNodeTypeGPU: false
+        updateAddOrgId: true
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: # TODO(jdahmen): TBD from @brandonrjacobs
+
+      nodeLifeCycle:
+        applyTaints: true
+
+  konnectivity-agent:
+    valuesMerge:
+      serverAddress: konn-tss.189d5b-prod.k8s.rno2.coreweave.com
+  control-plane:
+    valuesMerge:
+      etcd-local:
+        replicaCount: 0
+        metrics:
+          enabled: false
+      etcd-events:
+        enabled: false
+      etcdBackup:
+        enabled: false
+      etcdMaintenance:
+        enabled: false
+      konnectivity:
+        sidecar: false
+        service:
+          loadBalancerIP: 100.124.0.33
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: konn-tss.189d5b-prod.k8s.rno2.coreweave.com
+      kubeception:
+        apiserver:
+          deployment:
+            etcdServers:
+              overrides: ""
+              address: https://etcd-local-operator:2379
+            advertiseAddress: ""
+            oidcParams:
+              caFile: ""
+              groupsClaim: groups
+              groupsPrefix: ""
+              usernamePrefix: ""
+              clientID: "F9ddZbeoORF5dkatgySOdaQBrjXCYgGVM86Z7umc"
+              issuerURL: "https://login.189d5b-prod.coreweave.app/application/o/k8s-cluster-rno2/"
+              usernameClaim: preferred_username
+          service:
+            loadBalancerIP: 172.21.0.24
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: 100.124.0.32
+      pki:
+        apiServer:
+          dnsNames:
+            - kube-apiserver
+            - kubernetes
+            - kubernetes.default
+            - kubernetes.default.svc
+            - kubernetes.default.svc.cluster.local
+            - api.189d5b-prod.k8s.rno2.coreweave.com
+            - kube-apiserver.tenant-189d5b-prod.svc.cluster.local
+            - api-tss.189d5b-prod.k8s.rno2.coreweave.com
+            - konn-tss.189d5b-prod.k8s.rno2.coreweave.com
+            - k8s.189d5b-prod.coreweave.app
+            - k8s.traefik
+            - k8s.traefik.svc
+            - k8s.traefik.svc.cluster.local
+            - k8s-rno2.cheetah-koi.ts.net
+            - k8s-rno2
+
+          ipSans:
+            - 127.0.0.1
+            # - 192.112.165.71
+            - 100.124.0.33
+            - 172.20.61.101
+            - 172.20.3.230
+            - 172.20.12.135
+            - 100.124.0.32
+            - 10.16.0.1
+            - 172.21.0.24
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRRTVydWcrU0dTY2huL1E0Z3F3M0RxREFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1EUXhOekU1TWprMU4xb1hEVE0wTURJeU5ERTVNamsxCk4xb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFOQjQ3dy9DKzFFQ093T0RIalM4d3dYSHZ3dnVGZmhVWVpUUTRXdEY3VHMzajlvWUk2SmgyMHAxClRqZXRSS040cnZBQjZJWUhobkhvZWVZZkdhKzR6Z0pCL29qTm10bVdMUUNiN3FTTU0xSGFaMUFlc0g3OS92eVQKZ0ZpcXRWdlJZS0Z2V2ZsVUVOU2t4eHZOdjNFVlFWbjZBcGFWOW90aXp1dnRPRk1LS21Gb1ZqUXJrdkNrUDdFNApLR2w2cjRXMENmRTRZUzlFbnNqRVgrNlRvbTU5TnU0L05lOHdST1dzdzdJZE1XS1RQZ1lydzAwMnF4MEYrOWtOCkRqaDNuYnB5ZEhrZ2VIbzFnV3BLZFVFTU9ESW1TdnFIT3RvQjJ1VUpiQXFkR3VscDZaZVpuR0dRdEU2a1dQdE8KUDRteEZlc01aaXI3TlB6TnZ6bHhNZWVVT0VDUGR6OENBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCUzUvbkNlMHlxeWhCcThoMXZ3RlNUM3loZlZEakFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQXY2MTFUZEZ1YmhIeTg4cnRPeVNKZ2UvYytRTmV1UUtQS1R2cVFiLzVvNGJlWnJBMlVURUtUTEZySzYwdwpoTDhHSWdWUVc2RGU5YnF4WmZTZGZIQkJmZDdTZk1rN0lIN1g3RUVsYnJSekxJUi9rWnVjYzZ6MXZTRG5Yc1hCCjd4RmJiZ2pCVWR2SGorK3o2bGJSckJFS3d1ODU5VlFMUEhpTU5mcUgxWmkxL0M1WG5sZ0tPclNFeWQxQXRhTmsKNnYxamREMHhQL2pJeVZzK0FNYk9jZStIWjRxL2h3dXM4SXRxUEhacGNkZ1dscXp0MDFhVmwzS1d5RXJqb2xNbgpKOWg2R3g1Y1dMZWZXaFFsYk94R2c4VDc1UXpBUDVNc3k0azBRaVRya0NSN1dYdHVEWDdMMWRoYWhyNk0xMkgxCmZTSGVvUTFKOTdIMFQ0aW1mMHJyb0NSMDNnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: 100.124.0.40
+  metrics-server:
+    valuesMerge:
+      metrics-server:
+        resources:
+          limits:
+            cpu: 4
+          requests:
+            cpu: 2
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        prometheus:
+          enabled: true
+        fullnameOverride: prometheus-operator
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      vast:
+        enabled: true
+        backends:
+          - name: storage-backend02
+            ip: 100.121.33.10
+  traefik:
+    enabled: false # TODO: enable traefik after fixing templates
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: prod
+            cluster_org: 189d5b
+            region: rno2
+          config:
+            lokiAddress: http://100.124.0.40/loki/api/v1/push
+        psp:
+          enabled: false
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  teleport:
+    valuesMerge:
+      teleport-kube-agent:
+        storage:
+          storageClassName: local-ssd
+  rook-operator:
+    enabled: false
+  vast-csi: &vast_csi
+    targetRevision: 1.55.0
+    hasDedicatedTenant: true
+    vastClusters:
+      - name: prod-01
+      - name: prod-02
+        isDefault: true
+    valuesMerge:
+      image:
+        csiVastPlugin:
+          tag: v2.4.2-beta-1526814
+      storageClasses:
+        shared-vast:
+          vipPoolFQDN: 189d5b-prod.storage-backend02.rno2.int.coreweave.cloud
+          mountOptions:
+            - vers=3
+            - nconnect=16
+            - lookupcache=pos
+            - noacl
+            - noatime
+            - remoteports=100.121.37.1-100.121.37.255
+  vast-csi-controller:
+    <<: *vast_csi
+  calico:
+    valuesMerge:
+      felix:
+        featureDetectionOverride: "MASQFullyRandom=false,SNATFullyRandom=false"
+  nvidia-device-plugin:
+    valuesMerge:
+      runtimeConfig: |
+        disable-require = false
+        #swarm-resource = "DOCKER_RESOURCE_GPU"
+        accept-nvidia-visible-devices-envvar-when-unprivileged = true
+        accept-nvidia-visible-devices-as-volume-mounts = true
+        [nvidia-container-cli]
+        #root = "/run/nvidia/driver"
+        #path = "/usr/bin/nvidia-container-cli"
+        environment = []
+        #debug = "/var/log/nvidia-container-toolkit.log"
+        #ldcache = "/etc/ld.so.cache"
+        load-kmods = true
+        #no-cgroups = false
+        #user = "root:video"
+        ldconfig = "@/sbin/ldconfig.real"
+        [nvidia-container-runtime]
+        #debug = "/var/log/nvidia-container-runtime.log"
+        log-level = "info"
+        # Specify the runtimes to consider. This list is processed in order and the PATH
+        # searched for matching executables unless the entry is an absolute path.
+        runtimes = [
+            "docker-runc",
+            "runc",
+        ]
+        mode = "auto"
+            [nvidia-container-runtime.modes.csv]
+            mount-spec-path = "/etc/nvidia-container-runtime/host-files-for-container.d"
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rno2-coreweave-rno2-ngcp
+          namespace: victoria-metrics

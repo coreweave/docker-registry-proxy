@@ -1,0 +1,145 @@
+clusterSpec:
+  region: us-east-04
+  scope: prod-ric1
+  clusterOrg: cfc69f
+  cni: cilium
+  networkAllocations:
+    externalLbCIDRs:
+      public: "166.19.11.24/29"
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-cfc69f-prod-ric1.svc.cluster.local
+
+applications:
+  calico:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: false
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.15.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+      cilium:
+        hubble:
+          enabled: false
+          metrics:
+            enabled: null
+          tls:
+            enabled: false
+          ui:
+            enabled: false
+          relay:
+            enabled: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.15.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.112"
+  konnectivity-agent:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  coredns:
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.0.235"
+      kubeconfig:
+        cluster: cfc69f-prod-ric1
+        path: /etc/kubernetes/admin-config
+      secretName: internal-admin-kubeconfig
+      monitoring:
+        enabled: true
+      extraServiceAnnotations:
+        metallb.universe.tf/address-pool: tss
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      vast:
+        enabled: true
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.0.235"
+      nldClusterIP: "10.16.0.30"
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 3
+          instanceType: cd-hc-a384-genoa
+        gpu-l40s:
+          targetNodes: 64
+          instanceType: gd-8xl40s-i128
+        gpu-l40s-burst:
+          targetNodes: 14
+          instanceType: gd-8xl40s-i128
+        gpu-h200:
+          targetNodes: 27
+          instanceType: gd-8xh200ib-i128
+        gpu-h200-buffer:
+          targetNodes: 6
+          instanceType: gd-8xh200ib-i128
+        gpu-l40:
+          targetNodes: 1
+          instanceType: gd-8xl40-i128
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: prod-ric1
+            cluster_org: cfc69f
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.112/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          vipPool: cfc69f-215a0fadc4c1
+          viewPolicy: nosquash-cfc69f-215a0fadc4c1
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

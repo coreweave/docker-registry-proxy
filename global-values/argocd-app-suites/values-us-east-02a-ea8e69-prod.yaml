@@ -1,0 +1,138 @@
+# https://coreweave.atlassian.net/browse/KPLAT-223
+
+clusterSpec:
+  region: us-east-02
+  scope: prod
+  clusterOrg: ea8e69
+  networkAllocations:
+    podCIDRs: ["28.15.128.0/17"]
+    serviceCIDRs: ["28.15.64.0/19"]
+    internalLbCIDRs:
+      default: "28.15.112.0/20"
+    externalLbCIDRs:
+      public: "166.19.8.144/28"
+
+argocd:
+  targetClusterURL: https://172.21.0.4
+
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  konnectivity-agent:
+    enabled: false
+    values:
+      serverAddress: konn-tss.tenant-ea8e69-prod.k8s.rno2.coreweave.com
+  calico-cleanup-controller:
+    releaseName: ea8e69-prod-calico-cleanup-controller
+  calico:
+    enabled: true
+    valuesMerge:
+      networkConfig:
+        hostCIDRs:
+          - 28.15.0.0/18
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        h100:
+          targetNodes: 0
+          instanceType: gd-8xh100ib-i128
+        h100-buffer:
+          targetNodes: 0
+          instanceType: gd-8xh100ib-i128
+        h200:
+          targetNodes: 0
+          instanceType: gd-8xh200ib-i128
+        h200-buffer:
+          targetNodes: 0
+          instanceType: gd-8xh200ib-i128
+        cpu:
+          targetNodes: 0
+          instanceType: cd-gp-a192-genoa
+        cpu-control-plane:
+          targetNodes: 0
+          instanceType: cd-gp-a192-genoa
+  control-plane:
+    # HACK: Applied manually needs version 1.29
+    apiserver:
+      deployment:
+        oidcParams:
+          caFile: ""
+          groupsClaim: groups
+          groupsPrefix: ""
+          usernamePrefix: ""
+          clientID: "nOQ63iaEdUIGGWuYbjGWtHFzrtNtHIYyACGxPEsb"
+          clientSecret: "d71FqtMnYTta3cDRw8Y2OW6ptfNEwoEVgwQwBa546ljgDhRT9I3OIB6bGtDX98EJcRuvtIdOJBQJbYpDQ08GggRGSksNZV84kmrXuC6ntJUEoNQFNSjxfDDOCPmD7LgH"
+          issuerURL: "https://login.ea8e69-prod.coreweave.app/application/o/cluster-auth/"
+          usernameClaim: preferred_username
+    enabled: false
+  coredns:
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.0.40"
+      kubeconfig:
+        cluster: ea8e69-prod
+        path: /etc/kubernetes/admin-config
+      secretName: internal-admin-kubeconfig
+  crowdstrike:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: 100.124.0.11
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      coreDnsClusterIp: "28.15.64.10"
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.0.40"
+      nldClusterIP: "28.15.70.70"
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: prod
+            cluster_org: ea8e69
+            region: us-east-02
+          config:
+            lokiAddress: http://100.124.0.11/loki/api/v1/push
+  # vast-csi:
+  #   hasDedicatedTenant: true
+  managed-traefik:
+    enabled: true
+  node-problem-detector:
+    valuesMerge:
+      extraEnvVars:
+        - name: NPD_NO_PUBTEST
+          value: "1"
+  ping-exporter:
+    valuesMerge:
+      publicTargetsEnabled: false
+  npo:
+    valuesMerge:
+      resources:
+        limits:
+          memory: "1.5Gi"
+        requests:
+          memory: "1.5Gi"
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-02-coreweave-us-east-02-ngcp
+          namespace: victoria-metrics

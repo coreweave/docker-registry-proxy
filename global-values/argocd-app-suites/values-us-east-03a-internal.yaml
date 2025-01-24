@@ -1,0 +1,65 @@
+clusterSpec:
+  apiserver:
+    url: &url k8s.us-east-03.int.coreweave.com
+    addtlUrl: *url
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.56.0/23"
+applications:
+  argocd-ngcp:
+    valuesMerge:
+      argo-cd:
+        enabled:
+          false
+    automatedOptions:
+      prune: false
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "gb9a250,g1cb192,g1c9ff2"
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  internal-control-plane:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          etcd-backups-internal:
+            config: prod_int_us-east-03
+      etcdBackup:
+        backblaze:
+          bucket: us-east-03-int-etcd-backups
+      etcdMaintenance:
+        cluster: us-east-03-internal
+        prometheus:
+          cluster: us-east-03-internal
+  vector:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        cluster: us-east-03-internal
+      vector_gateway:
+        enabled: true
+        replicas: 3
+        securityContext:
+          runAsUser: 1000
+        haproxy:
+          securityContext:
+            runAsUser: 1000
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false
+  argo-sa:
+    enabled: true
+    valuesMerge:
+      argo-workflows:
+        server:
+          extraArgs:
+          - --auth-mode=client
+          - --insecure-skip-verify
+          serviceAnnotations:
+            external-dns.alpha.kubernetes.io/hostname: workflows.sa.us-east-03.int.coreweave.com

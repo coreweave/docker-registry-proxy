@@ -1,0 +1,289 @@
+clusterSpec:
+  scope: condor2
+  clusterOrg: 60e2f0
+  networkAllocations:
+    externalLbCIDRs:
+      public: "192.112.172.128/26"
+
+argocd:
+  targetClusterURL: https://172.20.50.180
+
+applications:
+  node-problem-detector:
+    targetRevision: 1.37.0
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: ""
+      nodeLifeCycle:
+        deliveredReservation: "60e2f0"
+        applyTaints: true
+  coredns:
+    valuesMerge:
+      replicas: 3
+  control-plane:
+    valuesMerge:
+      etcd-local:
+        enabled: false
+      etcd-local-node:
+        enabled: false
+      etcd-events:
+        enabled: false
+      etcdBackup:
+        enabled: false
+      etcdMaintenance:
+        enabled: false
+      kubeception:
+        apiserver:
+          deployment:
+            replicas: 3
+            etcdServers:
+              overrides: /events#https://etcd-events-operator:2379
+              address: https://etcd-local-operator:2379
+            oidcParams:
+              caFile: ""
+              groupsClaim: groups
+              groupsPrefix: ""
+              usernamePrefix: ""
+              clientID: wBgNoSbeYweFV2GRtbaJOUhCAJ4qkU4VSFBbkyIP
+              issuerURL: https://mai-authentik.inf5mi6t.com/application/o/oidc-application-oidc-k8s/
+              usernameClaim: preferred_username
+            advertiseAddress: ""
+            resources:
+              requests:
+                cpu: 5
+                memory: 25Gi
+              limits:
+                # Just under the max of the ord1-tenant over the past 30 days (2024-01-03). This cluster is half the size, so we should be fine.
+                memory: 250Gi
+          service:
+            loadBalancerIP: "172.21.0.4"
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: "100.124.0.1"
+      pki:
+        apiServer:
+          dnsNames:
+            - kube-apiserver
+            - kubernetes
+            - kubernetes.default
+            - kubernetes.default.svc
+            - kubernetes.default.svc.cluster.local
+            - api.60e2f0-condor2.k8s.rdu1.coreweave.com
+            - kube-apiserver.tenant-60e2f0-condor2.svc.cluster.local
+            - api-tss.60e2f0-condor2.k8s.rdu1.coreweave.com
+            - kubernetes-rdu1
+            - kubernetes-rdu1.default
+            - kubernetes-rdu1.default.svc
+            - kubernetes-rdu1.default.svc.cluster.local
+            - kubernetes-rdu1-1.tail8d43b.ts.net
+            - kubernetes-rdu1.tail8d43b.ts.net
+            - konn-tss.60e2f0-condor2.k8s.rdu1.coreweave.com
+          ipSans:
+            - 127.0.0.1
+            - 172.20.50.180
+            - 172.21.0.4
+            - 100.124.0.1
+            - 10.16.0.1
+            - 10.16.4.10
+            - 10.80.16.1 # TODO: Remove when cw-mgmt interface is removed
+  epimetheus:
+    valuesMerge:
+      slackChannelID: "C06BNMEE5UK" #epimetheus-rdu1-condor
+  in-cluster-config:
+    valuesMerge:
+      ipmiFanController:
+        enabled: true
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRTkZ4eURXTnBNR1ZKMlpzdlR1M2ZkVEFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJek1USXlPREU1TkRFek4xb1hEVE16TVRFd05URTVOREV6Ck4xb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFLcDNtRkxRYlZYbzlUcG1ydW9lOTJ1RDFmOFFaVjdDaFJpQlVnU3N0aHhOeGFHVHVKaGt6d2o1CkJhMVBUNzl2VGpzeitjdk1Lb2UrdGVUcDZPRG9VNnBGNUljWCtZVUJzY0dJK2IwZzBzOWpQM1Bya0lSOXNJSzgKMWJteUdEcTRxVTBjWHhqS1M1ZDNId3YxeGtFT0c2azRzWDYwZzAzYXBwdVBWUENkUVN1ajVSN1pBSGFiVGphcQpvcE4xQlB1ZTVOdDB3emNFd1A4Y1lWRTlSR0ZxUDhaclNINWRwQjNpR0pseHl4d1pQSXQ5OFBtU3dXOXJhYXZtCmkrbkNucFRNeEx4eVU2RG10TDBFWlpxcUVCMjJsdTFSVzN4TGZoYlh1SFlTcFdKSVdSUG9ENzJnZlpiSjg5L2cKNVJpbkZTcVBPZVNQMXJGMi9TRXNyb2dCei9UUHJyY0NBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCUS9KNjhhT1BKaFE3MVg1QlB5SnBQeVJFU0gxekFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQUE1Wk9NdHd0M2pJckdVTFowc2ZHOWtIdzcwbXd6UzhlbkloRTEzTEVqZTg2R2RSeUhZQWQ1RDMzQ3Urbwp1K0lFeTdJU3N4aFBpK2s2NUZrMG5kVDBleDIwajRlWTVNckU0aitubjZ1bDZRYmtHMyt5U3g3ZktsTE1wYWZ6CjJEVHJ0QTNiM056eFZDQ2UyVDhNK1ExT0tDRmIxK21EYW5aSk1RNTlxM0RiVE5vR1NLdTBWZHhGcDlSMVFnVUIKVDN2cUVnQW1TWlM3NERMU0o5RkI0MkU3YlNhQ0ZBTkdmTEU2NmxiNVZUNjkvVGZES2c4VXFENEEwQVFNQmJiTwpFWDBuYVhuaFFXVUdiSnIzSG1QV0xQQUxqb2JRcFlEL003MDFCYmNIQXB3MDJCRklnbjN4eWV5R09mL3Q2STdvCkhoL2JYSkFTMjBFQ0JGa0VhRGZuV2hOYkVnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  ipmi-exporter:
+    valuesMerge:
+      pspEnabled: true
+  katalyst-proxy:
+    valuesMerge:
+      enableExternalDNS: false
+      loadBalancerIP: "100.124.0.3"
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        prometheus:
+          enabled: true
+          prometheusSpec:
+            priorityClassName: system-cluster-critical
+            resources:
+              requests:
+                memory: 330Gi
+              limits:
+                memory: 330Gi
+      ufm:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.173.1.246
+                - 10.173.1.247
+              name: RDU1-FAB8
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                    - /cw1
+                    - /cw2
+                    - /cw3
+                    - /cw4
+                    - /cw5
+                    - /cw6
+                    - /cw7
+                    - /cw8
+                    - /cw9
+                    - /cw10
+                    - /cw11
+                    - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+  metrics-server:
+    valuesMerge:
+      metrics-server:
+        resources:
+          requests:
+            cpu: 1
+            memory: 8Gi
+          limits:
+            cpu: 2
+            memory: 8Gi
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: condor2
+            cluster_org: 60e2f0
+            region: rdu1
+          config:
+            lokiAddress: http://100.124.0.3/loki/api/v1/push
+        psp:
+          enabled: true
+  vast-csi:
+    valuesMerge:
+      storageClasses:
+        shared-vast:
+          mountOptions:
+            - vers=3
+            - nconnect=16
+            - lookupcache=pos
+            - noacl
+            - noatime
+            - remoteports=100.121.1.1-100.121.1.237~100.121.3.1-100.121.3.240
+      nodeplugin:
+        updateStrategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 0
+            maxUnavailable: 2000
+  vector:
+    enabled: false
+    valuesMerge:
+      coreweave:
+        cluster: condor2
+        cluster_org: 60e2f0
+        region: rdu1
+        sealedSecrets:
+          vector-external:
+            DATADOG_KEY: AgCK1G+iFE6jLjefl/WnNki3oQJc/Oo5LI+1VmV9KZf+/T72vyA+NQyd/vykZg01DrIaQpWVr8dhnCVxbsOYcOvdPbq2kAJj4q5aJIGt3ePLrSXh7xIm93vETz/IOvqOulQ2+5R0WaCm0SY8ko1NTNv6+UnVFIHgpMtkOtDYPNnrll/cVIJ99tzRtCh4qT84TvHffkrolZGh4RhCXpDMeGAqqrDh35VwM9reM1DP+QO+4BVgSsxeLGCj18HxeRopHAJf3lucM3v5f1WuzzL/LgZbzkg4LcwAAw2dfdmCcu2WB40mDfEZi8LFuOMB1eiY9FCi3xNkTuVMRU6iMcMOSOpLBKepU0PV9+JDgWK6zPsjHJw7StMl8DjmaDmNQUN/bjnJCqfEFxUqtfBCrTv6Qk3+gqydynKg5sSVGtiohjgD9awTOhW4x+1Ka59ybKE+heC0ttzePQ8OCuZr5g/5TOyrrLAqD682VKkTfElbhEckgEjEho7fFbcUZBzqEXROwqNoCrSRcVX5aIJ8QsF8qzVLgGQUuBGqknuTGwxJrrMzb89+tWAX9DF4pIYH40ENwtLoKotnEJVtTKBOJOegva3iFc7XhjJni+DiAVaHC8zrJmiq5h+Sc7TwbG+GZvYd5xNiXFSlOzcO0n5MPv2feT5gP2axt9IY+8ortAfU4qRlv/VVH9h8h6FCCW+qhoOA39TfPR0yRvzZgA70Xmq0BanXseWl05YEaPD86JVCr4yPK2o=
+      vector_tunnel:
+        enabled: false
+        client:
+          enabled: true
+        server:
+          enabled: false
+      vector_gateway:
+        enabled: false
+        replicas: 10
+        resources:
+          limits:
+            memory: 40Gi
+          requests:
+            memory: 40Gi
+        haproxy:
+          enabled: true
+          replicas: 10
+        envFrom:
+          - secretRef:
+              name: vector-external
+        additionalSinks:
+          gateway_external_logs:
+            inputs:
+              - gateway_kube_router._unmatched
+              - gateway_kube_events_remap
+              - gateway_kube_router.syslog
+              - gateway_kube_router.journald
+            type: datadog_logs
+            default_api_key: '${DATADOG_KEY:?err}'
+            site: 'us3.datadoghq.com'
+            buffer:
+              type: memory
+              when_full: drop_newest
+              max_events: 200000
+            healthcheck:
+              enabled: false
+
+  jspolicy-policies:
+    values:
+      policies:
+        mutatePodTailscaleNetfilter: false
+        mutatePodTailscaleResources: false
+
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  traefik:
+    enabled: false
+  ping-exporter:
+    valuesMerge:
+      psp:
+        create: true
+  kubemod:
+    enabled: false
+  calico:
+    targetRevision: 1.27.0
+    valuesMerge:
+      typha:
+        resources:
+          requests:
+            cpu: "8"
+            memory: 32Gi
+          limits:
+            cpu: "16"
+            memory: 32Gi
+      felix:
+        featureDetectionOverride: "MASQFullyRandom=false,SNATFullyRandom=false"
+
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        resources:
+          requests:
+            cpu: "16"
+            memory: 23Gi
+          limits:
+            cpu: "16"
+            memory: 23Gi
+        namespaceSelector: {}
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-rdu1-coreweave-rdu1-ngcp
+          namespace: victoria-metrics

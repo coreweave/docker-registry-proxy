@@ -1,0 +1,131 @@
+clusterSpec:
+  zone: dev1c
+  apiserver:
+    addtlUrl: k8s.mgmt.dev1c.int.coreweave.com
+    ip: 10.232.128.11
+    url: k8s.mgmt.dev1c.int.coreweave.com
+  coreDnsIp: 10.236.0.3
+  networkAllocations:
+    asNumber: "64321"
+    podCIDRs: ["10.236.64.0/18"]
+    serviceCIDRs: ["10.236.0.0/18"]
+    internalLbCIDRs:
+      default: "10.236.128.0/18"
+    externalLbCIDRs: ~
+
+argocd:
+  targetClusterURL: https://10.232.128.11
+
+applications:
+  control-plane:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          control-plane-mgmt-cluster:
+            config: dev
+            project: dev-cluster
+          generic-pull-secrets-mgmt-cluster:
+            config: dev
+        externalSecrets:
+          k8s-ca:
+            secretStoreName: control-plane-mgmt-cluster
+            target:
+              template:
+                type: kubernetes.io/tls
+            dataFrom:
+              - find:
+                  name:
+                    regexp: "DEV_MGMT_CA_CRT_64"
+                  decodingStrategy: Auto
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "ca.crt"
+              - find:
+                  name:
+                    regexp: "DEV_MGMT_K8S_CA_CERT_64"
+                  decodingStrategy: Auto
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "tls.crt"
+              - find:
+                  name:
+                    regexp: "DEV_MGMT_K8S_CA_KEY_64"
+                  decodingStrategy: Auto
+                rewrite:
+                  - regexp:
+                      source: "(.*)"
+                      target: "tls.key"
+      kubeception:
+        apiserver:
+          service:
+            loadBalancerIP: 10.232.128.11
+      pki:
+        customCASecretName: "dev1c-mgmt-selfsigned-k8s-root-ca"
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.232.128.11  # internal cluster loadbalancer IP
+            - 10.236.0.1  # mgmt cluster default/kubernetes service IP
+            # - 172.27.80.11  TODO
+            # - 172.24.0.1
+            # - 172.26.64.10
+            # - 172.26.64.238
+  coredns:
+    valuesMerge:
+      apiServerURL: k8s.mgmt.dev1c.int.coreweave.com:6443
+      config: |
+        .:53 {
+            log . {
+                class error
+            }
+            errors
+            health
+            ready
+            kubernetes cluster.local dev.mgmt.k8s in-addr.arpa {
+              pods insecure
+              kubeconfig /etc/kubernetes/kubeconfig local
+              fallthrough in-addr.arpa
+            }
+            k8s_external dev1c.mgmt.k8s {
+            }
+            prometheus :9153
+            forward . 10.100.1.1 {
+              prefer_udp
+            }
+            cache 3600 {
+              success 39936
+              denial 39936
+            }
+            loop
+            reload
+            loadbalance
+        }
+  cw-node-controller:
+    valuesMerge:
+      controllerConfig:
+        topologyLabelsEnabled: true
+      nodeLifeCycle:
+        applyTaints: false
+  dice-proxy:
+    enabled: false
+  eventrouter:
+    enabled: false
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUV0ekNDQTUrZ0F3SUJBZ0lVUC96LzVQVEZ6WE1ycExJbFN0U3VZMjNaWjZFd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2dZd3hDekFKQmdOVkJBWVRBbFZUTVFzd0NRWURWUVFJREFKT1dURVJNQThHQTFVRUJ3d0lUbVYzSUZsdgpjbXN4RWpBUUJnTlZCQW9NQ1VOdmNtVlhaV0YyWlRFU01CQUdBMVVFQ3d3SlpHVjJNUzF0WjIxME1STXdFUVlEClZRUUREQXBMZFdKbGNtNWxkR1Z6TVNBd0hnWUpLb1pJaHZjTkFRa0JGaEZ2Y0hOQVkyOXlaWGRsWVhabExtTnYKYlRBZUZ3MHlOREEzTWpZeE9ETTVOREphRncwek5EQTNNalF4T0RNNU5ESmFNSUdNTVFzd0NRWURWUVFHRXdKVgpVekVMTUFrR0ExVUVDQXdDVGxreEVUQVBCZ05WQkFjTUNFNWxkeUJaYjNKck1SSXdFQVlEVlFRS0RBbERiM0psClYyVmhkbVV4RWpBUUJnTlZCQXNNQ1dSbGRqRXRiV2R0ZERFVE1CRUdBMVVFQXd3S1MzVmlaWEp1WlhSbGN6RWcKTUI0R0NTcUdTSWIzRFFFSkFSWVJiM0J6UUdOdmNtVjNaV0YyWlM1amIyMHdnZ0VpTUEwR0NTcUdTSWIzRFFFQgpBUVVBQTRJQkR3QXdnZ0VLQW9JQkFRREtUNVR1Zys4c2F2em5FcDNJbzc2aVdxbG14WnJES1hJd3pyWmhySDRnClBmcFBFeVgyQnk1VUExODEyYmxaT2VLMjBGYVZncHp6aXRXYjJRRzlCRmFpTzBDV01iSVZNN2doVVBnd3hUVU0KbXZWWkNLczQ1ZnRXYWdMeVVnaE0zTlpIQlR1U3VZc0RTTjVTSFZsSmdsbkxnYk1vSFBvdkhTY2NqMlRhNlIyYQptQlBOclBtYmQvR2x5UTJ1QXByQ2xjY29xYndLZGhmanVZaVh5dXVRUXhVZ2w5ampGOFc2b0locWZMc1N2RW1VCnpsWmdJWCtOalRyTkw3OHJyWldqSVM4SmtjYUV3b2xEZXQ5ZVBwaDVQdmwvakFVcG9lVW5HaU9GNmJKU1NLeFMKK0VFbUI4RmYxekRISUx1Rm12VzhxSTVwWVJ6N2lXR0lnQWlnM2tRZmE5dFhBZ01CQUFHamdnRU5NSUlCQ1RBTQpCZ05WSFJNRUJUQURBUUgvTUFzR0ExVWREd1FFQXdJQnBqQWRCZ05WSFE0RUZnUVVvbTYzOENNQm11U2kvS2pjCllaOGdsek55L2pBd2djd0dBMVVkSXdTQnhEQ0J3WUFVb202MzhDTUJtdVNpL0tqY1laOGdsek55L2pDaGdaS2sKZ1k4d2dZd3hDekFKQmdOVkJBWVRBbFZUTVFzd0NRWURWUVFJREFKT1dURVJNQThHQTFVRUJ3d0lUbVYzSUZsdgpjbXN4RWpBUUJnTlZCQW9NQ1VOdmNtVlhaV0YyWlRFU01CQUdBMVVFQ3d3SlpHVjJNUzF0WjIxME1STXdFUVlEClZRUUREQXBMZFdKbGNtNWxkR1Z6TVNBd0hnWUpLb1pJaHZjTkFRa0JGaEZ2Y0hOQVkyOXlaWGRsWVhabExtTnYKYllJVVAvei81UFRGelhNcnBMSWxTdFN1WTIzWlo2RXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBTG1COXEydApxT0tuQis3UnlJNzFvYS91S0FLekIrSkJCNUw4dGtXb3ROQmtpNFNhd2JUODBqVHlRTWtXT29lOUVHUDdTT1FNClJtekVXWHJ4anl0RENhbXVyR0lFSHdGNVg5cHg4VVN3clpEaFhiL3hQL1lhbVdsL3lObmhkdUFKYTAyNmt4VTAKTXhNVmp0SFY4K0tPT2IrcGtQTjM5M3crREFablZGMGtPWFRpRWFCN1F4SHFTblJaR3VhcVgvZHdFSGhwOVY5MgpuQ0J0RENNTGZkTnVuaGlEYS9PMk0ySDBQZE1HdXpjN2ZJR3NmQit2Skl2OEZRaFdiL3JYU1o3WVJoTHhUVkx2CkxLZEF5YXU1c0NvSllIRDArMWVhRmZkRUM1K0h4MzJMWkxGeWpiL25qdFhsMkZVdWFRM3lJRjdBWllpN1RhNEIKcUt2REhlTHBLNmRnUk1vPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+  metrics:
+    valuesMerge:
+      portkey:
+        monitor:
+          enabled: false
+      ufm:
+        monitor:
+          enabled: false
+  node-local-dns:
+    valuesMerge:
+      service:
+        type: LoadBalancer
+        loadBalancerIP: "10.236.128.51"  # Required for vRouter DNS access

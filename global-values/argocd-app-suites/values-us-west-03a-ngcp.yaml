@@ -1,0 +1,112 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      public: "192.112.167.64/26"
+      cw-mgmt: "10.80.32.0/21"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-ngcp.k8s.us-west-03.int.coreweave.com
+
+applications:
+  argocd-ngcp:
+    enabled: true
+    valuesMerge:
+      argo-cd:
+        enabled: false
+      cmpPlugin:
+        disable: true
+      coreweave:
+        signedCertDisable: true
+    automatedOptions:
+      prune: false
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.40.12
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 172.27.80.12
+            - 10.80.40.12
+            - 172.20.0.1
+            - 172.26.64.85
+            - 172.26.65.144
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQU1PYjcwVFJLaG9sTzRWam9EblhWUVV3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5EQXpNVGd5TVRReU5EVmFGdzB6TkRBeE1qVXlNVFF5Ck5EVmFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRRFI5Z2RpWGdmZ0ZLZGxiVWdKWG05WURrRUlSbUNIYnpmbnpBM3dxazIxQnFKMEk4Rzg1ZGltCk9LWFNaSlJiQ1I2Z0hKdno0UmZXSnR1Z3dwTWZZZ2xFSlZRTkgwWHhjR3h6VXo4Q2tLY0NyNVpzVFY0MnpOWk4KOGNySFBvL201cDRPMmRyRG1zQ1piTFNVd1RBcitaYWFPWVRydTd2N0x6RjNPMjArZFV4MmpybWx3SkhweGRzWQpDUEF6UGlaTUxzZm0vV0JyZlhROXZlL3ZXVGJGczEvWFJmSFNFbnVQRktIVkxadEFadlNpRTRlWFp1RUcxS01XCkpRUWtHK2p3NjJRbnc5ZUhCK1lCZjhNTVkyTmZXakxZbS9FTUwrdHhFTW1DSnp5dVI1QTJ6Yk5WL0tuUHFaVFgKNmpKa3pTam4raDdNVWxiTEU5dm0rcFo5ZGV0T3ZrZ3RBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVVqazI0ZXBwNHQxUkpXR2QxZEJtMXBPUjZERWN3RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFFbm5adWQwT25yK0RlUGIxRG0vT3pMWjMwMGp1dnpwSytleUxYK2J6RVVGaHhXNDVOUTBpSWNqVWRxUAp2N1BKZ0tMcDhjc1J2Q3JBWGlKZ3lhc1Roc05ZQ1JaL0pwZ0pQc04xV3FVN2d6N0VjN0VuWmRLWFpaZ3RaRm9ZClJ2TjJmbmJ3QTMzekZVc2czeFhacTdtMkZ1L2ZQNWJISERXRU9qRWpUVSt0bDBOcWNGU3BZS2kyYXcwTGNPd0YKa1JCeU5UZVljWGNvM3A3L0pVaCtxUUNac3hCVDNxNFh1c25LZDYyOFR1Y2ovYkdlZ2cySTdEV0FyVzBhcloyeApMYnVsN2V4OVhmSFhmNmJkTVVwZVQ5VFNvY1lwUDFHMmJMZzhzZ0ZHUmlLekNRanZTSHdscHZ5YkFZQW43QlVZClc2L1BKWG5DbDdpSW96YkhiMFlLMGdMR0VXbz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  katalyst-operator:
+    enabled: true
+    valuesMerge:
+      clusterPayloadReconcilerEnabled: true
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  vector:
+    enabled: true
+    project: monitoring
+    path: apps/monitoring/vector
+    plugin: kustomized-helm
+    namespace: vector
+    releaseName: vector
+    ignoreDifferences:
+      - group: apps
+        kind: Deployment
+        jsonPointers:
+          - /spec/replicas
+    appName: vector
+    valuesMerge:
+      coreweave:
+        vectorIngester: "vector-us-west-03.int.coreweave.com"
+      vector_gateway:
+        enabled: true
+        replicas: 6
+        securityContext:
+          runAsUser: 1000
+        haproxy:
+          securityContext:
+            runAsUser: 1000
+      vector_tunnel:
+        enabled: true
+        server:
+          enabled: true
+        metricsToIngester:
+          enabled: true
+        tunnels:
+          - fe0dc0-prod
+      resources:
+        limits:
+          cpu: '2'
+          memory: 4Gi
+        requests:
+          cpu: 1m
+          memory: 1Gi
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: us-west-03-ngcp
+            cluster_org: coreweave
+            region: us-west-03
+          config:
+            lokiAddress: http://gateway.loki.coreweave.com/loki/api/v1/push
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-west-03-coreweave-us-west-03-internal
+          namespace: victoria-metrics

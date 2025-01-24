@@ -1,0 +1,254 @@
+clusterSpec:
+  scope: core-zero
+  clusterOrg: coreweave
+  monitoring:
+    mimirEnabled: true #direct to mimir
+  networkAllocations:
+    podCIDRs: ["192.168.0.0/20"]
+    serviceCIDRs: ["192.168.16.0/22"]
+    internalLbCIDRs:
+      default: "192.168.20.0/22"
+    externalLbCIDRs:
+      internal-anycast: "10.95.255.0/24"
+argocd:
+  targetClusterURL: https://172.27.80.14
+
+projects:
+  data-platforms:
+    enabled: true
+
+applications:
+  argocd-service-monitors:
+    enabled: true
+  calico:
+    enabled: true
+    path: apps/core/calico
+    valuesMerge:
+      networkConfig:
+        vrfs:
+          k8s:
+            enabled: true
+            filter:
+              enabled: true
+          tss:
+            enabled: true
+          ipmi:
+            enabled: false
+          net:
+            enabled: true
+          dpu:
+            enabled: false
+          cw_mgmt:
+            enabled: true
+  calico-cleanup-controller:
+    enabled: true
+  cert-manager:
+    enabled: true
+  control-plane:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          control-plane-core-zero-cluster:
+            project: control-plane
+            config: prod
+          generic-pull-secrets-core-zero-cluster:
+            project: generic-pull-secrets
+            config: prod
+        externalSecrets:
+          mimir-credentials:
+            secretStoreName: control-plane-core-zero-cluster
+            type: Opaque
+            dataFrom:
+              - find:
+                  conversionStrategy: Default
+                  decodingStrategy: None
+                  name:
+                    regexp: (.*)
+                rewrite:
+                  - regexp:
+                      source: MIMIR_USERNAME
+                      target: USERNAME
+                  - regexp:
+                      source: MIMIR_PASSWORD
+                      target: PASSWORD
+            gitlab-registry:
+              secretStoreName: generic-pull-secrets-core-zero-cluster
+              type: kubernetes.io/dockerconfigjson
+              dataFrom:
+                - find:
+                    conversionStrategy: Default
+                    decodingStrategy: None
+                    name:
+                      regexp: GITLAB_IMAGE_PULL_SECRET
+                  rewrite:
+                    - regexp:
+                        source: (.*)
+                        target: .dockerconfigjson
+              target:
+                creationPolicy: Owner
+                deletionPolicy: Retain
+                template:
+                  engineVersion: v2
+                  mergePolicy: Replace
+                  type: kubernetes.io/dockerconfigjson
+          gitlab-registry:
+            secretStoreName: generic-pull-secrets-core-zero-cluster
+            type: kubernetes.io/dockerconfigjson
+            dataFrom:
+              - find:
+                  conversionStrategy: Default
+                  decodingStrategy: None
+                  name:
+                    regexp: GITLAB_IMAGE_PULL_SECRET
+                rewrite:
+                  - regexp:
+                      source: (.*)
+                      target: .dockerconfigjson
+            target:
+              creationPolicy: Owner
+              deletionPolicy: Retain
+              template:
+                engineVersion: v2
+                mergePolicy: Replace
+                type: kubernetes.io/dockerconfigjson
+      kubeception:
+        apiserver:
+          service:
+            loadBalancerIP: 172.27.80.14
+            addtlLocalService:
+              enabled: true
+        extraSchedulers:
+          enabled: false
+          schedulers: []
+  coredns:
+    enabled: true
+  crowdstrike:
+    enabled: true
+    valuesMerge:
+      falconSensor:
+        tags: "control-plane"
+  cw-node-controller:
+    enabled: true
+    valuesMerge:
+      conditions:
+        LocalDiskErrors:
+          cordon: true
+      nodeLifeCycle:
+        boxoffice:
+          createTickets: true
+  deviceslot-operator:
+    enabled: true
+    values:
+      operatorConfig:
+        region: CORE
+  dso-netracker:
+    enabled: true
+    values:
+      netracker:
+        exportplanneddevices: false
+        teleportname: netracker-core-zero
+      scrapeconfig:
+        # setting exporters empty should disable all without enumeration needed
+        exporters:
+      netracker-blackbox:
+        service:
+          annotations:
+            teleport.dev/name: netracker-blackbox-core-zero
+  eventrouter:
+    enabled: true
+  external-dns:
+    enabled: true
+  external-secrets:
+    enabled: true
+  goldpinger:
+    enabled: true
+  in-cluster-config:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.35.0
+    chart: tenant-cluster-config
+  jwks-auth-push:
+    enabled: true
+  jspolicy:
+    enabled: true
+  jspolicy-policies:
+    enabled: true
+    values:
+      policies:
+        mutateControlPlaneAffinity: false
+  local-storage-provisioner:
+    enabled: true
+  katalyst-proxy:
+    enabled: false
+  kubemod:
+    enabled: false
+  metallb:
+    enabled: true
+  metrics:
+    enabled: true
+    valuesMerge:
+      sli:
+        monitor:
+          enabled: true
+  metrics-server:
+    enabled: true
+  nfd:
+    enabled: true
+  node-problem-detector:
+    enabled: true
+  oidc:
+    enabled: true
+  promtail:
+    enabled: true
+  pvmo:
+    enabled: true
+    namespace: ""
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      ESO:
+        create: true
+      oob:
+        enabled: true
+        kubeConfigSecretName: admin-kubeconfig
+      service:
+        type: LoadBalancer
+  reloader:
+    enabled: true
+  teleport-oob:
+    enabled: true
+    destination:
+      server: https://kubernetes.default.svc
+    namespace: core-zero-cluster
+    valuesMerge:
+      dopplerScope: internal
+      teleport-kube-oob-agent:
+        enabled: true
+        proxyAddr: teleport.na.int.coreweave.com:443
+  teleport:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        slackBotRestartCron:
+          enabled: false
+      scope: mgmt #points to the doppler config for pulling join tokens in
+      dopplerScope: mgmt
+      teleport-cluster:
+        enabled: false
+      teleport-kube-agent:
+        enabled: true
+        storage:
+          storageClassName: local-ssd
+      teleport-plugin-slack:
+        enabled: false
+  traefik:
+    enabled: false
+  vast-csi:
+    enabled: false
+  vast-csi-controller:
+    enabled: false
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        remoteWrite: []

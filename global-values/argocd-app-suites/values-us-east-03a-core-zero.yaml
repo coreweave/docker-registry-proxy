@@ -1,0 +1,273 @@
+# ALlowed CW-MGMT space 10.80.208.0/20
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.209.0/24"
+    customPodCIDRConfigs:
+      10.80.208.0/24:
+        name: cw-mgmt-crdb-pod-ips
+        blockSize: 30
+        natOutgoing: false
+        # keeps k8s from allocating these to pods as its for specific pods
+        # We will allocate this ourselves via annotations
+        nodeSelector: "!all()"
+  apiserver:
+    addtlUrl: api.coreweave-core-zero.k8s.us-east-03.int.coreweave.com
+applications:
+  cw-node-controller:
+    enabled: true
+    valuesMerge:
+      controllerConfig:
+        controlPlaneNodes: "gb9a400,gb96c70,gb969e0"
+      nodeLifeCycle:
+        applyTaints: false
+  calico:
+    enabled: true
+    targetRevision: 1.36.0
+    valuesMerge:
+      networkConfig:
+        cwMgmtCIDRs:
+          - 10.80.208.0/23 #site specific changes for core-zero
+      typha:
+        enabled: false
+  ceph-rbd-csi:
+    enabled: false
+    values:
+  cockroachdb-operator:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-operator
+    project: data-platforms
+    namespace: cockroach-operator-system
+    valueFiles:
+      - values-us-east-03-core-zero.yaml
+  cockroachdb-alloy:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-alloy
+    valueFiles:
+      - values-us-east-03-core-zero-alloy.yaml
+  cockroachdb-dev-global-test:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-dev-global-test
+    valueFiles:
+      - values-us-east-03a-core-zero-dev-global-test.yaml
+  cockroachdb-crdb-secondary-test:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-secondary-test
+    valueFiles:
+      - values-us-east-03-core-zero-crdb-secondary-test.yaml
+  cockroachdb-global-object:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-global-object
+    valueFiles:
+      - values-us-east-03-core-zero-global-object.yaml
+  cockroachdb-policy-engine:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-policy-engine
+    valueFiles:
+      - values-us-east-03-core-zero-policy-engine.yaml
+  cockroachdb-policy-engine-stg:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-policy-engine-stg
+    valueFiles:
+      - values-us-east-03-core-zero-policy-engine-stg.yaml
+  cockroachdb-cks-api:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-cks-api
+    valueFiles:
+      - values-us-east-03-core-zero-cks-api.yaml
+  cockroachdb-cks-api-stg:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-cks-api-stg
+    valueFiles:
+      - values-us-east-03-core-zero-cks-api-stg.yaml
+  cockroachdb-cwsa-index:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-cwsa-index
+    valueFiles:
+      - values-us-east-03-core-zero-cwsa-index.yaml
+  cockroachdb-cwsa-index-stg:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-cwsa-index-stg
+    valueFiles:
+      - values-us-east-03-core-zero-cwsa-index-stg.yaml
+  cockroachdb-vpc-api:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-vpc-api
+    valueFiles:
+      - values-us-east-03-core-zero-vpc-api.yaml
+  cockroachdb-vpc-api-stg:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-vpc-api-stg
+    valueFiles:
+      - values-us-east-03-core-zero-vpc-api-stg.yaml
+  cockroachdb-upd-seed:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-upd-seed
+    valueFiles:
+      - values-us-east-03-core-zero-upd-seed.yaml
+  cockroachdb-upd-seed-stg:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-upd-seed-stg
+    valueFiles:
+      - values-us-east-03-core-zero-upd-seed-stg.yaml
+  cockroachdb-sortinghat:
+    enabled: true
+    path: apps/data-platforms/cockroachdb-cluster
+    class: prod-crdb
+    project: data-platforms
+    namespace: data-platforms-crdb-sortinghat
+    valueFiles:
+      - values-us-east-03-core-zero-sortinghat.yaml
+  ca-certs:
+    enabled: true
+    path: apps/common/ca-certs
+    project: common
+    namespace: ca-certs
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          psp:
+            enabled: true
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.56.14
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.80.56.14
+            - 172.27.80.14
+            - 192.168.16.1
+  external-secrets:
+    class: control-plane
+    valuesMerge:
+      # enables push secrets so we can use it for mTLS certs.
+      external-secrets:
+        crds:
+          createPushSecret: true
+        processPushSecret: true
+  in-cluster-config:
+    enabled: true
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRUkR5Tzc3QWR0Vm9FbFdsOWt0aHduekFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1EWXlNREl4TURVMU0xb1hEVE0wTURReU9USXhNRFUxCk0xb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFOZFB1LzVPVE1WZ1ZVTFRLNUwvUFVUb0JJV1RGNnN0S3l2TDZMUXNtQ2d0ZmxoV25tdFZTR2UyCjNxVktCa09jcW85R094UE1iMmlJMGEzZkdJSkRYd04vU3FueEY0ODJnYnEwR0g4VXpSMW1FUmJSQ3F3djlhQ2sKSEZkQzlXT3laNGJ6NmNMZUNqRjRPeHZpaU1NZC9LUks0alp5dXEyaFZFWndjV0wvbDIxR1czbnhYVVRob0dQeQpyc0xEcnIreDIwT0hldG02RmV5OCtzNWtYcW1LWUVDWG9uWFN5Q1ZsYm83RWdlOXptZU1jVUpraGh6YXczbDIvCjc1R0d3ZmNTMlM2MFZVdUFFeW1vQ2NuanlTbnFmRzM2R1IxNG8wbVVDRHpWbzVNdEplRnRZcnBWbk45OW82STYKTnpDV0JPdTdFNFlieWx0Qk1NVG9pNzNiNXhjVmovc0NBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCUmY1RkVnc2N2Rkl4RFgzeG56RUdQMmliNDZsREFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQVN5WWlEajN2OXRjaHR2S3Q3Q0wzUGplcjVobTNDSUZDRVErQUpXZmtrSUFPMGRhYmVsak5KTFhtSXNCaQp2U2ltOStYRk5NNStUVUlhQUpFZzR4QnEySGJNV3MyZnI5V2ZMT1NHZWxUVEtKdEo3NkNFcElyUjFXZkg3WHdoCmRCNzlZVC9DbzJIeTBBQUpqSTRNanErMStxYkZDT01kNEpnTFVzV2d6VnlFdVZMSXNpaEVWVi8yWktUZEN2ekQKdTNsTHplMzN4aStoS1FkZ0FFZFM1eWdkV1o5alhIQTEvZHVuK2lxVWNITndOYm1iK0dxallHOXJqcHRBc3QvRQpjZ09KL1R5aWNxVjFzMCtuWGlzekFEWG1LSnIzYmNENStzcFdnUUFUV0ErMHFGNVI1SzBVQ1ZDb0xmS2RxK0RTCjF6V0dSb0hIS1JPZEN2U1ZXTnUrN2tNTW5nPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  promtail:
+    enabled: true
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: us-east-03-core-zero
+            cluster_org: coreweave
+            region: us-east-03
+          config:
+            lokiAddress: http://gateway.loki.coreweave.com/loki/api/v1/push
+  topolvm-csi:
+    enabled: true
+    valueFiles:
+      - values-us-east-03-core-zero.yaml
+  jspolicy:
+    enabled: true
+    values:
+      jspolicy:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: node.coreweave.cloud/class
+                  operator: In
+                  values:
+                  - cpu
+        clusterRoleBinding:
+          create: false
+        env:
+          JS_POLICY_WEBHOOK_URL: https://jspolicy.coreweave-core-zero.k8s.us-east-03.coreweave.com
+          KUBECONFIG: /etc/kubeconfig/admin-config
+        jspolicy:
+          extraVolumeMounts:
+          - mountPath: /etc/kubeconfig
+            name: admin-kubeconfig
+            readOnly: true
+          extraVolumes:
+          - name: admin-kubeconfig
+            secret:
+              secretName: admin-kubeconfig
+          resources:
+            limits:
+              cpu: 2
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              memory: 2Gi
+        service:
+          annotations:
+            external-dns.alpha.kubernetes.io/hostname: jspolicy.coreweave-core-zero.k8s.us-east-03.coreweave.com
+          type: LoadBalancer
+        serviceAccount:
+          create: false
+          name: default
+        webhook:
+          create: false
+      policies:
+        enabled: false
+      hpa:
+        enabled: false
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        resources:
+          requests:
+            memory: 20Gi
+          limits:
+            memory: 20Gi
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-03-coreweave-us-east-03-internal
+          namespace: victoria-metrics

@@ -1,0 +1,249 @@
+clusterSpec:
+  region: dev-cluster
+  clusterOrg: coreweave
+
+applications:
+  argocd-ngcp:
+    enabled: false
+  argocd-service-monitors:
+    enabled: true
+  box-office:
+    enabled: false
+  cilium:
+    valuesMerge:
+      cilium:
+        autoDirectNodeRoutes: true
+      networkConfig:
+        bgpPolicy:
+          gracefulRestart:
+            enabled: false
+  control-plane:
+    enabled: false
+    ignoreDifferences:
+      - group: apps
+        jqPathExpressions:
+          - .spec.template.spec.containers[]?.env[]? | select(.name == "ETCD_INITIAL_CLUSTER_STATE")
+        kind: StatefulSet
+    path: apps/core/control-plane
+  cert-manager:
+    enabled: true
+    automated: false
+    valuesMerge:
+      cloudflare:
+        enabled: false
+      letsencrypt:
+        prod:
+          enabled: false
+        staging:
+          enabled: false
+  coredns:
+    valuesMerge:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 50Mi
+  crowdstrike:
+    enabled: false
+  cw-node-controller:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          cwnc:
+            config: dev
+      proxy:
+        resources:
+          limits:
+            cpu: 300m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      manager:
+        resources:
+          limits:
+            cpu: 300m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+
+  deviceslot-operator:
+    enabled: false
+  epimetheus:
+    enabled: false
+  eventrouter:
+    enabled: true
+  external-dns:
+    enabled: false
+  jwks-auth-push:
+    enabled: false
+  jwks-auth-push-internal:
+    enabled: false
+  goldpinger:
+    enabled: false
+    valuesMerge:
+      metallbAddressPool: default
+      tcp_targets:
+        - 10.100.1.1:179
+  internal-control-plane:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          control-plane-internal-cluster:
+            config: dev
+          etcd-backups-internal:
+            config: dev_int_region
+          generic-pull-secrets-internal-cluster:
+            config: dev
+      etcdBackup:
+        enabled: false
+      etcdMaintenance:
+        enabled: false
+  metallb:
+    valuesMerge:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 100Mi
+      speaker: false
+  metrics-server:
+    enabled: true
+    values:
+      metrics-server:
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+  ipmi-exporter:
+    enabled: false
+  metrics:
+    values:
+      prometheus-operator:
+        alertmanager:
+          enabled: true
+        defaultRules:
+          create: true
+        kube-state-metrics:
+          affinity: null
+          resources: null
+        prometheus-node-exporter:
+          resources: null
+        prometheusOperator:
+          prometheusConfigReloader:
+            resources: null
+  nfd:
+    enabled: true
+  node-local-dns:
+    enabled: false
+  node-problem-detector:
+    enabled: true
+    valuesMerge:
+      canaryCheckAddress: "10.100.1.1"
+  node-reporter:
+    enabled: false
+  oidc:
+    enabled: false
+  promtail:
+    valuesMerge:
+      coreweave:
+        clusterSecretStores:
+          promtail:
+            config: dev
+            project: monitoring
+      promtail:
+        config:
+          lokiAddress: http://loki-loki-distributed-gateway.loki.svc.dev.kubecepted.k8s/loki/api/v1/push
+        resources:
+          limits:
+            cpu: 100m
+            memory: 50Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+  prometheus-smartctl-exporter:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+    values:
+      traefik:
+        additionalArguments:
+          - '--serverstransport.insecureskipverify=true'
+        autoscaling:
+          enabled: false
+      resources: null
+      service:
+        annotations:
+          metallb.universe.tf/address-pool: default
+        enabled: true
+        spec:
+          externalTrafficPolicy: Local
+  k8s-internal-svc:
+    enabled: true
+    appName: k8s-internal-svc
+    rawYaml: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        annotations:
+          metallb.universe.tf/address-pool: default
+          external-dns.alpha.kubernetes.io/hostname: {{ include "common.apiserver.addtlUrl" . }}
+        name: k8s-apiserver-custom
+      spec:
+        externalTrafficPolicy: Local
+        loadBalancerIP: {{ include "common.apiserver.internalLb.serviceIP" . }}
+        ports:
+        - port: 6443
+          protocol: TCP
+          targetPort: 6443
+        selector:
+          component: kube-apiserver
+        type: LoadBalancer
+  regproxy:
+    enabled: false
+    values:
+      coreweave:
+        clusterSecretStores:
+          regproxy:
+            config: dev
+      regproxy:
+        service:
+          loadBalancerIP: 10.232.128.25
+        replicas: 1
+        resources:
+          requests:
+            cpu: 50m
+            memory: 50Mi
+            ephemeral-storage: null
+          limits:
+            cpu: 200m
+            memory: 100Mi
+            ephemeral-storage: null
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: k8s-app
+                  operator: In
+                  values:
+                  - regproxy
+              topologyKey: kubernetes.io/hostname
+          nodeAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                preference:
+                  matchExpressions:
+                    - key: node.coreweave.cloud/class
+                      operator: In
+                      values:
+                        - cpu
+  reloader:
+    enabled: false

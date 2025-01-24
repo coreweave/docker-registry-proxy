@@ -1,0 +1,92 @@
+clusterSpec:
+  region: us-east-04
+  scope: k8s-beta-0
+  clusterOrg: cw-internal
+  cni: cilium
+  networkAllocations:
+    externalLbCIDRs:
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-cw-internal-k8s-beta-0.svc.cluster.local
+
+applications:
+  calico:
+    enabled: false
+  calico-node-controller:
+    enabled: false
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+      clusterSpec:
+        networkAllocations:
+          podCIDRs: [ "10.96.0.0/13" ]
+  nodepools:
+    enabled: true
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  konnectivity-agent:
+    enabled: false
+  control-plane:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.91"
+  external-secrets:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  node-local-dns:
+    valuesMerge:
+      vast:
+        enabled: true
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: k8s-beta-0
+            cluster_org: cw-internal
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.91/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics

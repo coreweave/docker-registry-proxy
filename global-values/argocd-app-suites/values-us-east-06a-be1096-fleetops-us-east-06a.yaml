@@ -1,0 +1,130 @@
+clusterSpec:
+  region: us-east-06
+  scope: fleetops-us-east-06a
+  clusterOrg: be1096
+  cni: cilium
+  networkAllocations:
+    externalLbCIDRs:
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-be1096-fleetops-us-east-06a.svc.cluster.local
+
+applications:
+  fleetops-cluster:
+    enabled: true
+    appName: fleetops-cluster-us-east-06a
+    valuesMerge:
+      k8sVersion: "v1.31"
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  konnectivity-agent:
+    enabled: false
+  hpc-verification:
+    targetRevision: fmt/hpc-verification-development
+  calico-cleanup-controller:
+    enabled: false
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  calico:
+    enabled: false
+  control-plane:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  coredns:
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.0.3"
+      kubeconfig:
+        cluster: be1096-fleetops-us-east-06a
+        path: /etc/kubernetes/admin-config
+      secretName: internal-admin-kubeconfig
+      monitoring:
+        enabled: true
+      extraServiceAnnotations:
+        metallb.universe.tf/address-pool: tss
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.0.3"
+      nldClusterIP: "10.16.0.30"
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.7"
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  teleport:
+    enabled: false
+  demonsrun:
+    repoURL: https://github.com/coreweave/k8s-services.git
+    targetRevision: master
+    path: apps/security/demonsrun
+    project: security
+    enabled: true
+  traefik:
+    enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: fleetops-us-east-06a
+            cluster_org: be1096
+            region: us-east-06a
+          config:
+            lokiAddress: http://100.124.0.7/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  # vast-csi:
+  #   hasDedicatedTenant: true
+  vector:
+    enabled: false
+  victoria-metrics:
+    valuesMerge:
+      victoria-metrics-agent:
+        agent:
+          resources:
+            requests:
+              cpu: "20"
+              memory: 45Gi
+            limits:
+              cpu: "20"
+              memory: 45Gi
+  npo:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-06-coreweave-us-east-06a-ngcp
+          namespace: victoria-metrics

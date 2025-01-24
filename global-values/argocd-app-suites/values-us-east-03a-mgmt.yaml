@@ -1,0 +1,293 @@
+clusterSpec:
+  networkAllocations:
+    externalLbCIDRs:
+      cw-mgmt: "10.80.58.0/23"
+      public: "192.112.174.0/26"
+      dpu: "10.183.63.0/28"
+  apiserver:
+    addtlUrl: api-cw-mgmt.coreweave-mgmt.k8s.us-east-03.int.coreweave.com
+applications:
+  box-office:
+    destination:
+      server: ""
+    namespace: box-office
+    valuesMerge:
+      box-office:
+        registerWithParent: true
+      ingress:
+        ingressClassName: "traefik-internal"
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          service:
+            addtlLocalService:
+              loadBalancerIP: 10.80.56.11
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 10.80.56.11
+            - 172.27.80.11
+            - 172.24.0.1
+            - 172.26.64.10
+            - 172.26.64.238
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: false
+  infra-canary:
+    valuesMerge:
+      minimum_nodes: 6
+      minimum_racks: 2
+  in-cluster-config:
+    valuesMerge:
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURjRENDQWxpZ0F3SUJBZ0lSQVA2SXVKdEJxYUZCbW5ocEd1Q0ZkQUl3RFFZSktvWklodmNOQVFFTEJRQXcKUWpFU01CQUdBMVVFQ2hNSlEyOXlaVmRsWVhabE1SY3dGUVlEVlFRTEV3NUpibVp5WVhOMGNuVmpkSFZ5WlRFVApNQkVHQTFVRUF4TUtTM1ZpWlhKdVpYUmxjekFlRncweU5EQXpNVEV4TXpBNU16bGFGdzB6TkRBeE1UZ3hNekE1Ck16bGFNRUl4RWpBUUJnTlZCQW9UQ1VOdmNtVlhaV0YyWlRFWE1CVUdBMVVFQ3hNT1NXNW1jbUZ6ZEhKMVkzUjEKY21VeEV6QVJCZ05WQkFNVENrdDFZbVZ5Ym1WMFpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCRHdBdwpnZ0VLQW9JQkFRQzIwREFML1RqeWw1SGRaNmdLTFA0d3BUN3QyZ0xSeWZseW1pWkxqcU9kbFMzOWVlSWpPOWZyCi9zQjdSQzRVSnpQZDBwZGpWMFk2ZXdEclR5OFVvVmZaQTl4YVBEU1gxNC9TVStVckhIbGxzNzNDVFpQNTlnUVEKRFlRMjlOb2xCRExCTXRYeWhrNnhhbjQvbm4vUysyUE1ORVd5UldTV0dRdU1WQk90RXoxRTNNem85L1VMY3BRagpvNytCTlF1TllZcmM2Zms3d285S1pyVW9Hcm9UQXVHbW9BcHNHUTNNZG1pNzJMNTBRS0dYK21NSG5VNnlPSkMwClY0dFVuSEdKV3J2RUVJd3YvQjNjSjBsQnRLNXhJWE85cnI0eU5nSVVaS1luNXVYR0t4bDVsOTdUcEEvRWVzN0MKa0NJMGlVcjJ0NnY4SnJKQzBiTGVVU0xuV3UxZ2I3S2JBZ01CQUFHallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQwpwREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QWRCZ05WSFE0RUZnUVV1YXpsMjlGUCs0MEtjaEQrcnpuWXZUNmNDUk13RFFZSktvWklodmNOQVFFTEJRQUQKZ2dFQkFBY2ZOWkU2Yy8rb0ludDJXVmF6ak5VSHpyYTNOR2lVWVBhRFU1ZTVadEN0dWdxRW0wMmsvREpTdk1xOQoybE5EMWk5dm80ZU1oNVp3dDFPVEVFOXE2aFcxR0VTVkZFY3lEeXAxbjEvdXlXREVwTnB1QVM1Qmxnb1dZK2FQCjJPN29mdkRDcmpPSU9vdlNGVXlaRWgrR3BWcUVyTHFZRm9pblZkY3UyYzJ2Tnc2VHNPcUIyR3ZYdjZuVDFUWG8KNml4YjQ3QWNQWjVtdVJRVi9tb0pxcHpqUU9rZ2tuc2xOZDZnUkVNUDlLU1dzL1pDb3NrUExWeFpZK3NjTUNKKwo1WSs0WUt6dTVabjRuZHI4dUo3NFRYWCtoS2dHdVNOQmNjWjc3UjFQSW5DVmtWY0tsVUxDb1dpcHJSSU1SaVZQCkdPOU9INXRpTUJYY2M5TWpwM21meFVqbHdVTT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  pure-storage-exporter:
+    enabled: true
+    values:
+      arrays:
+        - name: cluster-gg2-c-r032-phl1-xfm1
+        - name: cluster-gg2-c-r033-phl1-xfm1
+        - name: cluster-gg2-c-r034-phl1-xfm1
+        - name: cluster-gg2-c-r035-phl1-xfm1
+        - name: cluster-gg2-c-r036-phl1-xfm1
+        - name: cluster-gg2-c-r037-phl1-xfm1
+        - name: cluster-gg2-c-r038-phl1-xfm1
+        - name: cluster-gg2-c-r039-phl1-xfm1
+  blastshield-gw:
+    valuesMerge:
+      psp:
+        enabled: true
+  teleport-rbac:
+    valuesMerge:
+      coreweave:
+        saml:
+          entityDescriptorUrl: https://login.coreweave.com/app/exkfoca7l6R4wYQBU5d7/sso/saml/metadata
+  teleport:
+    vastVMSApps:
+      - name: vast-vms
+        uri: "https://vms.vast-csi.svc.cluster.local"
+        insecure_skip_verify: true
+        labels:
+          node.coreweave.cloud/class: storage
+      - name: vast-vms-prod-02
+        uri: "https://vms-prod-02.vast-csi.svc.cluster.local"
+        insecure_skip_verify: true
+        labels:
+          node.coreweave.cloud/class: storage
+      - name: vast-vms-prod-03
+        uri: "https://vms-prod-03.vast-csi.svc.cluster.local"
+        insecure_skip_verify: true
+        labels:
+          node.coreweave.cloud/class: storage
+      - name: vast-vms-prod-04
+        uri: "https://vms-prod-04.vast-csi.svc.cluster.local"
+        insecure_skip_verify: true
+        labels:
+          node.coreweave.cloud/class: storage
+    valuesMerge:
+      coreweave:
+        awxTbot:
+          enabled: true
+  redfish-services:
+    valuesMerge:
+      exporter:
+        replicas: 10
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  vast-grpc:
+    enabled: true
+    valueFiles:
+      - values-us-east-03-mgmt.yaml
+  vast-csi-controller:
+    valuesMerge:
+      serviceMonitor:
+        enabled: true
+  tailscale-operator:
+    enabled: false
+  metrics:
+    valuesMerge:
+      portkey:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.183.1.241
+                - 10.183.1.242
+                - 10.183.1.243
+                - 10.183.1.244
+              name: US-EAST-03
+              honorTimestamps: false
+      ufm:
+        monitor:
+          enabled: true
+          endpoints:
+            - ip:
+                - 10.183.1.135
+                - 10.183.1.138
+              name: US-EAST-03-FAB12
+              ports:
+                - name: ufm
+                  port: 8080
+                - name: node-exporter
+                  port: 9100
+              paths:
+                - path: /temperature
+                  port: ufm
+                  interval: 300s
+                  honorTimestamps: false
+                - path: /metrics
+                  port: node-exporter
+              pathGroups:
+                - paths:
+                  - /cw1
+                  - /cw2
+                  - /cw3
+                  - /cw4
+                  - /cw5
+                  - /cw6
+                  - /cw7
+                  - /cw8
+                  - /fabric_verification
+                  port: ufm
+                  honorTimestamps: false
+  katalyst-proxy:
+    valuesMerge:
+      ncoreProxyPass: "" #Nullify this for east-03 for now
+  vector:
+    enabled: true
+    valuesMerge:
+      coreweave:
+        vectorIngester: vector-ingester-haproxy.vector.svc.cluster.local
+        cluster: us-east-03-mgmt
+        forwarders:
+          - name: 54952e-dm1
+            type: syslogs
+            condition: all
+      vector_tunnel:
+        metricsToIngester:
+          enabled: true
+      vector_gateway:
+        enabled: true
+        replicas: 10
+        haproxy:
+          enabled: true
+          replicas: 3
+      vector_ingester:
+        enabled: true
+        replicas: 8
+        prometheus:
+          enabled: true
+          endpoint: http://vm.us-east-03.int.coreweave.com:8427/api/v1/write
+          auth:
+            enabled: true
+        loki:
+          enabled: true
+          endpoint: http://gateway.loki.coreweave.com
+          auth:
+            enabled: true
+        secops:
+          enabled: true
+          address: 216.153.57.63:6665
+        metaobsv:
+          enabled: true
+        syslog:
+          enabled: true
+          ip: 10.95.255.4
+        syslog_tls:
+          enabled: true
+        envFrom:
+          - secretRef:
+              name: vector-secrets
+        haproxy:
+          enabled: true
+          replicas: 4
+          service:
+            type: LoadBalancer
+            annotations:
+              metallb.universe.tf/address-pool: tss
+              metallb.universe.tf/loadBalancerIPs: 100.123.0.2
+              external-dns.alpha.kubernetes.io/hostname: vector-us-east-03.int.coreweave.com
+  node-assigner:
+    enabled: true
+    valuesMerge:
+      instanceTypes:
+        cd-gp-l-i64-erapids:
+          enabled: true
+        gd-8xh100ib-i128:
+          enabled: true
+      bareMetalNodeClientConfig:
+        unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+        unassignedBMNLabelValues:
+          - 'cw-internal'
+  sortinghat-api:
+    valuesMerge:
+      config:
+        garbageCollectorConfig:
+          zone: US-EAST-03A
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  shat-resource-availability:
+    valuesMerge:
+      siteID: us-east-03a
+      zone: US-EAST-03A
+  shat-reservation:
+    valuesMerge:
+      config:
+        zone: US-EAST-03A
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  shat-gatekeeper:
+    valuesMerge:
+      config:
+        bareMetalNodeClientConfig:
+          unassignedBMNLabelKey: 'flcc.coreweave.com/org-id'
+          unassignedBMNLabelValues:
+            - 'cw-internal'
+  sortinghat-common:
+    enabled: true
+  shat-db-migrations:
+    enabled: true
+    valuesMerge:
+      db:
+        secretRefreshInterval: '60s'
+  object-cache:
+    valuesMerge:
+      cache:
+        size: 450G
+        resources:
+          requests:
+            ephemeral-storage: 500Gi
+          limits:
+            ephemeral-storage: 500Gi
+  canary-checker:
+    enabled: true
+  cwobject-checks:
+    enabled: true
+    values:
+      bucketChecks:
+      - location: us-east-03a
+        class: dedicated
+      - location: us-east-03a
+        class: general
+      - location: us-east-03a
+        class: archival
+  npo:
+    enabled: false
+  npo-cfg:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-03-coreweave-us-east-03-internal
+          namespace: victoria-metrics

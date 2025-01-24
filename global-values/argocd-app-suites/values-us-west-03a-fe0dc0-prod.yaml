@@ -1,0 +1,149 @@
+clusterSpec:
+  scope: prod
+  clusterOrg: fe0dc0
+  networkAllocations:
+    externalLbCIDRs:
+      public: "192.112.167.192/28"
+
+argocd:
+  targetClusterURL: "https://172.20.59.217"
+
+applications:
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        applyTaints: true
+      labelBundle:
+        config:
+          sku_types:
+            SYS-121H-TNR:
+              fw_bundle:
+                firmware: "smc-121HTNR-osprey-20241216.01.00.00"
+            "*121E-NES24R":
+              fw_bundle:
+                firmware: "smc-121ENES24R-osprey-20241216.01.00.00"
+            "SYS-821GE-TNHR*":
+              fw_bundle:
+                firmware: "smc-h100-osprey-20240515.01.00.00"
+  epimetheus:
+    enabled: false
+  control-plane:
+    valuesMerge:
+      kubeception:
+        apiserver:
+          deployment:
+            advertiseAddress: ""
+            resources:
+              requests:
+                cpu: 5
+                memory: 25Gi
+              limits:
+                memory: 250Gi
+          service:
+            loadBalancerIP: "172.21.0.4"
+            addtlLocalService:
+              enabled: true
+              loadBalancerIP: "100.124.0.1"
+      pki:
+        apiServer:
+          ipSans:
+            - 127.0.0.1
+            - 172.20.50.180
+            - 172.20.59.217
+            - 172.21.0.4
+            - 100.124.0.1
+            - 10.16.0.1
+            - 10.16.4.10
+  goldpinger:
+    valuesMerge:
+      resources:
+        requests:
+          memory: 1Gi
+        limits:
+          memory: 1Gi
+  hpc-verification:
+    targetRevision: fmt/sl_to_1
+    valuesMerge:
+      workflowOverrides:
+        ibServiceLevel: 1
+  in-cluster-config:
+    valuesMerge:
+      ipmiFanController:
+        enabled: true
+      clusterInfo:
+        certificateAuthorityData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURiekNDQWxlZ0F3SUJBZ0lRRU9XcXpvcFFybXpNSUFBZk1LL2szakFOQmdrcWhraUc5dzBCQVFzRkFEQkMKTVJJd0VBWURWUVFLRXdsRGIzSmxWMlZoZG1VeEZ6QVZCZ05WQkFzVERrbHVabkpoYzNSeWRXTjBkWEpsTVJNdwpFUVlEVlFRREV3cExkV0psY201bGRHVnpNQjRYRFRJME1ETXlOVEU0TXpFeU1sb1hEVE0wTURJd01URTRNekV5Ck1sb3dRakVTTUJBR0ExVUVDaE1KUTI5eVpWZGxZWFpsTVJjd0ZRWURWUVFMRXc1SmJtWnlZWE4wY25WamRIVnkKWlRFVE1CRUdBMVVFQXhNS1MzVmlaWEp1WlhSbGN6Q0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQwpBUW9DZ2dFQkFQS203QlV3bWg4N1JCWjNXMDBCeGFtTFFmclJaQ0RyOXBFaFVZQ3k5L3FOa1NPbjVtUHJrSCtlCjZxOW0yMVpEejBJdzZKMWpuYU1NVFdsOEU2L1RCcThLakJiazMvemJjckZsZC9UVmFPYlN2QVJRVENlc25zKzgKaGtFdjNDbHY3d0pURVdTc2V2RUVuaEVYWVBkRDFPeCsrdmM1OS9FQVNFZi83RFVYSGVlUTc5M3hLM3ExUFZDSApKL2M0RHpmbi9oYU1NRThIblNPbTd4cVV4K2tmN0RqS2p5bVBKMnFjcHNGdi96TTlLa25jUzh1Q2F2MFNLV2dzCmltaDlVa1VCTWpjajNVK1JPR1pHR3FHdUlFTE9VSnRiLzNYYlBWd00yUjBGYXZwL3NqWm9mYVBjOGVaWlBZUWEKWFc5b2ZSTmRWTnNwaEY5Q0xROHN1Wm1VN0RiVHAzVUNBd0VBQWFOaE1GOHdEZ1lEVlIwUEFRSC9CQVFEQWdLawpNQjBHQTFVZEpRUVdNQlFHQ0NzR0FRVUZCd01CQmdnckJnRUZCUWNEQWpBUEJnTlZIUk1CQWY4RUJUQURBUUgvCk1CMEdBMVVkRGdRV0JCUlJqbnE0QWJrWWhnQ1FpcCs5a2RnOTZIWHpFVEFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQUlUTHZ5MWxJckJVNGMyaU1Gd0JNVldtRjUwMFB4M3NlSjYweWZsUUhIZEdQaU5QT0FTNkp4bUNPNmxrawpXTjYzVHJuSXhjME9RNFRBY2tnRTJ3a0xoTEM0ZXVqV055NTBMaVB4dmpMaDdDNHc3dHExRFROaGpUUkVnS2U4Ck9kVTZvYTNxZnhGM1N5aCtYM0tuNU9mSlQ0NnBHVi9aQW9PeHJBUTZxM0hNQTQvejFBOVU5SFVNNzBhNkhUWUUKdXo5NGJCQ0xBbmNJNEoycmFrNVlycEw0dzNyUndnNjhFYVlxc1V1SnVxV2xWU1pBR3I3OVNaenQ1Um5FUEVLSwpBV2tDd0g0M3I0NllJZGx4TzlQRkdvWFQ5dVU4OHdBWW5JYlkxRDljc1Arcjc3VkJRYyszRlR1cGROMkZoVFlqCjlZSEhEd1VHR2JURlRhVHZ4WnYvaDM3ZUFRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+  jspolicy-policies:
+    project: jspolicies
+    syncPolicy:
+      automated:
+        prune: true
+    values:
+      policies:
+        updateAddOrgId: true
+  ipmi-exporter:
+    valuesMerge:
+      pspEnabled: true
+  katalyst-proxy:
+    valuesMerge:
+      enableExternalDNS: false
+      loadBalancerIP: "100.124.0.5"
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: prod
+            cluster_org: fe0dc0
+            region: us-west-03
+          config:
+            lokiAddress: http://100.124.0.5/loki/api/v1/push
+        psp:
+          enabled: true
+
+  rook-ceph: # TODO: enable once ceph is available
+    enabled: false
+  rook-operator:
+    enabled: false
+  traefik:
+    enabled: false
+  kubemod:
+    enabled: false
+  vector:
+    enabled: false
+    valuesMerge:
+      coreweave:
+        cluster: prod
+        cluster_org: fe0dc0
+        region: us-west-03
+        vectorIngester: 100.123.0.2 # static TSS IP for vector-ingester in region
+      vector_agent:
+        psp:
+          enabled: true
+      vector_gateway:
+        enabled: false
+        replicas: 4
+        haproxy:
+          enabled: true
+          replicas: 3
+  node-local-dns:
+    enabled: false # TODO: enable once a maintenance window is set
+  calico:  # TODO: remove and upgrade calico once a maintenance window is set
+    valuesMerge:
+      images:
+        node: ghcr.io/coreweave/calico/node:v3.26.4-patched
+        cni: docker.io/calico/cni:v3.26.1
+      calicoController:
+        image: docker.io/calico/kube-controllers:v3.26.1
+      typha:
+        image: docker.io/calico/typha:v3.26.1
+      felix:
+        excludeCoreDnsFromNat: false
+  pvmo:
+    valuesMerge:
+      # TODO: Enable after confirmation
+      deploy: false
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-west-03-coreweave-us-west-03-ngcp
+          namespace: victoria-metrics

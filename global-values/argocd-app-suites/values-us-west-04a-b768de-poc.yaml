@@ -1,0 +1,127 @@
+clusterSpec:
+  region: us-west-04
+  scope: poc
+  clusterOrg: b768de
+  cni: cilium
+  networkAllocations:
+    additionalLbCIDRs:
+      ipam:  166.19.34.0/24
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-b768de-poc.svc.cluster.local
+
+applications:
+  cilium:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployCRs: false
+      cilium:
+        hubble:
+          enabled: false
+          metrics:
+            enabled: null
+          tls:
+            enabled: false
+          ui:
+            enabled: false
+          relay:
+            enabled: false
+  cilium-crs:
+    enabled: true
+    repoURL: https://charts.core-services.ingress.int.coreweave.com/k8s-services
+    targetRevision: 1.17.0
+    valuesMerge:
+      bgpVersion2: true
+      deployLbPools: false
+  calico:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: false
+  control-plane:
+    enabled: false
+  cw-node-controller:
+    valuesMerge:
+      nodeLifeCycle:
+        zapDpu: false
+  external-secrets:
+    enabled: false
+  in-cluster-config:
+    enabled: false
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: "100.124.0.40"
+  konnectivity-agent:
+    enabled: false
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  coredns:
+    namespace: null
+    destination:
+      server: https://kubernetes.default.svc
+    valuesMerge:
+      oob: true
+      service:
+        corednsOob:
+          loadBalancerIP: "100.124.0.41"
+      kubeconfig:
+        cluster: b768de-poc
+        path: /etc/kubernetes/admin-config
+      secretName: admin-kubeconfig
+      monitoring:
+        enabled: true
+      extraServiceAnnotations:
+        metallb.universe.tf/address-pool: tss
+  node-local-dns:
+    enabled: true
+    valuesMerge:
+      vast:
+        enabled: true
+      coreDnsOob: true
+      coreDnsOobIP: "100.124.0.41"
+      nldClusterIP: "10.16.0.30"
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        cpu-control-plane:
+          targetNodes: 2
+          instanceType: cd-gp-i64-erapids
+        cpu:
+          targetNodes: 2
+          instanceType: cd-gp-a192-genoa
+        gpu-h100:
+          targetNodes: 2
+          instanceType: gd-8xh100ib-i128
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: poc
+            cluster_org: b768de
+            region: us-west-04a
+          config:
+            lokiAddress: http://100.124.0.40/loki/api/v1/push
+  rook-ceph:
+    enabled: false
+  rook-operator:
+    enabled: false
+  teleport:
+    enabled: false
+  traefik:
+    enabled: false
+  vector:
+    enabled: false
+  pvmo:
+    valuesMerge:
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-west-04-coreweave-us-west-04a-ngcp
+          namespace: victoria-metrics

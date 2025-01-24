@@ -1,0 +1,137 @@
+clusterSpec:
+  region: us-east-04
+  scope: use4-prd-1
+  clusterOrg: c3e81c
+  networkAllocations:
+    externalLbCIDRs:
+      public: 166.19.10.128/28
+
+argocd:
+  targetClusterURL: https://kube-apiserver.tenant-c3e81c-use4-prd-1.svc.cluster.local
+applications:
+  jspolicy-policies:
+    values:
+      policies:
+        mutateNodeTypeGPU: false
+  # control-plane & etcd are managed by the Katalyst operator
+  control-plane:
+    enabled: false
+  # katalyst operator manages the konnectivity-agent deployment
+  konnectivity-agent:
+    enabled: false
+  calico-cleanup-controller:
+    enabled: true
+  calico:
+    enabled: true
+    valuesMerge:
+      typha:
+        replicas: 2
+  in-cluster-config:
+    enabled: false
+  nvidia-device-plugin:
+    valuesMerge:
+      runtimeConfig: |
+        disable-require = false
+        #swarm-resource = "DOCKER_RESOURCE_GPU"
+        accept-nvidia-visible-devices-envvar-when-unprivileged = true
+        accept-nvidia-visible-devices-as-volume-mounts = true
+
+        [nvidia-container-cli]
+        #root = "/run/nvidia/driver"
+        #path = "/usr/bin/nvidia-container-cli"
+        environment = []
+        #debug = "/var/log/nvidia-container-toolkit.log"
+        #ldcache = "/etc/ld.so.cache"
+        load-kmods = true
+        #no-cgroups = false
+        #user = "root:video"
+        ldconfig = "@/sbin/ldconfig.real"
+
+        [nvidia-container-runtime]
+        #debug = "/var/log/nvidia-container-runtime.log"
+        log-level = "info"
+
+        # Specify the runtimes to consider. This list is processed in order and the PATH
+        # searched for matching executables unless the entry is an absolute path.
+        runtimes = [
+            "docker-runc",
+            "runc",
+        ]
+
+        mode = "auto"
+
+            [nvidia-container-runtime.modes.csv]
+
+            mount-spec-path = "/etc/nvidia-container-runtime/host-files-for-container.d"
+  node-local-dns:
+    enabled: true
+  nodepools:
+    enabled: true
+    values:
+      nodepools:
+        gpu:
+          targetNodes: 128
+          instanceType: gd-8xh100ib-i128
+          nodeLabels:
+            nvidia.com/cuda.driver.major: '535'
+            nvidia.com/cuda.driver.minor: '177'
+            nvidia.com/cuda.runtime.major: '12'
+            nvidia.com/cuda.runtime.minor: '2'
+            nvidia.com/gpu.count: '8'
+            nvidia.com/gpu.family: "hopper"
+            nvidia.com/gpu.memory: '85520'
+            nvidia.com/gpu.present: 'true'
+            nvidia.com/gpu.product: "NVIDIA-H100-80GB-HBM3"
+        gpu-buffer:
+          targetNodes: 6
+          instanceType: gd-8xh100ib-i128
+          nodeLabels:
+            node.coreweave.cloud/buffer: 'true'
+            nvidia.com/cuda.driver.major: '535'
+            nvidia.com/cuda.driver.minor: '177'
+            nvidia.com/cuda.runtime.major: '12'
+            nvidia.com/cuda.runtime.minor: '2'
+            nvidia.com/gpu.count: '8'
+            nvidia.com/gpu.family: "hopper"
+            nvidia.com/gpu.memory: '85520'
+            nvidia.com/gpu.present: 'true'
+            nvidia.com/gpu.product: "NVIDIA-H100-80GB-HBM3"
+        cpu-control-plane:
+          targetNodes: 2
+        cpu:
+          targetNodes: 3
+  katalyst-proxy:
+    valuesMerge:
+      loadBalancerIP: 100.124.0.16
+  metrics:
+    valuesMerge:
+      prometheus-operator:
+        kubeApiServer:
+          enabled: false
+  promtail:
+    valuesMerge:
+      promtail:
+        promtail:
+          coreweaveLabels:
+            cluster: use4-prd-1
+            cluster_org: c3e81c
+            region: us-east-04
+          config:
+            lokiAddress: http://100.124.0.16/loki/api/v1/push
+        psp:
+          enabled: false
+  # Teleport is managed by the katalyst-operator
+  teleport:
+    enabled: false
+  vast-csi:
+    useAllTenantsVipPool: false
+  #   hasDedicatedTenant: true
+  pvmo:
+    valuesMerge:
+      # TODO: Find out the reason why it was scaled down to 0
+      deploy: false
+      monitoring:
+        enabled: true
+        serviceAccount:
+          name: vmagent-us-east-04-coreweave-us-east-04-ngcp
+          namespace: victoria-metrics
