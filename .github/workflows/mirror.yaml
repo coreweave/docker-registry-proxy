@@ -12,5 +12,5 @@ jobs:
       - uses: yesolutions/mirror-action@v0.6.0
         with:
           REMOTE: 'https://gitlab.com/${{ github.repository }}'
-          GIT_USERNAME: ${{ secrets.ORG_GITLAB_SYNC_UN }}
-          GIT_PASSWORD: ${{ secrets.ORG_GITLAB_SYNC_PW }}
+          GIT_USERNAME: ${{ secrets.ACCESS_TOKEN_UN }}
+          GIT_PASSWORD: ${{ secrets.ACCESS_TOKEN_PW }}
