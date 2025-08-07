@@ -20,9 +20,8 @@ ARG DO_DEBUG_BUILD="${DEBUG_IMAGE:-"0"}"
 
 # Build mitmproxy via pip. This is heavy, takes minutes do build and creates a 90mb+ layer. Oh well.
 RUN [[ "a$DO_DEBUG_BUILD" == "a1" ]] && { echo "Debug build ENABLED." \
- && apk add --no-cache --update su-exec cargo bsd-compat-headers git g++ libffi libffi-dev libstdc++ openssl-dev python3 python3-dev py3-pip py3-wheel py3-six py3-idna py3-certifi py3-setuptools \
+ && apk add --no-cache --update su-exec cargo bsd-compat-headers git g++ libffi libffi-dev libstdc++ openssl-dev python3 python3-dev py3-pip py3-wheel py3-six py3-idna py3-certifi py3-setuptools mitmproxy \
  && rm /usr/lib/python3.*/EXTERNALLY-MANAGED \
- && LDFLAGS=-L/lib pip install MarkupSafe mitmproxy \
  && apk del --purge git g++ libffi-dev openssl-dev python3-dev py3-pip py3-wheel \
  && rm -rf ~/.cache/pip \
  ; } || { echo "Debug build disabled." ; }
