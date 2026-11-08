@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://acp.devx.us-west.core-services.ingress.coreweave.com/v1/schema.json
+---
+apiVersion: artifacts.devx.coreweave.com/v1
+kind: ArtifactRepositoryConfig
+spec:
+  owner:
+    # TODO(owner): repo has no CODEOWNERS — set the real team + slackChannel before merge
+    team: coreweave/TODO-confirm-owner
+  providers:
+    artifactory:
+      repositories:
+        oci:
+          prod:
+            visibility: internal
+          dev:
+            visibility: internal
